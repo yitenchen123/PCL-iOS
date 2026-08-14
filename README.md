@@ -1,172 +1,94 @@
-<div align="center">
-  <img src="PCL-iOS-Icon.png" alt="PCL-iOS Icon" width="120" style="border-radius: 24px;">
-</div>
+# PCL-iOS
 
-<h1 align="center">PCL-iOS</h1>
-<p align="center"><sub>PCL iOS</sub></p>
+## Introduction
+PCL-iOS is a Minecraft: Java Edition launcher for iOS, and iPadOS, based off of zhuowei's [Boardwalk](https://github.com/zhuowei/Boardwalk) project.
+* Supports most versions of Minecraft: Java Edition, from the very first beta to the newest snapshots.
+* Supports Forge, Fabric, OptiFine, and Quilt for you to customize the experience with supported mods.
+* Includes customizable on-screen controls, keyboard and mouse support, and game controller support.
+* Optimized for jailbroken and TrollStore devices to enable better capabilities.
+* Microsoft account and demo mode support for logging into Minecraft.
+* ...and much more!
 
-<div align="center">
-  <img alt="Build Status" src="https://github.com/herbrine8403/Amethyst-iOS-MyRemastered/actions/workflows/development.yml/badge.svg?branch=main">
-  <img alt="Downloads" src="https://img.shields.io/github/downloads/herbrine8403/Amethyst-iOS-MyRemastered/total?label=Downloads&style=flat">
-  <img alt="Release" src="https://img.shields.io/github/v/release/herbrine8403/Amethyst-iOS-MyRemastered?style=flat">
-  <img alt="License" src="https://img.shields.io/github/license/herbrine8403/Amethyst-iOS-MyRemastered?style=flat">
-  <img alt="Last Commit" src="https://img.shields.io/github/last-commit/herbrine8403/Amethyst-iOS-MyRemastered?color=c78aff&label=last%20commit&style=flat">
-</div>
+## Getting started with Amethyst
+The [Amethyst wiki](https://wiki.angelauramc.dev/wiki/getting_started/INSTALL.html#ios) has extensive documentation on how to install, set up, and play! For those who wish to install quickly, here's the basics:
 
-<p align="center">
-  <a href="./README.md">English</a> | <a href="./README_CN.md">Chinese</a>
-</p>
+### Requirements
+At the minimum, you'll need one of the following devices on **iOS 14.0** and later:
+- iPhone 6s and later
+- iPad (5th generation) and later
+- iPad Air (2nd generation) and later
+- iPad mini (4th generation) and later
+- iPad Pro (all models)
+- iPod touch (7th generation)
 
----
+However, we recommend one of the following devices on **iOS 14.0** and later:
+- iPhone XS and later, excluding iPhone XR and iPhone SE (2nd generation)
+- iPad (10th generation) and later
+- iPad Air (4th generation) and later
+- iPad mini (6th generation) and later
+- iPad Pro (all models, except for 9.7-inch)
 
-A premium Minecraft: Java Edition launcher for iOS and iPadOS, rebuilt from the ground up on the official Amethyst project. It delivers a refined mobile experience with comprehensive mod management, intelligent renderer selection, and deep platform integration.
+Recommended devices provide a smoother and more enjoyable gameplay experience compared to other supported devices.
+- iOS 17.x and iOS 18.x is supported. However, a computer is required. For more information, please check out [the official wiki](https://wiki.angelauramc.dev/wiki/faq/ios/JIT.html#what-are-the-methods-to-enable-jit)
 
----
+### Setting up to sideload
+Amethyst can be sideloaded in many ways. Our recommended solution is to install [TrollStore](https://github.com/opa334/TrollStore) if your iOS version supports it. Installing with TrollStore allows you to permanently sign the application, automatically enable JIT, and increase memory limits.
 
-## Table of Contents
+If you cannot, [AltStore](https://altstore.io) and [SideStore](https://sidestore.io) are your next best options.
+- Signing services that do not use your UDID (and use distribution certificates) are not supported, as Amethyst requires capabilities they do not allow. However, if you do managed to gain access to a Development certificate, due to it having the necessary entitlement (being com.apple.security.get-task-allow) to attach a debugger to the running process (enabling JIT), you may use a Development certificate.
+  
+- Only install sideloading software and Amethyst from trusted sources. We are not responsible for any harm caused by using unofficial software.
+- Jailbreaks also benefit from permenant signing, autoJIT, and increased memory limits. However, we do not recommend them on devices intended for regular use.
 
-- [Core Features](#core-features)
-- [Quick Start](#quick-start)
-  - [Device Requirements](#device-requirements)
-  - [Sideload Preparation](#sideload-preparation)
-  - [Installation](#installation)
-  - [Enabling JIT](#enabling-jit)
-- [Contributors](#contributors)
-- [Third-Party Components](#third-party-components)
-- [Sponsor](#sponsor)
+### Installing Amethyst
+#### Release build (TrollStore)
+1. Download an IPA of Amethyst in [Releases](https://github.com/AngelAuraMC/Amethyst-iOS/releases).
+2. Open the package in TrollStore using the share menu.
 
-## Core Features
+#### Release build (AltStore/SideStore trusted source)
+These builds will be available soon, stay tuned.
 
-- **Modern UI Redesign** -- The interface has been deeply refined for a contemporary, polished visual style.
-- **Resource Management & Downloads** -- Browse, enable, disable, and delete mods, shader packs, resource packs, and other assets, with integrated Modrinth and CurseForge download support.
-- **Modpack Import** -- Import ZIP-format modpacks directly from the launcher interface.
-- **Smart Download Sources** -- Switch between Mojang Official, BMCLAPI mirror, and other sources on the fly for optimal download speeds.
-- **Complete Chinese Localization** -- Fully translated interface with native-quality Chinese language support.
-- **Unrestricted Accounts** -- Local accounts, demo mode, and third-party authentication all supported; no Microsoft account required to download and play.
-- **Multi-Account** -- Seamlessly switch between Microsoft, local, and third-party authentication accounts.
-- **Auto Renderer Selection** -- Automatically chooses the optimal rendering backend (including MobileGlues, MoltenVK, and more) when set to Auto.
-- **Auto JVM Selection** -- Automatically selects the correct JVM version (Java 8, 17, 21, or 25) based on the game version.
-- **Minecraft 26.X Support** -- Experimental support for Minecraft 26.x.
-- **Custom Mouse Pointer** -- Customize the virtual mouse pointer skin in settings.
-- **Custom News URL** -- Configure a custom news feed URL for the launcher home screen.
-- **TouchController Support** -- Communicates with the TouchController mod via both UDP local proxy and XCFramework, delivering full touchscreen control on iOS.
-- **AI Integration** -- (In development) The goal is to enable AI to fully manage the launcher, including resource downloads and instance management.
-- **Custom App Icons** -- (In development)
+#### Nightly builds
+*These builds can contain game-breaking bugs. Use with caution.*
+1. Download an IPA build of Amethyst in the [Actions tab](https://github.com/AngelAuraMC/Amethyst-iOS/actions).
+2. Open the downloaded IPA in your sideloading app to install.
 
-... and much more to explore!
-
-> [!NOTE]
-> There are no plans to port this remastered version to Android. The Android ecosystem already has excellent launchers such as [Zalith Launcher](https://github.com/ZalithLauncher/ZalithLauncher), [Fold Craft Launcher](https://github.com/FCL-Team/FoldCraftLauncher), and ShardLauncher. For the official Android version, visit [Amethyst-Android](https://github.com/AngelAuraMC/Amethyst-Android).
-
-## Quick Start
-
-For complete documentation, refer to the [Amethyst Official Wiki](https://wiki.angelauramc.dev/wiki/getting_started/INSTALL.html#ios) or the [Bilibili tutorial](https://b23.tv/KyxZr12). Below is a condensed guide.
-
-### Device Requirements
-
-| Tier | iOS Version | Supported Devices |
-|------|-------------|-------------------|
-| **Minimum** | iOS 14.0+ | iPhone 6s+, iPad 5th gen+, iPad Air 2+, iPad mini 4+, all iPad Pro, iPod touch 7th gen |
-| **Recommended** | iOS 14.5+ | iPhone XS+ (excl. XR/SE 2nd gen), iPad 10th gen+, iPad Air 4th gen+, iPad mini 6th gen+, iPad Pro (excl. 9.7-inch) |
-
-> [!CAUTION]
-> iOS 14.0--14.4.2 has known critical compatibility issues. **Upgrading to iOS 14.5 or later is strongly recommended.** iOS 17.x and 18.x are supported but require a companion computer for initial JIT configuration (see the [Official JIT Guide](https://wiki.angelauramc.dev/wiki/faq/ios/JIT.html#what-are-the-methods-to-enable-jit)). iOS 26.x is installable but has not undergone dedicated adaptation; expect unpredictable behavior.
-
-### Sideload Preparation
-
-Prioritize tools that support permanent signing and automatic JIT enablement:
-
-1. **TrollStore** *(Recommended)* -- Permanent signing, automatic JIT, increased memory limits. Compatible with select iOS versions. [Download from official repo](https://github.com/opa334/TrollStore)
-2. **AltStore / SideStore** *(Alternative)* -- Requires periodic re-signing; initial setup needs a computer and Wi-Fi. Only compatible with **development certificates** (must include `com.apple.security.get-task-allow` entitlement for JIT). Distribution certificate signing services are not supported.
-
-> [!WARNING]
-> Only download sideloading tools and IPA files from official or trusted sources. The author is not responsible for device issues caused by unofficial software. Jailbroken devices support permanent signing, but daily-driver jailbreaking is not recommended.
-
-### Installation
-
-<details>
-<summary><b>Official Release (TrollStore)</b></summary>
-
-1. Download the `.tipa` package from [Releases](https://github.com/herbrine8403/Amethyst-iOS-MyRemastered/releases).
-2. Open the file with TrollStore via the system share menu to complete installation.
-</details>
-
-<details>
-<summary><b>Official Release (AltStore / SideStore)</b></summary>
-
-1. Download the `.ipa` package from [Releases](https://github.com/herbrine8403/Amethyst-iOS-MyRemastered/releases).
-2. Import the IPA into your sideloading tool following its standard installation procedure.
-</details>
-
-<details>
-<summary><b>Nightly Builds (Development Testing)</b></summary>
-
-> [!CAUTION]
-> Nightly builds may contain critical bugs including crashes and startup failures. Use only for development and testing purposes.
-
-1. Navigate to the [GitHub Actions](https://github.com/herbrine8403/Amethyst-iOS-MyRemastered/actions) page and download the latest IPA artifact.
-2. Import the IPA into your sideloading tool (AltStore, SideStore, etc.) to install.
-</details>
+#### Nightly builds (AltStore/SideStore trusted sources)
+These builds will be available soon, stay tuned.
 
 ### Enabling JIT
+Amethyst makes use of **just-in-time compilation**, or JIT, to provide usable speeds for the end user. JIT is not supported on iOS without the application being debugged, so workarounds are required to enable it. You can use this chart to determine the best solution for you and your setup.
+| Application         | AltStore | SideStore | StikDebug | TrollStore | Jitterbug          | Jailbroken |
+|---------------------|----------|-----------|-----------|------------|--------------------|------------|
+| Requires ext-device | Yes      | Yes (#)   | Yes (#)   | No         | If VPN unavailable | No         |
+| Requires Wi-Fi      | Yes      | Yes (#)   | Yes (#)   | No         | Yes                | No         |
+| Auto enabled        | Yes (*)  | No        | Yes       | Yes        | No                 | Yes        |
 
-JIT (Just-In-Time compilation) is essential for smooth gameplay. Choose the approach that matches your environment:
-
-| Tool | External Device | Wi-Fi Required | Auto-Enable | Notes |
-|------|:---:|:---:|:---:|-------|
-| TrollStore | No | No | Yes | Preferred; no additional action needed |
-| AltStore | Yes | Yes | Yes | Requires AltServer running on local network |
-| SideStore | First time only | First time only | No | Device/network-free after initial setup |
-| StikDebug | First time only | First time only | Yes | Device/network-free after initial setup |
-| Jitterbug | Yes (without VPN) | Yes | No | Manual trigger required |
-| Jailbroken | No | No | Yes | System-level automatic support |
+(*) AltServer running on the local network is required.
+(#) Only the first time.
 
 ## Contributors
+PCL-iOS is amazing, and surprisingly stable, and it wouldn't be this way without the commmunity that helped and contribute to the project! Some notable names:
 
-- [@yitenchen123](https://github.com/yitenchen123) -- Project Maintainer
-- [@EternityQwQ](https://github.com/EternityQwQ) -- Add Metal Universal Mod support, allowing the launcher to use Metal for rendering Minecraft
-- [@LanRhyme](https://github.com/LanRhyme) -- ShardLauncher author; iOS 26 compatibility and logging improvements
-- [@WeiErLiTeo](https://github.com/WeiErLiTeo) -- Mod download integration, TouchController optimizations, and two-finger long-press keyboard trigger
-- [@Li2548](https://github.com/Li2548) -- Upstream synchronization
+@Robit-space-iOS port developer
 
-## Third-Party Components
-
-| Component | Purpose | License | Source |
-|-----------|---------|---------|--------|
-| Caciocavallo | AWT runtime framework | GPL-2.0 | [GitHub](https://github.com/PojavLauncherTeam/caciocavallo) |
-| jsr305 | Code annotation support | BSD-3 | [Google Code](https://code.google.com/p/jsr-305) |
-| Boardwalk | Core functionality adaptation | Apache-2.0 | [GitHub](https://github.com/zhuowei/Boardwalk) |
-| GL4ES | OpenGL-to-GLES translation | MIT | [GitHub](https://github.com/ptitSeb/gl4es) |
-| Mesa 3D | 3D graphics library | MIT | [GitLab](https://gitlab.freedesktop.org/mesa/mesa) |
-| MetalANGLE | Metal-to-OpenGL ES translation | BSD-2 | [GitHub](https://github.com/khanhduytran0/metalangle) |
-| MoltenVK | Vulkan-to-Metal translation | Apache-2.0 | [GitHub](https://github.com/KhronosGroup/MoltenVK) |
-| openal-soft | Cross-platform 3D audio | LGPL-2.0 | [GitHub](https://github.com/kcat/openal-soft) |
-| Azul Zulu JDK | Java runtime (8/17/21/25) | GPL-2.0 | [Website](https://www.azul.com/downloads/?package=jdk) |
-| LWJGL3 | Java game development library | BSD-3 | [GitHub](https://github.com/PojavLauncherTeam/lwjgl3) |
-| LWJGLX | LWJGL2 compatibility layer | -- | [GitHub](https://github.com/PojavLauncherTeam/lwjglx) |
-| DBNumberedSlider | UI slider control | Apache-2.0 | [GitHub](https://github.com/khanhduytran0/DBNumberedSlider) |
-| fishhook | Dynamic library rebinding | BSD-3 | [GitHub](https://github.com/khanhduytran0/fishhook) |
-| shaderc | Vulkan shader compilation | Apache-2.0 | [GitHub](https://github.com/khanhduytran0/shaderc) |
-| NRFileManager | File management utilities | MPL-2.0 | [GitHub](https://github.com/mozilla-mobile/firefox-ios) |
-| AltKit | AltStore integration | -- | [GitHub](https://github.com/rileytestut/AltKit) |
-| UnzipKit | ZIP archive handling | BSD-2 | [GitHub](https://github.com/abbeycode/UnzipKit) |
-| DyldDeNeuralyzer | Library verification bypass | -- | [GitHub](https://github.com/xpn/DyldDeNeuralyzer) |
-| MobileGlues | Third-party renderer | LGPL-2.1 | [GitHub](https://github.com/MobileGL-Dev/MobileGlues) |
-| LTW | OpenGL Core-to-ES wrapper | LGPL-3.0 | [GitHub](https://github.com/MojoLauncher/LTW) |
-| authlib-injector | Third-party authentication | AGPL-3.0 | [GitHub](https://github.com/yushijinhun/authlib-injector) |
-
-Additional thanks to [MCHeads](https://mc-heads.net) for Minecraft avatar services, [Modrinth](https://modrinth.com) for mod distribution, and [BMCLAPI](https://bmclapidoc.bangbang93.com) for Minecraft download mirroring.
-
-## Sponsor
-
-If you find this project valuable, consider supporting development through [Ko-Fi](https://ko-fi.com/herbrine8403), [爱发电](https://afdian.com/a/herbrine8403), or [WeChat Reward Code](donate.png).
-
-## Star History
-
-<a href="https://www.star-history.com/?type=date&repos=herbrine8403%2FAmethyst-iOS-MyRemastered">
- <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=herbrine8403/Amethyst-iOS-MyRemastered&type=date&theme=dark&legend=top-left&sealed_token=q1uFKbS7fO8owrcjy_kYTkCnnl8PNgHAgBSrWop8Y3ULDdvwOwDfORslSVVXABSTwrsdu14OM3fshRaNbXouxMU5IenXF0T5r5L6rxKIN2n29T6Fv4UYyA" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=herbrine8403/Amethyst-iOS-MyRemastered&type=date&legend=top-left&sealed_token=q1uFKbS7fO8owrcjy_kYTkCnnl8PNgHAgBSrWop8Y3ULDdvwOwDfORslSVVXABSTwrsdu14OM3fshRaNbXouxMU5IenXF0T5r5L6rxKIN2n29T6Fv4UYyA" />
-   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=herbrine8403/Amethyst-iOS-MyRemastered&type=date&legend=top-left&sealed_token=q1uFKbS7fO8owrcjy_kYTkCnnl8PNgHAgBSrWop8Y3ULDdvwOwDfORslSVVXABSTwrsdu14OM3fshRaNbXouxMU5IenXF0T5r5L6rxKIN2n29T6Fv4UYyA" />
- </picture>
-</a>
+## Third party components and their licenses
+- [Caciocavallo](https://github.com/PojavLauncherTeam/caciocavallo): [GNU GPLv2 License](https://github.com/PojavLauncherTeam/caciocavallo/blob/master/LICENSE).
+- [jsr305](https://code.google.com/p/jsr-305): [3-Clause BSD License](http://opensource.org/licenses/BSD-3-Clause).
+- [Boardwalk](https://github.com/zhuowei/Boardwalk): [Apache 2.0 License](https://github.com/zhuowei/Boardwalk/blob/master/LICENSE) 
+- [GL4ES](https://github.com/ptitSeb/gl4es) by @lunixbochs @ptitSeb: [MIT License](https://github.com/ptitSeb/gl4es/blob/master/LICENSE).
+- [Mesa 3D Graphics Library](https://gitlab.freedesktop.org/mesa/mesa): [MIT License](https://docs.mesa3d.org/license.html).
+- [MetalANGLE](https://github.com/khanhduytran0/metalangle) by @kakashidinho and ANGLE team: [BSD 2.0 License](https://github.com/kakashidinho/metalangle/blob/master/LICENSE).
+- [MoltenVK](https://github.com/KhronosGroup/MoltenVK): [Apache 2.0 License](https://github.com/KhronosGroup/MoltenVK/blob/master/LICENSE).
+- [openal-soft](https://github.com/kcat/openal-soft): [LGPLv2 License](https://github.com/kcat/openal-soft/blob/master/COPYING).
+- [Azul Zulu JDK](https://www.azul.com/downloads/?package=jdk): [GNU GPLv2 License](https://openjdk.java.net/legal/gplv2+ce.html).
+- [LWJGL3](https://github.com/PojavLauncherTeam/lwjgl3): [BSD-3 License](https://github.com/LWJGL/lwjgl3/blob/master/LICENSE.md).
+- [LWJGLX](https://github.com/PojavLauncherTeam/lwjglx) (LWJGL2 API compatibility layer for LWJGL3): unknown license.
+- [DBNumberedSlider](https://github.com/khanhduytran0/DBNumberedSlider): [Apache 2.0 License](https://github.com/immago/DBNumberedSlider/blob/master/LICENSE)
+- [fishhook](https://github.com/khanhduytran0/fishhook): [BSD-3 License](https://github.com/facebook/fishhook/blob/main/LICENSE).
+- [shaderc](https://github.com/khanhduytran0/shaderc) (used by Vulkan rendering mods): [Apache 2.0 License](https://github.com/google/shaderc/blob/main/LICENSE).
+- [NRFileManager](https://github.com/mozilla-mobile/firefox-ios/tree/b2f89ac40835c5988a1a3eb642982544e00f0f90/ThirdParty/NRFileManager): [MPL-2.0 License](https://www.mozilla.org/en-US/MPL/2.0)
+- [AltKit](https://github.com/rileytestut/AltKit)
+- [UnzipKit](https://github.com/abbeycode/UnzipKit): [BSD-2 License](https://github.com/abbeycode/UnzipKit/blob/master/LICENSE).
+- [DyldDeNeuralyzer](https://github.com/xpn/DyldDeNeuralyzer): bypasses Library Validation for loading external runtime
+- Thanks to [MCHeads](https://mc-heads.net) for providing Minecraft avatars.
