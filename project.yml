@@ -16,6 +16,7 @@ targets:
       - path: Resources
     settings:
       base:
+        INFOPLIST_FILE: Resources/Info.plist
         PRODUCT_BUNDLE_IDENTIFIER: com.robitspace.pclios
         PRODUCT_NAME: PCL-iOS
         TARGETED_DEVICE_FAMILY: "1,2"
