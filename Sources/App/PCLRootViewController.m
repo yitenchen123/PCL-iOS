@@ -1,4 +1,5 @@
-#import "PCLRootViewController.h" import "PCLTopBarView.h"
+#import "PCLRootViewController.h"
+#import "PCLTopBarView.h"
 @interface PCLRootViewController () <PCLTopBarViewDelegate> @property (nonatomic, strong) PCLTopBarView *topBar; @property (nonatomic, strong) UIView 
 *contentView; @property (nonatomic, strong) UILabel *pageLabel; @end @implementation PCLRootViewController - (void)viewDidLoad {
     [super viewDidLoad]; self.view.backgroundColor = [UIColor systemBackgroundColor]; [self setupTopBar]; [self setupContentView]; [self 
