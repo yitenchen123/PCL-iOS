@@ -1,10 +1,2 @@
-name: PCL-iOS options: bundleIdPrefix: com.robitspace deploymentTarget: iOS: "16.0" settings: base: CLANG_ENABLE_OBJC_ARC: YES targets: PCL-iOS: type: 
-    application platform: iOS deploymentTarget: "16.0" sources:
-      - path: Sources/App - path: Resources settings: base: PRODUCT_BUNDLE_IDENTIFIER: com.robitspace.pclios PRODUCT_NAME: PCL-iOS TARGETED_DEVICE_FAMILY: "1,2" 
-        SUPPORTS_MACCATALYST: NO CODE_SIGN_STYLE: Automatic GENERATE_INFOPLIST_FILE: YES INFOPLIST_KEY_CFBundleDisplayName: PCL-iOS 
-        INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents: YES INFOPLIST_KEY_UILaunchScreen_Generation: YES 
-        INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad:
-          - UIInterfaceOrientationLandscapeLeft - UIInterfaceOrientationLandscapeRight INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone: - 
-          UIInterfaceOrientationPortrait - UIInterfaceOrientationLandscapeLeft - UIInterfaceOrientationLandscapeRight
-    scheme:
-      gatherCoverageData: false
+name: PCL-iOS
+  bundleIdPrefix: com.robitspace
