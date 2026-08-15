@@ -24,7 +24,9 @@
         [self.buttonStack addArrangedSubview:button]; [buttons addObject:button];
     }
     self.buttons = buttons;  [NSLayoutConstraint activateConstraints:@[
-        [self.buttonStack.centerXAnchor constraintEqualToAnchor:self.centerXAnchor], [self.buttonStack.centerYAnchor constraintEqualToAnchor:self.centerXAnchor]];
+        [self.buttonStack.centerXAnchor constraintEqualToAnchor:self.centerXAnchor],
+        [self.buttonStack.centerYAnchor constraintEqualToAnchor:self.centerXAnchor],
+]];
         self.selectedPage = PCLPageTypeLaunch; [self updateButtonAppearance];
 }
 - (void)pageButtonPressed:(UIButton *)sender { PCLPageType page = (PCLPageType)sender.tag; [self selectPage:page animated:YES]; if ([self.delegate
