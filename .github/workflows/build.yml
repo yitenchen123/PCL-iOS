@@ -1,11 +1,49 @@
-name: Build PCL-iOS on: push: branches: - dev workflow_dispatch: jobs: build: runs-on: macos-latest steps: - name: Checkout uses: actions/checkout@v4 - name: 
-      Install XcodeGen
-        run: brew install xcodegen - name: Generate Xcode Project run: xcodegen generate - name: Build PCL-iOS run: | xcodebuild \ -project PCL-iOS.xcodeproj \ 
-            -scheme PCL-iOS \ -configuration Release \ -sdk iphoneos \ CODE_SIGNING_ALLOWED=NO \ CODE_SIGNING_REQUIRED=NO \ CODE_SIGN_IDENTITY="" \ build
-      - name: Create unsigned IPA run: | APP_PATH=$(find ~/Library/Developer/Xcode/DerivedData \ -type d \ -path "*/Build/Products/Release-iphoneos/PCL-iOS.app" 
-            \
-            | head -n 1)
-          if [ -z "$APP_PATH" ]; then echo "PCL-iOS.app not found" exit 1 fi mkdir -p Payload cp -R "$APP_PATH" Payload/PCL-iOS.app zip -r PCL-iOS-unsigned.ipa 
-          Payload
-      - name: Upload IPA uses: actions/upload-artifact@v4 with: name: PCL-iOS-unsigned
+name: Build PCL-iOS
+
+on:
+  push:
+    branches:
+      - dev
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode Project
+        run: xcodegen generate
+      - name: Build PCL-iOS
+        run: |
+          xcodebuild \
+            -project PCL-iOS.xcodeproj \
+            -scheme PCL-iOS \
+            -configuration Release \
+            -sdk iphoneos \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            build
+      - name: Create unsigned IPA
+        run: |
+          APP_PATH=$(find ~/Library/Developer/Xcode/DerivedData -type d -path "*/Build/Products/Release-iphoneos/PCL-iOS.app" | head -n 1)
+
+          if [ -z "$APP_PATH" ]; then
+            echo "PCL-iOS.app not found"
+            exit 1
+          fi
+
+          mkdir -p Payload
+          cp -R "$APP_PATH" Payload/PCL-iOS.app
+          zip -r PCL-iOS-unsigned.ipa Payload
+
+      - name: Upload IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: PCL-iOS-unsigned
           path: PCL-iOS-unsigned.ipa
