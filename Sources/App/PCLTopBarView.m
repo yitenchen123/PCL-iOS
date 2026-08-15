@@ -25,7 +25,7 @@
     }
     self.buttons = buttons;  [NSLayoutConstraint activateConstraints:@[
         [self.buttonStack.centerXAnchor constraintEqualToAnchor:self.centerXAnchor],
-        [self.buttonStack.centerYAnchor constraintEqualToAnchor:self.centerXAnchor],
+        [self.buttonStack.centerYAnchor constraintEqualToAnchor:self.centerYAnchor],
 ]];
         self.selectedPage = PCLPageTypeLaunch; [self updateButtonAppearance];
 }
