@@ -16,7 +16,6 @@
     UILayoutConstraintAxisHorizontal; self.buttonStack.alignment = UIStackViewAlignmentCenter; self.buttonStack.spacing = 8.0;
     self.buttonStack.translatesAutoresizingMaskIntoConstraints = NO; [self addSubview:self.buttonStack]; for (NSInteger i = 0; i < titles.count; i++) {
         UIButton *button = [UIButton buttonWithType:UIButtonTypeSystem]; [button setTitle:titles[i] forState:UIControlStateNormal]; button.tag = i;
-        button.titleLabel.font =
         button.layer.cornerRadius = 13.5;
         button.clipsToBounds = YES;
         button.contentEdgeInsets = UIEdgeInsetsMake(5.0, 14.0, 5.0, 14.0);
@@ -26,7 +25,6 @@
     }
     self.buttons = buttons;  [NSLayoutConstraint activateConstraints:@[
         [self.buttonStack.centerXAnchor constraintEqualToAnchor:self.centerXAnchor], [self.buttonStack.centerYAnchor constraintEqualToAnchor:self.centerXAnchor],
-            constraintEqualToAnchor:self.bottomAnchor],
         self.selectedPage = PCLPageTypeLaunch; [self updateButtonAppearance];
 }
 - (void)pageButtonPressed:(UIButton *)sender { PCLPageType page = (PCLPageType)sender.tag; [self selectPage:page animated:YES]; if ([self.delegate
