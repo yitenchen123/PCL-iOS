@@ -1,2 +1,21 @@
 name: PCL-iOS
+options:
   bundleIdPrefix: com.robitspace
+  deploymentTarget:
+    iOS: "14.0"
+settings:
+  base:
+    CLANG_ENABLE_OBJC_ARC: YES
+targets:
+  PCL-iOS:
+    type: application
+    platform: iOS
+    deploymentTarget: "14.0"
+    sources:
+      - path: Sources/App
+      - path: Resources
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.robitspace.pclios
+        PRODUCT_NAME: PCL-iOS
+        TARGETED_DEVICE_FAMILY: "1,2"
