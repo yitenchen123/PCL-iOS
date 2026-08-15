@@ -7,9 +7,9 @@
 }
 - (void)setupTopBar { self.topBar = [[PCLTopBarView alloc] init]; self.topBar.delegate = self; self.topBar.translatesAutoresizingMaskIntoConstraints = NO; 
     [self.view addSubview:self.topBar]; [NSLayoutConstraint activateConstraints:@[
-        [self.topBar.topAnchor constraintEqualToAnchor:self.view.safeAreaLayoutGuide.topAnchor], [self.topBar.leadingAnchor 
+        [self.topBar.topAnchor constraintEqualToAnchor:self.view.topAnchor], [self.topBar.leadingAnchor 
             constraintEqualToAnchor:self.view.leadingAnchor],
-        [self.topBar.trailingAnchor constraintEqualToAnchor:self.view.trailingAnchor], [self.topBar.heightAnchor constraintEqualToConstant:58.0] ]];
+        [self.topBar.trailingAnchor constraintEqualToAnchor:self.view.trailingAnchor], [self.topBar.heightAnchor constraintEqualToConstant:64.0] ]];
 }
 - (void)setupContentView { self.contentView = [[UIView alloc] init]; self.contentView.translatesAutoresizingMaskIntoConstraints = NO; [self.view 
     addSubview:self.contentView]; [NSLayoutConstraint activateConstraints:@[
@@ -29,5 +29,5 @@
             = @"下载"; break;
         case PCLPageTypeMultiplayer: self.pageLabel.text = @"联机"; break; case PCLPageTypeSettings: self.pageLabel.text = @"设置"; break;
     }
-}
-@end
+- (BOOL)prefersStatusBarHidden { return YES;}
+}@end
