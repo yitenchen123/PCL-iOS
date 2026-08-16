@@ -38,6 +38,6 @@ jobs:
       - name: Upload IPA
         uses: actions/upload-artifact@v4
         with:
-          name: com.pcl-ios.pcl--ios
+          name: com.pcl-ios.pcl--ios.zip
           path: com.pcl-ios.pcl--ios.ipa
           if-no-files-found: error
