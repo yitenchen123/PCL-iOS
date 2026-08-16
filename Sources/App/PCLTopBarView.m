@@ -35,7 +35,7 @@
     self.pclLabel.text = @"PCL";
     self.pclLabel.textColor = UIColor.whiteColor;
     self.pclLabel.font =
-        [UIFont systemFontOfSize:20.0
+        [UIFont systemFontOfSize:26.0
                           weight:UIFontWeightBold];
 
     [self addSubview:self.pclLabel];
@@ -65,7 +65,7 @@
         UILayoutConstraintAxisHorizontal;
     self.buttonStack.alignment =
         UIStackViewAlignmentCenter;
-    self.buttonStack.spacing = 6.0;
+    self.buttonStack.spacing = 16.0;
 
     self.buttonStack.translatesAutoresizingMaskIntoConstraints = NO;
 
@@ -106,8 +106,8 @@
             constraintEqualToAnchor:self.pclLabel.trailingAnchor
                            constant:6.0],
 
-        [self.iosBadge.centerYAnchor
-            constraintEqualToAnchor:self.pclLabel.centerYAnchor],
+        [self.iosBadge.bottomAnchor
+            constraintEqualToAnchor:self.pclLabel.bottomAnchor]
 
         [self.iosBadge.widthAnchor
             constraintEqualToConstant:28.0],
@@ -118,9 +118,8 @@
         [self.buttonStack.centerYAnchor
             constraintEqualToAnchor:self.centerYAnchor],
 
-        [self.buttonStack.trailingAnchor
-            constraintEqualToAnchor:self.trailingAnchor
-                           constant:-12.0]
+        [self.buttonStack.centerXAnchor
+            constraintEqualToAnchor:self.centerXAnchor]
     ]];
 
     self.selectedPage = PCLPageTypeLaunch;

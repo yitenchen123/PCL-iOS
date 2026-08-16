@@ -52,36 +52,6 @@ didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
             constraintEqualToAnchor:splash.bottomAnchor]
     ]];
 
-    UIBlurEffect *blurEffect =
-        [UIBlurEffect effectWithStyle:
-            UIBlurEffectStyleSystemUltraThinMaterial];
-
-    UIVisualEffectView *blurView =
-        [[UIVisualEffectView alloc] initWithEffect:blurEffect];
-    blurView.translatesAutoresizingMaskIntoConstraints = NO;
-    [splash addSubview:blurView];
-
-    [NSLayoutConstraint activateConstraints:@[
-        [blurView.leadingAnchor
-            constraintEqualToAnchor:splash.leadingAnchor],
-
-        [blurView.trailingAnchor
-            constraintEqualToAnchor:splash.trailingAnchor],
-        [blurView.topAnchor
-            constraintEqualToAnchor:splash.topAnchor],
-
-        [blurView.bottomAnchor
-            constraintEqualToAnchor:splash.bottomAnchor]
-    ]];
-
-    UIImageView *mainImageView =
-        [[UIImageView alloc] initWithImage:image];
-    mainImageView.translatesAutoresizingMaskIntoConstraints = NO;
-    mainImageView.contentMode =
-        UIViewContentModeScaleAspectFit;
-
-    [splash addSubview:mainImageView];
-
     [NSLayoutConstraint activateConstraints:@[
         [mainImageView.leadingAnchor
             constraintEqualToAnchor:splash.leadingAnchor],
