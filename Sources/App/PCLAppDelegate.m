@@ -38,18 +38,6 @@ didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
 
     [splash addSubview:backgroundView];
 
-    [NSLayoutConstraint activateConstraints:@[
-        [mainImageView.leadingAnchor
-            constraintEqualToAnchor:splash.leadingAnchor],
-        [mainImageView.trailingAnchor
-            constraintEqualToAnchor:splash.trailingAnchor],
-
-        [mainImageView.topAnchor
-            constraintEqualToAnchor:splash.topAnchor],
-
-        [mainImageView.bottomAnchor
-            constraintEqualToAnchor:splash.bottomAnchor]
-    ]];
     [self.window addSubview:splash];
 
     dispatch_after(
