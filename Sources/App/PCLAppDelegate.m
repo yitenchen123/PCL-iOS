@@ -12,7 +12,6 @@ didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
         [[PCLRootViewController alloc] init];
 
     self.window.rootViewController = root;
-
     [self.window makeKeyAndVisible];
     UIView *splash =
         [[UIView alloc] initWithFrame:self.window.bounds];
@@ -29,17 +28,16 @@ didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
 
     UIImage *image =
         [UIImage imageNamed:@"SplashScreen"];
+
     UIImageView *backgroundView =
         [[UIImageView alloc] initWithImage:image];
-
     backgroundView.translatesAutoresizingMaskIntoConstraints = NO;
-
     backgroundView.contentMode =
         UIViewContentModeScaleAspectFill;
-
     backgroundView.clipsToBounds = YES;
 
     [splash addSubview:backgroundView];
+
     [NSLayoutConstraint activateConstraints:@[
         [backgroundView.leadingAnchor
             constraintEqualToAnchor:splash.leadingAnchor],
@@ -53,43 +51,40 @@ didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
         [backgroundView.bottomAnchor
             constraintEqualToAnchor:splash.bottomAnchor]
     ]];
+
     UIBlurEffect *blurEffect =
         [UIBlurEffect effectWithStyle:
             UIBlurEffectStyleSystemUltraThinMaterial];
 
     UIVisualEffectView *blurView =
-        [[UIVisualEffectView alloc]
-            initWithEffect:blurEffect];
-
+        [[UIVisualEffectView alloc] initWithEffect:blurEffect];
     blurView.translatesAutoresizingMaskIntoConstraints = NO;
-
     [splash addSubview:blurView];
+
     [NSLayoutConstraint activateConstraints:@[
         [blurView.leadingAnchor
             constraintEqualToAnchor:splash.leadingAnchor],
 
         [blurView.trailingAnchor
             constraintEqualToAnchor:splash.trailingAnchor],
-
         [blurView.topAnchor
             constraintEqualToAnchor:splash.topAnchor],
 
         [blurView.bottomAnchor
             constraintEqualToAnchor:splash.bottomAnchor]
     ]];
+
     UIImageView *mainImageView =
         [[UIImageView alloc] initWithImage:image];
-
     mainImageView.translatesAutoresizingMaskIntoConstraints = NO;
-
     mainImageView.contentMode =
         UIViewContentModeScaleAspectFit;
 
     [splash addSubview:mainImageView];
+
     [NSLayoutConstraint activateConstraints:@[
         [mainImageView.leadingAnchor
             constraintEqualToAnchor:splash.leadingAnchor],
-
         [mainImageView.trailingAnchor
             constraintEqualToAnchor:splash.trailingAnchor],
 
@@ -100,6 +95,7 @@ didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
             constraintEqualToAnchor:splash.bottomAnchor]
     ]];
     [self.window addSubview:splash];
+
     dispatch_after(
         dispatch_time(
             DISPATCH_TIME_NOW,
@@ -116,33 +112,14 @@ didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
                 CGAffineTransformMakeScale(1.04, 1.04);
 
             splash.alpha = 0.0;
-
         } completion:^(BOOL finished) {
 
             [splash removeFromSuperview];
 
-        }];
-            if ([root respondsToSelector:
-                 @selector(playEntranceAnimation)]) {
-
-                [root performSelector:
-                    @selector(playEntranceAnimation)];
-            }
-        } completion:^(BOOL finished) {
-
-            [splash removeFromSuperview];
-
-            if ([root respondsToSelector:
-                 @selector(playEntranceAnimation)]) {
-
-                [root performSelector:
-                    @selector(playEntranceAnimation)];
-            }
-
+            [root playEntranceAnimation];
         }];
     });
 
     return YES;
 }
-
 @end
