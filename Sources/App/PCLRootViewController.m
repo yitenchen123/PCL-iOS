@@ -2,16 +2,14 @@
 #import "PCLTopBarView.h"
 @interface PCLRootViewController () <PCLTopBarViewDelegate> @property (nonatomic, strong) PCLTopBarView *topBar; @property (nonatomic, strong) UIView
 *contentView; @property (nonatomic, strong) UILabel *pageLabel; @end @implementation PCLRootViewController - (void)viewDidLoad {
-    [super viewDidLoad]; self.view.backgroundColor = [UIColor systemBackgroundColor]; [self setupTopBar]; [self setupContentView]; [self
-    showPage:PCLPageTypeLaunch];
-}
-- (void)setupTopBar { self.topBar = [[PCLTopBarView alloc] init]; self.topBar.delegate = self; self.topBar.translatesAutoresizingMaskIntoConstraints = NO;
-    [self.view addSubview:self.topBar]; [NSLayoutConstraint activateConstraints:@[
-        [self.topBar.topAnchor constraintEqualToAnchor:self.view.topAnchor], [self.topBar.leadingAnchor
-            constraintEqualToAnchor:self.view.leadingAnchor],
-        [self.topBar.trailingAnchor constraintEqualToAnchor:self.view.trailingAnchor], [self.topBar.heightAnchor constraintEqualToConstant:64.0] ]];
-}
-- (void)setupContentView { self.contentView = [[UIView alloc] init]; self.contentView.translatesAutoresizingMaskIntoConstraints = NO; [self.view
+    [super viewDidLoad]; self.view.backgroundColor = [UIColor systemBackgroundColor]; [self setupTopBar]; [self setupContentView]; self.topBar.alpha = 0.0;[self
+    showPage:PCLPageTypeLaunch]; self.topBar.transform =}
+        CGAffineTransformMakeTranslation(0.0, -18.0);- (void)setupTopBar { self.topBar = [[PCLTopBarView alloc] init]; self.topBar.delegate = self;
+    self.topBar.translatesAutoresizingMaskIntoConstraints = NO; [self.view addSubview:self.topBar]; [NSLayoutConstraint activateConstraints:@[
+        [self.topBar.topAnchor constraintEqualToAnchor:self.view.topAnchor], [self.topBar.leadingAnchor constraintEqualToAnchor:self.view.leadingAnchor],
+    self.contentView.alpha = 0.0; [self.topBar.trailingAnchor constraintEqualToAnchor:self.view.trailingAnchor], [self.topBar.heightAnchor
+    constraintEqualToConstant:64.0] ]]; self.contentView.transform =}
+        CGAffineTransformMakeTranslation(0.0, 24.0);- (void)setupContentView { self.contentView = [[UIView alloc] init]; self.contentView.translatesAutoresizingMaskIntoConstraints = NO; [self.view
     addSubview:self.contentView]; [NSLayoutConstraint activateConstraints:@[
         [self.contentView.topAnchor constraintEqualToAnchor:self.topBar.bottomAnchor], [self.contentView.leadingAnchor
             constraintEqualToAnchor:self.view.leadingAnchor],
@@ -47,6 +45,13 @@
 
 - (BOOL)prefersStatusBarHidden {
     return YES;
+}
+- (void)playEntranceAnimation {
+ [UIView animateWithDuration:0.6 delay:0.0 usingSpringWithDamping:0.88 initialSpringVelocity:0.2 options:UIViewAnimationOptionCurveEaseOut
+                     animations:^{ self.topBar.alpha = 1.0; self.topBar.transform = CGAffineTransformIdentity; self.contentView.alpha = 1.0;
+        self.contentView.transform =
+            CGAffineTransformIdentity;
+    } completion:nil];
 }
 
 @end
