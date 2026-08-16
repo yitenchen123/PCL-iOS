@@ -34,10 +34,10 @@ jobs:
         run: |
           mkdir -p Payload
           cp -R ~/Library/Developer/Xcode/DerivedData/*/Build/Products/Release-iphoneos/PCL-iOS.app Payload/
-          zip -r PCL-iOS-unsigned.ipa Payload
+          zip -r com.pcl-ios.pcl--ios.ipa Payload
       - name: Upload IPA
         uses: actions/upload-artifact@v4
         with:
-          name: PCL-iOS
-          path: PCL-iOS.ipa
+          name: com.pcl-ios.pcl--ios
+          path: com.pcl-ios.pcl--ios.ipa
           if-no-files-found: error
