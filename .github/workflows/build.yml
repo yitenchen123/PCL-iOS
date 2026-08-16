@@ -29,3 +29,9 @@ jobs:
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY="" \
             build
+
+      - name: Create unsigned IPA
+        run: |
+          mkdir -p Payload
+          cp -R ~/Library/Developer/Xcode/DerivedData/*/Build/Products/Release-iphoneos/PCL-iOS.app Payload/
+          zip -r PCL-iOS-unsigned.ipa Payload
