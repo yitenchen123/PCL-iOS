@@ -16,6 +16,26 @@
     <string>0.1</string>
     <key>CFBundleVersion</key>
     <string>1</string>
+    <key>CFBundleIconName</key> 
+    <string>AppIcon</string>
+   
+    <key>CFBundleIcons</key> 
+    <dict> 
+        <key>CFBundlePrimaryIcon</key> 
+        <dict>
+            <key>CFBundleIconName</key> 
+            <string>AppIcon</string> 
+        </dict> 
+    </dict> 
+
+    <key>CFBundleIcons~ipad</key> 
+    <dict> 
+        <key>CFBundlePrimaryIcon</key> 
+        <dict> 
+            <key>CFBundleIconName</key> 
+            <string>AppIcon</string>
+        </dict>   
+    </dict> 
     <key>UILaunchScreen</key>
     <dict/>
 </dict>
