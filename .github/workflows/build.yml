@@ -29,21 +29,17 @@ jobs:
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY="" \
             build
-      - name: Create unsigned IPA
-        run: |
-          APP_PATH=$(find ~/Library/Developer/Xcode/DerivedData -type d -path "*/Build/Products/Release-iphoneos/PCL-iOS.app" | head -n 1)
-
-          if [ -z "$APP_PATH" ]; then
-            echo "PCL-iOS.app not found"
-            exit 1
-          fi
-
-          mkdir -p Payload
-          cp -R "$APP_PATH" Payload/PCL-iOS.app
-          zip -r PCL-iOS-unsigned.ipa Payload
-
-      - name: Upload IPA
-        uses: actions/upload-artifact@v4
-        with:
-          name: PCL-iOS-unsigned
-          path: PCL-iOS-unsigned.ipa
+      - name: Inspect built app icon metadata run: | APP_PATH=$(find ~/Library/Developer/Xcode/DerivedData \ -type d \ -path 
+            "*/Build/Products/Release-iphoneos/PCL-iOS.app" \
+            | head -n 1)
+      - name: Create unsigned IPA run: | echo "=== APP PATH ===" APP_PATH=$(find ~/Library/Developer/Xcode/DerivedData -type d -path 
+          "*/Build/Products/Release-iphoneos/PCL-iOS.app" | head -n 1) echo "$APP_PATH" if [ -z "$APP_PATH" ]; then
+            echo "PCL-iOS.app not found" exit 1 echo "=== ICON FILES ===" fi find "$APP_PATH" -maxdepth 1 -type f \ mkdir -p Payload cp -R "$APP_PATH" 
+          Payload/PCL-iOS.app zip -r PCL-iOS-unsigned.ipa Payload
+            \( -iname "*icon*" -o -name "Assets.car" \) \ - name: Upload IPA -print uses: actions/upload-artifact@v4 with: echo "=== CFBundleIconName ===" name: 
+          PCL-iOS-unsigned path: PCL-iOS-unsigned.ipa /usr/libexec/PlistBuddy \
+            -c "Print :CFBundleIconName" \ "$APP_PATH/Info.plist" || true echo "=== CFBundleIcons ===" /usr/libexec/PlistBuddy \ -c "Print :CFBundleIcons" \ 
+            "$APP_PATH/Info.plist" || true
+          echo "=== CFBundleIcons~ipad ===" /usr/libexec/PlistBuddy \ -c "Print :CFBundleIcons~ipad" \ "$APP_PATH/Info.plist" || true echo "=== FULL FINAL 
+          INFO.PLIST ==="
+          plutil -p "$APP_PATH/Info.plist"
