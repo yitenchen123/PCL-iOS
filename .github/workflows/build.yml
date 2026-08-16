@@ -30,6 +30,11 @@ jobs:
             CODE_SIGN_IDENTITY="" \
             build
 
+      - name: Check app icons
+        run: |
+          APP=$(find ~/Library/Developer/Xcode/DerivedData -name "PCL-iOS.app" | head -1)
+          echo "$APP"
+          find "$APP" -maxdepth 1 -iname "*icon*" -print
       - name: Create unsigned IPA
         run: |
           mkdir -p Payload
