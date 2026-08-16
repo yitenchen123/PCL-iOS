@@ -6,6 +6,7 @@
 @property (nonatomic, strong) NSArray<UIButton *> *buttons;
 @property (nonatomic, strong) UILabel *pclLabel;
 @property (nonatomic, strong) UILabel *iosBadge;
+@property (nonatomic, strong) UIView *selectionPill;
 
 @end
 
@@ -65,10 +66,27 @@
         UILayoutConstraintAxisHorizontal;
     self.buttonStack.alignment =
         UIStackViewAlignmentCenter;
-    self.buttonStack.spacing = 24.0;
+    self.buttonStack.spacing = 50.0;
 
     self.buttonStack.translatesAutoresizingMaskIntoConstraints = NO;
 
+    UIVisualEffect *pillEffect = nil;
+    if (@available(iOS 26.0, *)) {
+        UIGlassEffect *glass = [[UIGlassEffect alloc] init];
+        glass.interactive = YES;
+        pillEffect = glass;
+}
+    else {
+        pillEffect = [UIBlurEffect
+            effectWithStyle:UIBlurEffectStyleLight];
+}
+    UIVisualEffectView *glassView =
+        [[UIVisualEffectView alloc] initWithEffect:pillEffect];
+    self.selectionPill = glassView;
+    self.selectionPill.layer.cornerRadius = 14.0;
+    self.selectionPill.clipsToBounds = YES;
+    self.selectionPill.userInteractionEnabled = NO;
+    [self addSubview:self.selectionPill];
     [self addSubview:self.buttonStack];
     for (NSInteger i = 0; i < titles.count; i++) {
 
@@ -106,7 +124,7 @@
             constraintEqualToAnchor:self.pclLabel.trailingAnchor
                            constant:6.0],
 
-        [self.iosBadge.bottomAnchor
+        [self.iosBadge.centerYAnchor
             constraintEqualToAnchor:self.pclLabel.centerYAnchor],
 
         [self.iosBadge.widthAnchor
@@ -147,6 +165,35 @@
 
     _selectedPage = page;
     [self updateButtonAppearance];
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 }
 - (void)updateButtonAppearance {
     for (NSInteger i = 0; i < self.buttons.count; i++) {
@@ -156,7 +203,7 @@
             [button setTitleColor:[self pclThemeColor]
                          forState:UIControlStateNormal];
 
-            button.backgroundColor = UIColor.whiteColor;
+            button.backgroundColor = UIColor.clearColor;
             button.titleLabel.font =
                 [UIFont systemFontOfSize:15.0
                                   weight:UIFontWeightSemibold];
