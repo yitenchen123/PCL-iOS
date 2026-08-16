@@ -33,8 +33,7 @@ jobs:
       - name: Check app icons
         run: |
           APP=$(find ~/Library/Developer/Xcode/DerivedData -name "PCL-iOS.app" | head -1)
-          echo "$APP"
-          find "$APP" -maxdepth 1 -iname "*icon*" -print
+          plutil -p "$APP/Info.plist" | grep -A 20 CFBundleIcons
       - name: Create unsigned IPA
         run: |
           mkdir -p Payload
