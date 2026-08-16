@@ -107,7 +107,7 @@
                            constant:6.0],
 
         [self.iosBadge.bottomAnchor
-            constraintEqualToAnchor:self.pclLabel.bottomAnchor]
+            constraintEqualToAnchor:self.pclLabel.bottomAnchor],
 
         [self.iosBadge.widthAnchor
             constraintEqualToConstant:28.0],
