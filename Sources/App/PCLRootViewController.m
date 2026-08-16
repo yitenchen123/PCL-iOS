@@ -43,6 +43,8 @@
             self.pageLabel.text = @"设置";
             break;
     }
+}
+
 - (BOOL)prefersStatusBarHidden {
     return YES;
 }
