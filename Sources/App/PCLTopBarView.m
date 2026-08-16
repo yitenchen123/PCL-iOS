@@ -65,7 +65,7 @@
         UILayoutConstraintAxisHorizontal;
     self.buttonStack.alignment =
         UIStackViewAlignmentCenter;
-    self.buttonStack.spacing = 16.0;
+    self.buttonStack.spacing = 24.0;
 
     self.buttonStack.translatesAutoresizingMaskIntoConstraints = NO;
 
@@ -107,7 +107,7 @@
                            constant:6.0],
 
         [self.iosBadge.bottomAnchor
-            constraintEqualToAnchor:self.pclLabel.bottomAnchor],
+            constraintEqualToAnchor:self.pclLabel.centerYAnchor],
 
         [self.iosBadge.widthAnchor
             constraintEqualToConstant:28.0],
