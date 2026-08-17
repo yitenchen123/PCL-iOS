@@ -66,7 +66,7 @@
         UILayoutConstraintAxisHorizontal;
     self.buttonStack.alignment =
         UIStackViewAlignmentCenter;
-    self.buttonStack.spacing = 36.0;
+    self.buttonStack.spacing = 52.0;
     self.buttonStack.translatesAutoresizingMaskIntoConstraints = NO;
 
     UIVisualEffect *pillEffect = nil;
@@ -82,7 +82,7 @@
     UIVisualEffectView *glassView =
         [[UIVisualEffectView alloc] initWithEffect:pillEffect];
     self.selectionPill = glassView;
-    self.selectionPill.layer.cornerRadius = 14.0;
+    self.selectionPill.layer.cornerRadius = 10.0;
     self.selectionPill.clipsToBounds = YES;
     self.selectionPill.userInteractionEnabled = NO;
     [self addSubview:self.selectionPill];
@@ -168,7 +168,7 @@
         [self.buttonStack convertRect:button.frame
                                toView:self];
     self.selectionPill.frame =
-        CGRectInset(frame, -4.0, 0.0);
+        CGRectInset(frame, 2.0, 2.0);
 }
 
 - (void)pageButtonPressed:(UIButton *)sender {
@@ -205,10 +205,10 @@
     };
 
     if (animated) {
-        [UIView animateWithDuration:0.42
+        [UIView animateWithDuration:0.30
                               delay:0.0
-             usingSpringWithDamping:0.80
-              initialSpringVelocity:0.25
+             usingSpringWithDamping:0.92
+              initialSpringVelocity:0.15
                             options:UIViewAnimationOptionBeginFromCurrentState |
                                     UIViewAnimationOptionAllowUserInteraction
                         animations:movePill completion:nil];
