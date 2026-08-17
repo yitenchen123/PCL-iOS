@@ -83,7 +83,9 @@
                                                 forAxis:UILayoutConstraintAxisHorizontal];
 
         UIImage *image =
-            [UIImage imageNamed:symbols[i]];
+            [[UIImage imageNamed:symbols[i]]
+                imageWithRenderingMode:
+                    UIImageRenderingModeAlwaysTemplate];
 
         [button setImage:image
                 forState:UIControlStateNormal];
@@ -190,6 +192,8 @@
             [button setTitleColor:
                 selected ? blue : UIColor.whiteColor
                 forState:UIControlStateNormal];
+            button.tintColor =
+                selected ? blue : UIColor.whiteColor;
         };
         if (animated) {
             [UIView animateWithDuration:duration
