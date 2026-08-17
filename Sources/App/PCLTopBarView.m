@@ -66,8 +66,9 @@
         UILayoutConstraintAxisHorizontal;
     self.buttonStack.alignment =
         UIStackViewAlignmentCenter;
-    self.buttonStack.spacing = 50.0;
-
+    self.buttonStack.spacing = 0.0;
+    self.buttonStack.distribution =
+        UIStackViewDistributionEqualSpacing;
     self.buttonStack.translatesAutoresizingMaskIntoConstraints = NO;
 
     UIVisualEffect *pillEffect = nil;
@@ -88,6 +89,7 @@
     self.selectionPill.userInteractionEnabled = NO;
     [self addSubview:self.selectionPill];
     [self addSubview:self.buttonStack];
+    [self bringSubviewToFront:self.buttonStack];
     for (NSInteger i = 0; i < titles.count; i++) {
 
         UIButton *button =
@@ -95,6 +97,9 @@
 
         [button setTitle:titles[i]
                 forState:UIControlStateNormal];
+        button.titleLabel.font =
+            [UIFont systemFontOfSize:15.0
+                              weight:UIFontWeightSemibold];
 
         button.tag = i;
         button.layer.cornerRadius = 14.0;
@@ -136,8 +141,14 @@
         [self.buttonStack.centerYAnchor
             constraintEqualToAnchor:self.centerYAnchor],
 
-        [self.buttonStack.centerXAnchor
-            constraintEqualToAnchor:self.centerXAnchor]
+        [self.buttonStack.leadingAnchor
+            constraintGreaterThanOrEqualToAnchor:self.iosBadge.trailingAnchor
+                                        constant:24.0],
+
+        [self.buttonStack.trailingAnchor
+            constraintEqualToAnchor:self.trailingAnchor
+                           constant:-24.0]
+
     ]];
 
     self.selectedPage = PCLPageTypeLaunch;
@@ -165,36 +176,8 @@
 
     _selectedPage = page;
     [self updateButtonAppearance];
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 }
+
 - (void)updateButtonAppearance {
     for (NSInteger i = 0; i < self.buttons.count; i++) {
         UIButton *button = self.buttons[i];
