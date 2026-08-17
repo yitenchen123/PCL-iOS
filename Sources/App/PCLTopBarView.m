@@ -204,10 +204,6 @@
         self.selectionPill.frame = targetFrame;
     };
 
-    void (^movePill)(void) = ^{
-        self.selectionPill.frame = targetFrame;
-    };
-
     if (animated) {
         [UIView animateWithDuration:0.42
                               delay:0.0
@@ -217,9 +213,9 @@
                                     UIViewAnimationOptionAllowUserInteraction
                         animations:movePill completion:nil];
 }
-    }
 
-    else { movePill();
+    else {
+        movePill();
     }
 }
 
