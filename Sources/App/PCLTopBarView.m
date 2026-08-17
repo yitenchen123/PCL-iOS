@@ -76,10 +76,6 @@
 
     [self.selectionContainer addSubview:self.glassView];
 }
-else {
-    self.selectionContainer.backgroundColor =
-          UIColor.whiteColor;
-}
 
     self.buttonStack = [[UIStackView alloc] init];
     self.buttonStack.axis = UILayoutConstraintAxisHorizontal;
@@ -193,16 +189,15 @@ else {
     if (page < 0 || page >= self.buttons.count) return;
 
     _selectedPage = page;
+    UIButton *button = self.buttons[page];
 
-    UIButton *button =
-        self.button[page];
     CGRect target =
-        [button convertRect:button.bounds}
+        [button convertRect:button.bounds
                      toView:self];
 
     target.size.height = 27.0;
     target.origin.y =
-    CGRectGetMidY(button.frame) - 13.5;
+        CGRectGetMidY(button.frame) - 13.5;
 
     if (animated) {
         [UIView animateWithDuration:0.22
@@ -212,12 +207,14 @@ else {
                             options:UIViewAnimationOptionCurveEaseOut
                          animations:^{
 
+            self.selectionContainer.frame = target;
+        } completion:nil];
+    } else {
         self.selectionContainer.frame = target;
-    } completion:nil];
-} else {
-    self.selectionContainer.frame = target;
-}
+    }
+
     [self updateButtonAppearanceAnimated:animated];
+}
 
 - (void)updateButtonAppearanceAnimated:(BOOL)animated {
      for (NSInteger i = 0; i < self.buttons.count; i++) {
