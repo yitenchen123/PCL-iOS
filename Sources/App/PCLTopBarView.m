@@ -66,9 +66,7 @@
         UILayoutConstraintAxisHorizontal;
     self.buttonStack.alignment =
         UIStackViewAlignmentCenter;
-    self.buttonStack.spacing = 0.0;
-    self.buttonStack.distribution =
-        UIStackViewDistributionEqualSpacing;
+    self.buttonStack.spacing = 36.0;
     self.buttonStack.translatesAutoresizingMaskIntoConstraints = NO;
 
     UIVisualEffect *pillEffect = nil;
@@ -141,18 +139,25 @@
         [self.buttonStack.centerYAnchor
             constraintEqualToAnchor:self.centerYAnchor],
 
+        [self.buttonStack.centerXAnchor
+            constraintEqualToAnchor:self.centerXAnchor],
+
         [self.buttonStack.leadingAnchor
             constraintGreaterThanOrEqualToAnchor:self.iosBadge.trailingAnchor
-                                        constant:24.0],
+                                        constant:24.0]
 
-        [self.buttonStack.trailingAnchor
-            constraintEqualToAnchor:self.trailingAnchor
-                           constant:-24.0]
+
 
     ]];
 
     self.selectedPage = PCLPageTypeLaunch;
     [self updateButtonAppearance];
+    [self layoutIfNeeded];
+    UIButton *firstButton = self.buttons[0];
+    self.selectionPill.frame =
+        [self.buttonStack convertRect:firstButton.frame
+                               toView:self];
+
 }
 - (void)pageButtonPressed:(UIButton *)sender {
     PCLPageType page = (PCLPageType)sender.tag;
@@ -176,6 +181,20 @@
 
     _selectedPage = page;
     [self updateButtonAppearance];
+    UIButton *button = self.buttons[page];
+    CGRect targetFrame =
+        [self.buttonStack convertRect:button.frame
+                               toView:self];
+    void (^movePill)(void) = ^{
+        self.selectionPill.frame = targetFrame;
+    };
+    if (animated) {
+        [UIView animateWithDuration:0.28
+                         animations:movePill];
+    }
+
+    else { movePill();
+    }
 }
 
 - (void)updateButtonAppearance {
@@ -198,7 +217,7 @@
             button.backgroundColor = UIColor.clearColor;
             button.titleLabel.font =
                 [UIFont systemFontOfSize:15.0
-                                  weight:UIFontWeightMedium];
+                                  weight:UIFontWeightSemibold];
         }
     }
 }
