@@ -103,9 +103,11 @@
 
         button.layer.cornerRadius = 13.5;
         button.clipsToBounds = YES;
+        [button.heightAnchor
+            constraintEqualToConstant:27.0].active = YES;
 
         button.contentEdgeInsets =
-            UIEdgeInsetsMake(5.0, 12.0, 5.0, 12.0);
+            UIEdgeInsetsMake(3.0, 12.0, 3.0, 12.0);
 
         button.imageEdgeInsets =
             UIEdgeInsetsMake(0.0, 0.0, 0.0, 4.0);
@@ -172,27 +174,37 @@
 }
 
 - (void)updateButtonAppearanceAnimated:(BOOL)animated {
+    UIColor *blue = [self pclThemeColor];
+
     for (NSInteger i = 0; i < self.buttons.count; i++) {
         UIButton *button = self.buttons[i];
         BOOL selected = (i == self.selectedPage);
 
-        [button setTitleColor:UIColor.whiteColor
-                     forState:UIControlStateNormal];
-        button.tintColor = UIColor.whiteColor;
-
+        [button.layer removeAllAnimations];
+        NSTimeInterval duration =
+            selected ? 0.12 : 0.07;
         void (^changes)(void) = ^{
-            button.backgroundColor = selected
-                ? [UIColor colorWithWhite:1.0 alpha:0.22]
-                : UIColor.clearColor;
+            button.backgroundColor =
+                selected ? UIColor.whiteColor
+                         : UIColor.clearColor;
+            [button setTitleColor:
+                selected ? blue : UIColor.whiteColor
+                forState:UIControlStateNormal];
         };
-
         if (animated) {
-            [UIView animateWithDuration:0.12
-                             animations:changes];
+            [UIView animateWithDuration:duration
+                                  delay:0.0
+                                options:
+                UIViewAnimationOptionBeginFromCurrentState |
+                UIViewAnimationOptionAllowUserInteraction |
+                UIViewAnimationOptionCurveEaseOut
+                             animations:changes
+                             completion:nil];
         } else {
             changes();
         }
     }
 }
+
 
 @end
