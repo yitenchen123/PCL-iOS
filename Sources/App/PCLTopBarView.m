@@ -5,6 +5,8 @@
 @property (nonatomic, strong) NSArray<UIButton *> *buttons;
 @property (nonatomic, strong) UILabel *pclLabel;
 @property (nonatomic, strong) UILabel *iosBadge;
+@property (nonatomic, strong) UIView *selectionContainer;
+@property (nonatomic, strong) UIVisualEffectView *glassView;
 @end
 
 @implementation PCLTopBarView
@@ -56,12 +58,34 @@
         @[@"TopBarPlay", @"TopBarDownload",
           @"TopBarSettings", @"TopBarTools"];
 
+    self.selectionContainer = [[UIView alloc] init];
+    self.selectionContainer.userInteractionEnabled = NO;
+    self.selectionContainer.layer.cornerRadius = 13.5;
+    self.selectionContainer.clipsToBounds = YES;
+    [self addSubview:self.selectionContainer];
+    if (@available(iOS 26.0, *)) {
+        UIGlassEffect *glass = [[UIGlassEffect alloc] init];
+        glass.interactive = YES;
+    self.glassView =
+        [[UIVisualEffectView alloc] initWithEffect:glass];
+    self.glassView.frame =
+        self.selectionContainer.bounds;
+    self.glassView.autoresizingMask =
+        UIViewAutoresizingFlexibleWidth |
+        UIViewAutoresizingFlexibleHeight;
 
+    [self.selectionContainer addSubview:self.glassView];
+}
+else {
+    self.selectionContainer.backgroundColor =
+          UIColor.whiteColor;
+}
 
-
-    self.buttonStack = [[UIStackView alloc] init]; self.buttonStack.axis = UILayoutConstraintAxisHorizontal; self.buttonStack.alignment = 
-    UIStackViewAlignmentCenter; self.buttonStack.spacing = 36.0; self.buttonStack.translatesAutoresizingMaskIntoConstraints = NO; [self 
-    addSubview:self.buttonStack];
+    self.buttonStack = [[UIStackView alloc] init];
+    self.buttonStack.axis = UILayoutConstraintAxisHorizontal;
+    self.buttonStack.alignment = UIStackViewAlignmentCenter;
+    self.buttonStack.spacing = 36.0; self.buttonStack.translatesAutoresizingMaskIntoConstraints = NO;
+    [self addSubview:self.buttonStack];
     NSMutableArray<UIButton *> *buttons =
         [NSMutableArray array];
 
@@ -169,11 +193,34 @@
     if (page < 0 || page >= self.buttons.count) return;
 
     _selectedPage = page;
-    [self updateButtonAppearanceAnimated:animated];
+
+    UIButton *button =
+        self.button[page];
+    CGRect target =
+        [button convertRect:button.bounds}
+                     toView:self];
+
+    target.size.height = 27.0;
+    target.origin.y =
+    CGRectGetMidY(button.frame) - 13.5;
+
+    if (animated) {
+        [UIView animateWithDuration:0.22
+                              delay:0.0
+             usingSpringWithDamping:0.82
+              initialSpringVelocity:0.15
+                            options:UIViewAnimationOptionCurveEaseOut
+                         animations:^{
+
+        self.selectionContainer.frame = target;
+    } completion:nil];
+} else {
+    self.selectionContainer.frame = target;
 }
+    [self updateButtonAppearanceAnimated:animated];
 
 - (void)updateButtonAppearanceAnimated:(BOOL)animated {
-    for (NSInteger i = 0; i < self.buttons.count; i++) {
+     for (NSInteger i = 0; i < self.buttons.count; i++) {
         UIButton *button = self.buttons[i];
         BOOL selected = (i == self.selectedPage);
 
@@ -182,16 +229,10 @@
         button.tintColor = UIColor.whiteColor;
 
         void (^changes)(void) = ^{
-            button.backgroundColor = selected
-                ? [UIColor colorWithWhite:1.0 alpha:0.22]
-                : UIColor.clearColor;
             button.transform = CGAffineTransformIdentity;
         };
 
         if (animated && selected) {
-            button.transform =
-                CGAffineTransformMakeScale(0.96, 0.96);
-
             [UIView animateWithDuration:0.22
                              animations:changes];
         } else {
@@ -199,5 +240,22 @@
         }
     }
 }
+- (void)layoutSubviews {
+    [super layoutSubviews];
 
+    if (self.buttons.count == 0) return;
+
+    UIButton *button =
+        self.buttons[self.selectedPage];
+
+    CGRect frame =
+        [button convertRect:button.bounds
+                     toView:self];
+    frame.size.height = 27.0;
+    frame.origin.y =
+        CGRectGetMidY(button.frame) - 13.5;
+    if (CGRectIsEmpty(self.selectionContainer.frame)) {
+        self.selectionContainer.frame = frame;
+    }
+}
 @end
