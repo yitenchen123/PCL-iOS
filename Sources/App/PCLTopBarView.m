@@ -53,15 +53,15 @@
         @[@"启动", @"下载", @"设置", @"工具"];
 
     NSArray<NSString *> *symbols =
-        @[@"play", @"arrow.down", @"gearshape", @"wrench"];
+        @[@"TopBarPlay", @"TopBarDownload",
+          @"TopBarSettings", @"TopBarTools"];
 
-    self.buttonStack = [[UIStackView alloc] init];
-    self.buttonStack.axis = UILayoutConstraintAxisHorizontal;
-    self.buttonStack.alignment = UIStackViewAlignmentCenter;
-    self.buttonStack.spacing = 10.0;
-    self.buttonStack.translatesAutoresizingMaskIntoConstraints = NO;
-    [self addSubview:self.buttonStack];
 
+
+
+    self.buttonStack = [[UIStackView alloc] init]; self.buttonStack.axis = UILayoutConstraintAxisHorizontal; self.buttonStack.alignment = 
+    UIStackViewAlignmentCenter; self.buttonStack.spacing = 36.0; self.buttonStack.translatesAutoresizingMaskIntoConstraints = NO; [self 
+    addSubview:self.buttonStack];
     NSMutableArray<UIButton *> *buttons =
         [NSMutableArray array];
 
@@ -77,16 +77,26 @@
             [UIFont systemFontOfSize:17.0
                               weight:UIFontWeightSemibold];
 
-        UIImageSymbolConfiguration *config =
-            [UIImageSymbolConfiguration configurationWithPointSize:15.0
-                                                            weight:UIImageSymbolWeightMedium];
+        button.titleLabel.lineBreakMode =
+            NSLineBreakByClipping;
+
+        [button setContentCompressionResistancePriority:UILayoutPriorityRequired
+                                                forAxis:UILayoutConstraintAxisHorizontal];
 
         UIImage *image =
-            [UIImage systemImageNamed:symbols[i]
-                    withConfiguration:config];
+            [UIImage imageNamed:symbols[i]];
 
         [button setImage:image
                 forState:UIControlStateNormal];
+
+        button.imageView.contentMode =
+            UIViewContentModeScaleAspectFit;
+
+        [button.imageView.widthAnchor
+            constraintEqualToConstant:16.0].active = YES;
+
+        [button.imageView.heightAnchor
+            constraintEqualToConstant:16.0].active = YES;
 
         button.tintColor = UIColor.whiteColor;
         button.semanticContentAttribute =

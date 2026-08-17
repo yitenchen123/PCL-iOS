@@ -101,11 +101,11 @@
         case PCLPageTypeDownload:
             self.pageLabel.text = @"下载";
             break;
-        case PCLPageTypeTools:
+        case PCLPageTypeSettings:
             self.pageLabel.text = @"设置";
             break;
 
-        case PCLPageTypeSettings:
+        case PCLPageTypeTools:
             self.pageLabel.text = @"工具";
             break;
     }
