@@ -96,7 +96,7 @@
         [button setTitle:titles[i]
                 forState:UIControlStateNormal];
         button.titleLabel.font =
-            [UIFont systemFontOfSize:15.0
+            [UIFont systemFontOfSize:17.0
                               weight:UIFontWeightSemibold];
 
         button.tag = i;
@@ -152,13 +152,25 @@
 
     self.selectedPage = PCLPageTypeLaunch;
     [self updateButtonAppearance];
-    [self layoutIfNeeded];
-    UIButton *firstButton = self.buttons[0];
-    self.selectionPill.frame =
-        [self.buttonStack convertRect:firstButton.frame
-                               toView:self];
 
 }
+
+- (void)layoutSubviews {
+    [super layoutSubviews];
+    if (self.buttons.count == 0) {
+        return;
+    }
+
+    UIButton *button =
+        self.buttons[self.selectedPage];
+
+    CGRect frame =
+        [self.buttonStack convertRect:button.frame
+                               toView:self];
+    self.selectionPill.frame =
+        CGRectInset(frame, -4.0, 0.0);
+}
+
 - (void)pageButtonPressed:(UIButton *)sender {
     PCLPageType page = (PCLPageType)sender.tag;
 
@@ -185,12 +197,26 @@
     CGRect targetFrame =
         [self.buttonStack convertRect:button.frame
                                toView:self];
+    targetFrame =
+        CGRectInset(targetFrame, -4.0, 0.0);
+
     void (^movePill)(void) = ^{
         self.selectionPill.frame = targetFrame;
     };
+
+    void (^movePill)(void) = ^{
+        self.selectionPill.frame = targetFrame;
+    };
+
     if (animated) {
-        [UIView animateWithDuration:0.28
-                         animations:movePill];
+        [UIView animateWithDuration:0.42
+                              delay:0.0
+             usingSpringWithDamping:0.80
+              initialSpringVelocity:0.25
+                            options:UIViewAnimationOptionBeginFromCurrentState |
+                                    UIViewAnimationOptionAllowUserInteraction
+                        animations:movePill completion:nil];
+}
     }
 
     else { movePill();
@@ -202,12 +228,12 @@
         UIButton *button = self.buttons[i];
 
         if (i == self.selectedPage) {
-            [button setTitleColor:[self pclThemeColor]
+            [button setTitleColor:UIColor.whiteColor
                          forState:UIControlStateNormal];
 
             button.backgroundColor = UIColor.clearColor;
             button.titleLabel.font =
-                [UIFont systemFontOfSize:15.0
+                [UIFont systemFontOfSize:17.0
                                   weight:UIFontWeightSemibold];
         } else {
             [button setTitleColor:
@@ -216,7 +242,7 @@
 
             button.backgroundColor = UIColor.clearColor;
             button.titleLabel.font =
-                [UIFont systemFontOfSize:15.0
+                [UIFont systemFontOfSize:17.0
                                   weight:UIFontWeightSemibold];
         }
     }
