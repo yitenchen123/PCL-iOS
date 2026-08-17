@@ -3,8 +3,8 @@
 typedef NS_ENUM(NSInteger, PCLPageType) {
     PCLPageTypeLaunch = 0,
     PCLPageTypeDownload,
-    PCLPageTypeMultiplayer,
-    PCLPageTypeSettings
+    PCLPageTypeSettings,
+    PCLPageTypeTools
 };
 
 @class PCLTopBarView;

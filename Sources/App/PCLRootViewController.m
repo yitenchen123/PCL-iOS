@@ -46,7 +46,7 @@
             constraintEqualToAnchor:self.view.trailingAnchor],
 
         [self.topBar.heightAnchor
-            constraintEqualToConstant:64.0]
+            constraintEqualToConstant:48.0]
     ]];
 }
 
@@ -101,12 +101,12 @@
         case PCLPageTypeDownload:
             self.pageLabel.text = @"下载";
             break;
-        case PCLPageTypeMultiplayer:
-            self.pageLabel.text = @"联机";
+        case PCLPageTypeTools:
+            self.pageLabel.text = @"设置";
             break;
 
         case PCLPageTypeSettings:
-            self.pageLabel.text = @"设置";
+            self.pageLabel.text = @"工具";
             break;
     }
 }
