@@ -31,12 +31,40 @@ didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
 
     UIImageView *backgroundView =
         [[UIImageView alloc] initWithImage:image];
-    backgroundView.translatesAutoresizingMaskIntoConstraints = NO;
-    backgroundView.contentMode =
-        UIViewContentModeScaleAspectFill;
-    backgroundView.clipsToBounds = YES;
+    backgroundView.frame = splash.bounds;
+    backgroundView.autoresizingMask =
+        UIViewAutoresizingFlexibleWidth |
+        UIViewAutoresizingFlexibleHeight;
+    UIImageView *contentView =
+        [[UIImageView alloc] initWithImage:image];
+    contentView.translatesAutoresizingMaskIntoConstraints = NO;
+    contentView.contentMode = UIViewContentModeScaleAspectFit;
+    [splash addSubview:contentView];
 
-    [splash addSubview:backgroundView];
+    [NSLayoutConstraint activateConstraints:@[
+        [contentView.centerXAnchor
+            constraintEqualToAnchor:splash.centerXAnchor],
+        [contentView.centerYAnchor
+            constraintEqualToAnchor:splash.centerYAnchor],
+        [contentView.widthAnchor
+            constraintLessThanOrEqualToAnchor:splash.widthAnchor],
+        [contentView.heightAnchor
+            constraintLessThanOrEqualToAnchor:splash.heightAnchor]
+    ]];
+
+    CGFloat ratio =
+        image.size.width / image.size.height;
+
+    [contentView.widthAnchor
+        constraintEqualToAnchor:contentView.heightAnchor
+                     multiplier:ratio].active = YES;
+
+    NSLayoutConstraint *height =
+        [contentView.heightAnchor
+            constraintEqualToAnchor:splash.heightAnchor
+                         multiplier:0.88];
+    height.priority = UILayoutPriorityDefaultHigh;
+    height.active = YES;
 
     [self.window addSubview:splash];
 
