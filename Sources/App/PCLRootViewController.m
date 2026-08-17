@@ -46,7 +46,7 @@
             constraintEqualToAnchor:self.view.trailingAnchor],
 
         [self.topBar.heightAnchor
-            constraintEqualToConstant:48.0]
+            constraintEqualToConstant:56.0]
     ]];
 }
 
