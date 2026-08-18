@@ -163,25 +163,25 @@ didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
     // P - measured from reference
     UIView *pLeft = [[UIView alloc] initWithFrame:
         CGRectMake(0.00 * unit, 0.00 * unit,
-                   0.42 * unit, 2.19 * unit)];
+                   0.45 * unit, 2.25 * unit)];
     pLeft.backgroundColor = UIColor.whiteColor;
     [mainLogoView addSubview:pLeft];
 
     UIView *pTop = [[UIView alloc] initWithFrame:
         CGRectMake(0.00 * unit, 0.00 * unit,
-                   1.90 * unit, 0.48 * unit)];
+                   1.90 * unit, 0.45 * unit)];
     pTop.backgroundColor = UIColor.whiteColor;
     [mainLogoView addSubview:pTop];
 
     UIView *pRight = [[UIView alloc] initWithFrame:
-        CGRectMake(1.48 * unit, 0.00 * unit,
-                   0.42 * unit, 1.59 * unit)];
+        CGRectMake(1.45 * unit, 0.00 * unit,
+                   0.45 * unit, 1.59 * unit)];
     pRight.backgroundColor = UIColor.whiteColor;
     [mainLogoView addSubview:pRight];
 
     UIView *pMiddle = [[UIView alloc] initWithFrame:
         CGRectMake(0.86 * unit, 1.15 * unit,
-                   1.04 * unit, 0.44 * unit)];
+                   1.04 * unit, 0.45 * unit)];
     pMiddle.backgroundColor = UIColor.whiteColor;
     [mainLogoView addSubview:pMiddle];
 
