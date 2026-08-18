@@ -135,6 +135,13 @@
             break;
     }
 }
+- (void)viewDidLayoutSubviews {
+    [super viewDidLayoutSubviews];
+    [self.topBar layoutIfNeeded];
+    self.launchVC.leftPanelWidth = [self.topBar launchButtonCenterX];
+    [self.launchVC.view setNeedsLayout];
+}
+
 - (BOOL)prefersStatusBarHidden {
     return YES;
 }

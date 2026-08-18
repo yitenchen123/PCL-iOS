@@ -19,5 +19,6 @@ typedef NS_ENUM(NSInteger, PCLPageType) {
 @property (nonatomic, assign) PCLPageType selectedPage;
 
 - (void)selectPage:(PCLPageType)page animated:(BOOL)animated;
+- (CGFloat)launchButtonCenterX;
 
 @end

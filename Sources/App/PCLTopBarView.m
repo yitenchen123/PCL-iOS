@@ -211,4 +211,13 @@
 }
 
 
+- (CGFloat)launchButtonCenterX {
+    [self layoutIfNeeded];
+    UIButton *b = self.buttons.firstObject;
+    if (!b) return CGRectGetWidth(self.bounds) * 0.37;
+    return [b convertPoint:CGPointMake(CGRectGetMidX(b.bounds), 0)
+                    toView:self].x;
+}
+
+
 @end
