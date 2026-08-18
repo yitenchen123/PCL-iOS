@@ -32,43 +32,20 @@
     [self.view addSubview:self.rightPane];
 
     [NSLayoutConstraint activateConstraints:@[
-        [self.leftPane.topAnchor
-            constraintEqualToAnchor:self.view.topAnchor],
+        [self.leftPane.topAnchor constraintEqualToAnchor:self.view.topAnchor],
+        [self.leftPane.bottomAnchor constraintEqualToAnchor:self.view.bottomAnchor],
+        [self.leftPane.leadingAnchor constraintEqualToAnchor:self.view.leadingAnchor],
+        [self.leftPane.widthAnchor constraintEqualToConstant:300.0],
 
-        [self.leftPane.bottomAnchor
-            constraintEqualToAnchor:self.view.bottomAnchor],
-
-        [self.leftPane.leadingAnchor
-            constraintEqualToAnchor:self.view.leadingAnchor],
-
-        [self.leftPane.widthAnchor
-            constraintEqualToConstant:300.0],
-
-        [self.rightPane.topAnchor
-            constraintEqualToAnchor:self.view.topAnchor],
-
-        [self.rightPane.bottomAnchor
-            constraintEqualToAnchor:self.view.bottomAnchor],
-
-        [self.rightPane.leadingAnchor
-            constraintEqualToAnchor:self.leftPane.trailingAnchor],
-
-        [self.rightPane.trailingAnchor
-            constraintEqualToAnchor:self.view.trailingAnchor]
+        [self.rightPane.topAnchor constraintEqualToAnchor:self.view.topAnchor],
+        [self.rightPane.bottomAnchor constraintEqualToAnchor:self.view.bottomAnchor],
+        [self.rightPane.leadingAnchor constraintEqualToAnchor:self.leftPane.trailingAnchor],
+        [self.rightPane.trailingAnchor constraintEqualToAnchor:self.view.trailingAnchor]
     ]];
 
-        [self.rightPane.topAnchor
-            constraintEqualToAnchor:self.view.topAnchor],
-
-        [self.rightPane.bottomAnchor
-            constraintEqualToAnchor:self.view.bottomAnchor],
-
-        [self.rightPane.leadingAnchor
-            constraintEqualToAnchor:self.leftPane.trailingAnchor],
-
-        [self.rightPane.trailingAnchor
-            constraintEqualToAnchor:self.view.trailingAnchor]
-    ]];
+    [self setupLeftPane];
+    [self setupRightPane];
+}
 
 - (UIButton *)pclButtonWithTitle:(NSString *)title {
     UIButton *button = [UIButton buttonWithType:UIButtonTypeCustom];
@@ -86,52 +63,40 @@
 
     UIColor *color =
         highlight
-        ? [UIColor colorWithRed:11.0/255.0
-                          green:91.0/255.0
-                           blue:203.0/255.0
-                          alpha:1.0]
-
-        : [UIColor colorWithRed:52.0/255.0
-                          green:61.0/255.0
-                           blue:74.0/255.0
-                          alpha:1.0];
+        ? [UIColor colorWithRed:11.0/255.0 green:91.0/255.0 blue:203.0/255.0 alpha:1.0]
+        : [UIColor colorWithRed:52.0/255.0 green:61.0/255.0 blue:74.0/255.0 alpha:1.0];
 
     button.layer.borderColor = color.CGColor;
 
     button.backgroundColor =
-        [UIColor colorWithWhite:1.0
-                          alpha:0x55 / 255.0];
+        [UIColor colorWithWhite:1.0 alpha:0x55 / 255.0];
 
     [button setTitle:title forState:UIControlStateNormal];
     [button setTitleColor:color forState:UIControlStateNormal];
 
-    button.titleLabel.font =
-        [UIFont systemFontOfSize:13.0];
+    button.titleLabel.font = [UIFont systemFontOfSize:13.0];
 }
 
-    button.backgroundColor =
-        [UIColor colorWithWhite:1.0
-                          alpha:0x55 / 255.0];
+- (void)setupLeftPane {
+    UIButton *launch =
+        [self pclButtonWithTitle:@"正在加载"];
 
-    [button setTitle:title forState:UIControlStateNormal];
-    [button setTitleColor:color forState:UIControlStateNormal];
+    [self styleButton:launch
+                title:@"正在加载"
+            highlight:YES];
 
-    button.titleLabel.font =
-        [UIFont systemFontOfSize:13.0];
-}
+    launch.enabled = NO;
+    [self.leftPane addSubview:launch];
 
-    [NSLayoutConstraint activateConstraints:@[
-        [launch.leadingAnchor
-            constraintEqualToAnchor:self.leftPane.leadingAnchor
-                           constant:20.0],
+    UIButton *instance =
+        [self pclButtonWithTitle:@"选择实例"];
 
-        [launch.trailingAnchor
-            constraintEqualToAnchor:self.leftPane.trailingAnchor
-                           constant:-20.0],
+    [self styleButton:instance
+                title:@"选择实例"
+            highlight:NO];
 
-        [launch.heightAnchor
-            constraintEqualToConstant:54.0]
-    ]];
+    instance.enabled = NO;
+    [self.leftPane addSubview:instance];
 
     UILabel *version = [[UILabel alloc] init];
     version.translatesAutoresizingMaskIntoConstraints = NO;
@@ -149,61 +114,21 @@
     [launch addSubview:version];
 
     [NSLayoutConstraint activateConstraints:@[
-        [version.leadingAnchor
-            constraintEqualToAnchor:launch.leadingAnchor
-                           constant:15.0],
+        [launch.leadingAnchor constraintEqualToAnchor:self.leftPane.leadingAnchor constant:20.0],
+        [launch.trailingAnchor constraintEqualToAnchor:self.leftPane.trailingAnchor constant:-20.0],
+        [launch.heightAnchor constraintEqualToConstant:54.0],
 
-        [version.trailingAnchor
-            constraintEqualToAnchor:launch.trailingAnchor
-                           constant:-15.0],
+        [instance.leadingAnchor constraintEqualToAnchor:self.leftPane.leadingAnchor constant:20.0],
+        [instance.trailingAnchor constraintEqualToAnchor:self.leftPane.trailingAnchor constant:-20.0],
+        [instance.bottomAnchor constraintEqualToAnchor:self.leftPane.bottomAnchor constant:-20.0],
+        [instance.heightAnchor constraintEqualToConstant:35.0],
 
-        [version.bottomAnchor
-            constraintEqualToAnchor:launch.bottomAnchor
-                           constant:-6.0]
+        [launch.bottomAnchor constraintEqualToAnchor:instance.topAnchor constant:-10.0],
+
+        [version.leadingAnchor constraintEqualToAnchor:launch.leadingAnchor constant:15.0],
+        [version.trailingAnchor constraintEqualToAnchor:launch.trailingAnchor constant:-15.0],
+        [version.bottomAnchor constraintEqualToAnchor:launch.bottomAnchor constant:-6.0]
     ]];
-
-    UIButton *instance =
-        [self pclButtonWithTitle:@"选择实例"];
-
-    [self styleButton:instance
-                title:@"选择实例"
-            highlight:NO];
-
-    instance.enabled = NO;
-
-    [self.leftPane addSubview:instance];
-
-    UIButton *more =
-        [self pclButtonWithTitle:@"实例设置"];
-
-    [self styleButton:more
-                title:@"实例设置"
-            highlight:NO];
-
-    more.hidden = YES;
-
-    [self.leftPane addSubview:more];
-
-    [NSLayoutConstraint activateConstraints:@[
-        [instance.leadingAnchor
-            constraintEqualToAnchor:self.leftPane.leadingAnchor
-                           constant:20.0],
-
-        [instance.trailingAnchor
-            constraintEqualToAnchor:self.leftPane.trailingAnchor
-                           constant:-20.0],
-
-        [instance.bottomAnchor
-            constraintEqualToAnchor:self.leftPane.bottomAnchor
-                           constant:-20.0],
-
-        [instance.heightAnchor
-            constraintEqualToConstant:35.0]
-    ]];
-
-    [launch.bottomAnchor
-        constraintEqualToAnchor:instance.topAnchor
-                       constant:-10.0].active = YES;
 }
 
 - (void)setupRightPane {
@@ -212,37 +137,19 @@
 
     [self.rightPane addSubview:content];
 
-    UILayoutGuide *guide =
-        self.rightPane.contentLayoutGuide;
-
-    UILayoutGuide *frameGuide =
-        self.rightPane.frameLayoutGuide;
+    UILayoutGuide *guide = self.rightPane.contentLayoutGuide;
+    UILayoutGuide *frameGuide = self.rightPane.frameLayoutGuide;
 
     [NSLayoutConstraint activateConstraints:@[
-        [content.topAnchor
-            constraintEqualToAnchor:guide.topAnchor
-                           constant:25.0],
+        [content.topAnchor constraintEqualToAnchor:guide.topAnchor constant:25.0],
+        [content.leadingAnchor constraintEqualToAnchor:guide.leadingAnchor constant:25.0],
 
-        [content.leadingAnchor
-            constraintEqualToAnchor:guide.leadingAnchor
-                           constant:25.0],
+        [content.trailingAnchor constraintEqualToAnchor:guide.trailingAnchor constant:-25.0],
+        [content.bottomAnchor constraintEqualToAnchor:guide.bottomAnchor constant:-10.0],
 
-        [content.trailingAnchor
-            constraintEqualToAnchor:guide.trailingAnchor
-                           constant:-25.0],
-
-        [content.bottomAnchor
-            constraintEqualToAnchor:guide.bottomAnchor
-                           constant:-10.0]
+        [content.widthAnchor constraintEqualToAnchor:frameGuide.widthAnchor constant:-50.0],
+        [content.heightAnchor constraintGreaterThanOrEqualToAnchor:frameGuide.heightAnchor constant:-35.0]
     ]];
-
-    [content.widthAnchor
-        constraintEqualToAnchor:frameGuide.widthAnchor
-                       constant:-50.0].active = YES;
-
-    [content.heightAnchor
-        constraintGreaterThanOrEqualToAnchor:frameGuide.heightAnchor
-                                     constant:-35.0].active = YES;
 }
 
 @end
