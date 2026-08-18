@@ -267,7 +267,7 @@ didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
     CGRect mainFrame = mainLogoView.frame;
     mainFrame.origin.x =
         (logoW - mainContentWidth) / 2.0
-        + 0.45 * unit;
+        + 0.58 * unit;
     mainLogoView.frame = mainFrame;
 
     UILabel *subtitle = [[UILabel alloc] initWithFrame:
