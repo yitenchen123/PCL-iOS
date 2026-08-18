@@ -138,45 +138,63 @@ didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
 
     [splash addSubview:logoView];
 
+    CGFloat mainLogoW = unit * 8.28;
+
+    UIView *mainLogoView = [[UIView alloc] initWithFrame:
+        CGRectMake((logoW - mainLogoW) / 2.0,
+                   0.0,
+                   mainLogoW,
+                   unit * 2.25)];
+
+    [logoView addSubview:mainLogoView];
+
     void (^addShape)(UIBezierPath *) =
     ^(UIBezierPath *path) {
         CAShapeLayer *layer = [CAShapeLayer layer];
         layer.path = path.CGPath;
         layer.fillColor = UIColor.whiteColor.CGColor;
         layer.fillRule = kCAFillRuleEvenOdd;
-        [logoView.layer addSublayer:layer];
+        [mainLogoView.layer addSublayer:layer];
     };
 
-    // PCL reference-style P
-    CGFloat pStroke = unit * 0.42;
+    // Reference P
+    CGFloat pStroke = unit * 0.43;
 
-    UIBezierPath *pOuter = [UIBezierPath bezierPath];
+    UIView *pLeft = [[UIView alloc] initWithFrame:
+        CGRectMake(0.00 * unit,
+                   0.00 * unit,
+                   pStroke,
+                   2.25 * unit)];
 
-    [pOuter moveToPoint:CGPointMake(0.00 * unit, 0.00 * unit)];
-    [pOuter addLineToPoint:CGPointMake(1.85 * unit, 0.00 * unit)];
-    [pOuter addLineToPoint:CGPointMake(1.85 * unit, 1.25 * unit)];
-    [pOuter addLineToPoint:CGPointMake(0.48 * unit, 1.25 * unit)];
-    [pOuter addLineToPoint:CGPointMake(0.48 * unit, 2.25 * unit)];
-    [pOuter addLineToPoint:CGPointMake(0.00 * unit, 2.25 * unit)];
-    [pOuter closePath];
+    pLeft.backgroundColor = UIColor.whiteColor;
+    [mainLogoView addSubview:pLeft];
 
-    UIBezierPath *pInner =
-        [UIBezierPath bezierPathWithRect:
-            CGRectMake(0.52 * unit,
-                       0.42 * unit,
-                       0.92 * unit,
-                       0.46 * unit)];
+    UIView *pTop = [[UIView alloc] initWithFrame:
+        CGRectMake(0.00 * unit,
+                   0.00 * unit,
+                   1.90 * unit,
+                   pStroke)];
 
-    [pOuter appendPath:pInner];
+    pTop.backgroundColor = UIColor.whiteColor;
+    [mainLogoView addSubview:pTop];
 
-    CAShapeLayer *pLayer = [CAShapeLayer layer];
-    pLayer.path = pOuter.CGPath;
-    pLayer.fillRule = kCAFillRuleEvenOdd;
-    pLayer.fillColor = UIColor.whiteColor.CGColor;
+    UIView *pRight = [[UIView alloc] initWithFrame:
+        CGRectMake(1.47 * unit,
+                   0.00 * unit,
+                   pStroke,
+                   1.32 * unit)];
 
-    [logoView.layer addSublayer:pLayer];
+    pRight.backgroundColor = UIColor.whiteColor;
+    [mainLogoView addSubview:pRight];
 
-    CGFloat px = unit * 0.20;
+    UIView *pMiddle = [[UIView alloc] initWithFrame:
+        CGRectMake(0.83 * unit,
+                   0.89 * unit,
+                   1.07 * unit,
+                   pStroke)];
+
+    pMiddle.backgroundColor = UIColor.whiteColor;
+    [mainLogoView addSubview:pMiddle];
 
     UIColor *markBlue =
         [UIColor colorWithRed:24.0/255.0
@@ -184,25 +202,25 @@ didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
                          blue:232.0/255.0
                         alpha:1.0];
 
-    UIView *sq1 = [[UIView alloc] initWithFrame:
-        CGRectMake(0.18 * unit, 0.10 * unit, px, px)];
-    sq1.backgroundColor = markBlue;
-    [logoView addSubview:sq1];
+    CGFloat mark = unit * 0.22;
 
-    UIView *sq2 = [[UIView alloc] initWithFrame:
-        CGRectMake(0.38 * unit, 0.10 * unit, px, px)];
-    sq2.backgroundColor = UIColor.whiteColor;
-    [logoView addSubview:sq2];
+    UIView *markTop = [[UIView alloc] initWithFrame:
+        CGRectMake(0.43 * unit,
+                   0.10 * unit,
+                   mark,
+                   mark)];
 
-    UIView *sq3 = [[UIView alloc] initWithFrame:
-        CGRectMake(0.18 * unit, 0.30 * unit, px, px)];
-    sq3.backgroundColor = UIColor.whiteColor;
-    [logoView addSubview:sq3];
+    markTop.backgroundColor = markBlue;
+    [mainLogoView addSubview:markTop];
 
-    UIView *sq4 = [[UIView alloc] initWithFrame:
-        CGRectMake(0.38 * unit, 0.30 * unit, px, px)];
-    sq4.backgroundColor = markBlue;
-    [logoView addSubview:sq4];
+    UIView *markLeft = [[UIView alloc] initWithFrame:
+        CGRectMake(0.21 * unit,
+                   0.32 * unit,
+                   mark,
+                   mark)];
+
+    markLeft.backgroundColor = markBlue;
+    [mainLogoView addSubview:markLeft];
 
     UIBezierPath *cPath = [UIBezierPath bezierPath];
 
@@ -254,7 +272,7 @@ didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
     ios.layer.cornerRadius = unit * 0.14;
     ios.clipsToBounds = YES;
 
-    [logoView addSubview:ios];
+    [mainLogoView addSubview:ios];
 
     UILabel *subtitle = [[UILabel alloc] initWithFrame:
         CGRectMake(0.0,
