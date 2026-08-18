@@ -140,7 +140,7 @@
 }
 
 - (void)playEntranceAnimation {
-    [UIView animateWithDuration:0.65
+    [UIView animateWithDuration:0.30
                           delay:0.0
          usingSpringWithDamping:0.86
           initialSpringVelocity:0.25
