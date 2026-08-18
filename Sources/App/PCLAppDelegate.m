@@ -191,22 +191,22 @@ didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
                          blue:232.0/255.0
                         alpha:1.0];
 
-    CGFloat mark = unit * 0.22;
+    CGFloat mark = unit * 0.225;
 
     UIView *markTR = [[UIView alloc] initWithFrame:
-        CGRectMake(0.42 * unit, 0.27 * unit,
+        CGRectMake(0.45 * unit, 0.225 * unit,
                    mark, mark)];
     markTR.backgroundColor = markBlue;
     [mainLogoView addSubview:markTR];
 
     UIView *markBL = [[UIView alloc] initWithFrame:
-        CGRectMake(0.21 * unit, 0.48 * unit,
+        CGRectMake(0.225 * unit, 0.45 * unit,
                    mark, mark)];
     markBL.backgroundColor = markBlue;
     [mainLogoView addSubview:markBL];
 
     UIView *markBR = [[UIView alloc] initWithFrame:
-        CGRectMake(0.42 * unit, 0.48 * unit,
+        CGRectMake(0.45 * unit, 0.45 * unit,
                    mark, mark)];
     markBR.backgroundColor = UIColor.whiteColor;
     [mainLogoView addSubview:markBR];
@@ -266,7 +266,8 @@ didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
     CGFloat mainContentWidth = CGRectGetMaxX(ios.frame);
     CGRect mainFrame = mainLogoView.frame;
     mainFrame.origin.x =
-        (logoW - mainContentWidth) / 2.0;
+        (logoW - mainContentWidth) / 2.0
+        + 0.30 * unit;
     mainLogoView.frame = mainFrame;
 
     UILabel *subtitle = [[UILabel alloc] initWithFrame:
