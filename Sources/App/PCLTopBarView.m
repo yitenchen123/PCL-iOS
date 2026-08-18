@@ -103,10 +103,10 @@
         button.semanticContentAttribute =
             UISemanticContentAttributeForceLeftToRight;
 
-        button.layer.cornerRadius = 14.5;
+        button.layer.cornerRadius = 15.5;
         button.clipsToBounds = YES;
         [button.heightAnchor
-            constraintEqualToConstant:29.0].active = YES;
+            constraintEqualToConstant:31.0].active = YES;
 
         button.contentEdgeInsets =
             UIEdgeInsetsMake(3.0, 12.0, 3.0, 12.0);
