@@ -167,6 +167,33 @@ didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
     [pPath appendPath:pHole];
     addShape(pPath);
 
+    UIColor *splashBlue =
+        [UIColor colorWithRed:24.0/255.0
+                        green:111.0/255.0
+                         blue:232.0/255.0
+                        alpha:1.0];
+
+    CGFloat check = unit * 0.22;
+
+    UIView *checkA = [[UIView alloc] initWithFrame:
+        CGRectMake(0.42 * unit,
+                   0.08 * unit,
+                   check,
+                   check)];
+
+    checkA.backgroundColor = splashBlue;
+    [logoView addSubview:checkA];
+
+    UIView *checkB = [[UIView alloc] initWithFrame:
+        CGRectMake(0.20 * unit,
+                   0.30 * unit,
+                   check,
+                   check)];
+
+    checkB.backgroundColor = splashBlue;
+    [logoView addSubview:checkB];
+
+
     UIBezierPath *cPath = [UIBezierPath bezierPath];
 
     [cPath moveToPoint:CGPointMake(2.25 * unit, 0.00 * unit)];
@@ -194,34 +221,11 @@ didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
 
     addShape(lPath);
 
-    CGFloat mark = unit * 0.14;
-
-    NSArray *marks = @[
-        @[@0.18, @0.16],
-        @[@0.32, @0.30]
-    ];
-
-    for (NSArray *m in marks) {
-        UIView *dot = [[UIView alloc] initWithFrame:
-            CGRectMake([m[0] doubleValue] * unit,
-                       [m[1] doubleValue] * unit,
-                       mark,
-                       mark)];
-
-        dot.backgroundColor =
-            [UIColor colorWithRed:24.0/255.0
-                            green:111.0/255.0
-                             blue:232.0/255.0
-                            alpha:1.0];
-
-        [logoView addSubview:dot];
-    }
-
     UILabel *ios = [[UILabel alloc] initWithFrame:
-        CGRectMake(6.12 * unit,
-                   1.27 * unit,
-                   1.72 * unit,
-                   0.82 * unit)];
+        CGRectMake(6.45 * unit,
+                   1.34 * unit,
+                   1.70 * unit,
+                   0.78 * unit)];
 
     ios.text = @"iOS";
     ios.textAlignment = NSTextAlignmentCenter;
