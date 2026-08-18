@@ -73,8 +73,8 @@ static UIColor *PCLRightColor(NSUInteger rgb) {
     self = [super initWithFrame:frame];
     if (!self) return nil;
 
-    self.backgroundColor =
-        PCLRightColor(0xFBFBFB);
+    self.backgroundColor = UIColor.clearColor;
+    self.designScale = 1.0;
 
     [self buildUI];
 
@@ -207,7 +207,7 @@ static UIColor *PCLRightColor(NSUInteger rgb) {
     CGFloat height =
         CGRectGetHeight(self.bounds);
 
-    CGFloat scale = width / 550.0;
+    CGFloat scale = self.designScale > 0 ? self.designScale : 1.0;
 
     self.scrollView.frame = self.bounds;
 
@@ -291,7 +291,7 @@ static UIColor *PCLRightColor(NSUInteger rgb) {
 
         self.hintCard.titleLabel.frame =
             CGRectMake(15.0 * scale,
-                       9.0 * scale,
+                       12.0 * scale,
                        contentWidth
                            - 55.0 * scale,
                        20.0 * scale);
@@ -381,7 +381,7 @@ static UIColor *PCLRightColor(NSUInteger rgb) {
 
         self.logCard.titleLabel.frame =
             CGRectMake(15.0 * scale,
-                       9.0 * scale,
+                       12.0 * scale,
                        contentWidth
                            - 30.0 * scale,
                        20.0 * scale);

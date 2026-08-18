@@ -150,7 +150,7 @@ static UIColor *PCLColor(NSUInteger rgb) {
     self = [super initWithFrame:frame];
     if (!self) return nil;
 
-    self.backgroundColor = PCLColor(0xFBFBFB);
+    self.backgroundColor = [UIColor colorWithRed:251/255.0 green:251/255.0 blue:251/255.0 alpha:210/255.0];
 
     [self buildMainUI];
     [self buildProfileSelectUI];
@@ -187,7 +187,7 @@ static UIColor *PCLColor(NSUInteger rgb) {
     [self addSubview:self.panLogin];
 
     self.launchButton =
-        [self pclButton:@"启动" highlight:YES];
+        [self pclButton:@"启动游戏" highlight:YES];
 
     [self.launchButton addTarget:self
                           action:@selector(launchPressed)
@@ -248,7 +248,7 @@ static UIColor *PCLColor(NSUInteger rgb) {
         PCLColor(0x343D4A);
 
     self.hintLabel.text =
-        @"请创建或选择一个档案以登录 Minecraft。";
+        @"选择一个档案以启动游戏";
 
     [self.hintView addSubview:self.hintLabel];
     UIView *newCard = [[UIView alloc] init];
@@ -642,7 +642,7 @@ static UIColor *PCLColor(NSUInteger rgb) {
         CGRectMake(0,
                    10.0 * scale,
                    loginWidth,
-                   52.0 * scale);
+                   34.0 * scale);
 
     UIView *hintBar =
         [self.hintView viewWithTag:9201];
@@ -660,10 +660,10 @@ static UIColor *PCLColor(NSUInteger rgb) {
 
     self.hintLabel.frame =
         CGRectMake(15.0 * scale,
-                   7.0 * scale,
+                   9.0 * scale,
                    loginWidth
                        - 27.0 * scale,
-                   38.0 * scale);
+                   16.0 * scale);
 
     UIView *newCard =
         [self.profileSelectView

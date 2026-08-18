@@ -4,6 +4,8 @@
 
 @property (nonatomic, copy) void (^onCloseHint)(void);
 
+@property (nonatomic) CGFloat designScale;
+
 - (void)setHintHidden:(BOOL)hidden;
 - (void)playCEEnterAnimation;
 - (void)playCEExitAnimation;

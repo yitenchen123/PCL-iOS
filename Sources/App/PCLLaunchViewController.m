@@ -1,6 +1,7 @@
 #import "PCLLaunchViewController.h"
 #import "PCLLaunchLeftView.h"
 #import "PCLLaunchRightView.h"
+#import <QuartzCore/QuartzCore.h>
 
 @interface PCLLaunchViewController ()
 
@@ -8,6 +9,10 @@
 @property (nonatomic, strong) PCLLaunchRightView *rightView;
 
 @property (nonatomic, copy) NSArray<NSString *> *instances;
+
+@property (nonatomic, strong) CAGradientLayer *backgroundGradient;
+@property (nonatomic, strong) UIView *leftShadowView;
+@property (nonatomic, strong) CAGradientLayer *leftShadowGradient;
 
 @end
 
@@ -22,8 +27,22 @@
                          blue:251.0/255.0
                         alpha:1.0];
 
+    [self buildCEBackground];
     [self buildUI];
     [self reloadInstances];
+}
+
+- (void)buildCEBackground {
+    self.backgroundGradient = [CAGradientLayer layer];
+    self.backgroundGradient.colors = @[
+        (id)[UIColor colorWithRed:.59 green:.75 blue:.98 alpha:1].CGColor,
+        (id)[UIColor colorWithRed:.92 green:.96 blue:1 alpha:1].CGColor,
+        (id)[UIColor colorWithRed:.76 green:.84 blue:.99 alpha:1].CGColor
+    ];
+    self.backgroundGradient.locations = @[@0,@.4,@1];
+    self.backgroundGradient.startPoint = CGPointMake(.9,0);
+    self.backgroundGradient.endPoint = CGPointMake(.1,1);
+    [self.view.layer insertSublayer:self.backgroundGradient atIndex:0];
 }
 
 - (void)buildUI {
@@ -35,6 +54,17 @@
 
     [self.view addSubview:self.leftView];
     [self.view addSubview:self.rightView];
+    self.leftShadowView = [[UIView alloc] init];
+    self.leftShadowView.userInteractionEnabled = NO;
+    self.leftShadowGradient = [CAGradientLayer layer];
+    self.leftShadowGradient.colors = @[
+        (id)[UIColor colorWithWhite:0 alpha:.04].CGColor,
+        (id)[UIColor colorWithWhite:0 alpha:0].CGColor
+    ];
+    self.leftShadowGradient.startPoint = CGPointMake(0,.5);
+    self.leftShadowGradient.endPoint = CGPointMake(1,.5);
+    [self.leftShadowView.layer addSublayer:self.leftShadowGradient];
+    [self.view addSubview:self.leftShadowView];
 
     __weak typeof(self) weakSelf = self;
 
@@ -82,40 +112,18 @@
 
 - (void)viewDidLayoutSubviews {
     [super viewDidLayoutSubviews];
-
-    CGFloat width =
-        CGRectGetWidth(self.view.bounds);
-
-    CGFloat height =
-        CGRectGetHeight(self.view.bounds);
-
-    CGFloat scale =
-        MIN(width / 850.0,
-            height / 417.2);
-
-    CGFloat canvasWidth =
-        850.0 * scale;
-
-    CGFloat canvasHeight =
-        417.2 * scale;
-
-    CGFloat originX =
-        (width - canvasWidth) / 2.0;
-
-    CGFloat originY =
-        (height - canvasHeight) / 2.0;
-
-    self.leftView.frame =
-        CGRectMake(originX,
-                   originY,
-                   300.0 * scale,
-                   canvasHeight);
-
-    self.rightView.frame =
-        CGRectMake(originX + 300.0 * scale,
-                   originY,
-                   550.0 * scale,
-                   canvasHeight);
+    CGFloat w=CGRectGetWidth(self.view.bounds);
+    CGFloat h=CGRectGetHeight(self.view.bounds);
+    CGFloat scale=MIN(w/850.0,h/417.2);
+    CGFloat pageH=417.2*scale;
+    CGFloat leftW=300.0*scale;
+    CGFloat y=(h-pageH)/2.0;
+    self.backgroundGradient.frame=self.view.bounds;
+    self.leftView.frame=CGRectMake(0,y,leftW,pageH);
+    self.rightView.designScale=scale;
+    self.rightView.frame=CGRectMake(leftW,y,MAX(0,w-leftW),pageH);
+    self.leftShadowView.frame=CGRectMake(leftW,y,4*scale,pageH);
+    self.leftShadowGradient.frame=self.leftShadowView.bounds;
 }
 
 - (void)reloadInstances {
