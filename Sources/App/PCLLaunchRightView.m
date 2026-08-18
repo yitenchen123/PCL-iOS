@@ -1,5 +1,6 @@
 #import "PCLLaunchRightView.h"
 #import "PCLCEPageAnimator.h"
+#import <math.h>
 
 static UIColor *PCLRightColor(NSUInteger rgb) {
     return [UIColor colorWithRed:((rgb >> 16) & 255) / 255.0
@@ -87,26 +88,6 @@ static UIColor *PCLRightColor(NSUInteger rgb) {
     self.scrollView.alwaysBounceHorizontal = NO;
 
     [self addSubview:self.scrollView];
-
-    self.mainView = [[UIView alloc] init];
-    [self.scrollView addSubview:self.mainView];
-
-    self.customHost = [[UIView alloc] init];
-    self.customHost.backgroundColor = UIColor.clearColor;
-    [self.mainView addSubview:self.customHost];
-
-    [self buildHintCard];
-    [self buildLogCard];
-}
-
-- (void)buildUI {
-    self.scrollView = [[UIScrollView alloc] init];
-    self.scrollView.backgroundColor = UIColor.clearColor;
-    self.scrollView.showsHorizontalScrollIndicator = NO;
-    self.scrollView.alwaysBounceHorizontal = NO;
-
-    [self addSubview:self.scrollView];
-EOFcat >> Sources/App/PCLLaunchRightView.m <<'EOF'
 
     self.mainView = [[UIView alloc] init];
     [self.scrollView addSubview:self.mainView];

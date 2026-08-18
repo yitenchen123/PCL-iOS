@@ -118,81 +118,11 @@
                    canvasHeight);
 }
 
-- (NSArray<NSString *> *)versionRoots {
-    NSString *documents =
-        NSSearchPathForDirectoriesInDomains(
-            NSDocumentDirectory,
-            NSUserDomainMask,
-            YES).firstObject;
-
-    NSString *library =
-        NSSearchPathForDirectoriesInDomains(
-            NSLibraryDirectory,
-            NSUserDomainMask,
-            YES).firstObject;
-
-    return @[
-        [documents stringByAppendingPathComponent:
-            @".minecraft/versions"],
-
-        [documents stringByAppendingPathComponent:
-            @"minecraft/versions"],
-
-        [library stringByAppendingPathComponent:
-            @"Application Support/minecraft/versions"],
-
-        [library stringByAppendingPathComponent:
-            @"minecraft/versions"]
-    ];
-}
-
 - (void)reloadInstances {
-    NSFileManager *fm =
-        NSFileManager.defaultManager;
+    self.instances = @[];
 
-    NSMutableOrderedSet *found =
-        [NSMutableOrderedSet orderedSet];
-
-    for (NSString *root in [self versionRoots]) {
-        NSArray *files =
-            [fm contentsOfDirectoryAtPath:root
-                                    error:nil];
-
-        for (NSString *name in files) {
-            NSString *folder =
-                [root stringByAppendingPathComponent:name];
-
-            NSString *json =
-                [folder stringByAppendingPathComponent:
-                    [name stringByAppendingString:@".json"]];
-
-            if ([fm fileExistsAtPath:json]) {
-                [found addObject:name];
-            }
-        }
-    }
-
-    self.instances =
-        [[found array]
-            sortedArrayUsingSelector:
-                @selector(localizedCaseInsensitiveCompare:)];
-
-    NSString *saved =
-        [NSUserDefaults.standardUserDefaults
-            stringForKey:@"PCLSelectedInstance"];
-
-    if (![self.instances containsObject:saved]) {
-        saved = self.instances.firstObject;
-    }
-
-    if (saved.length) {
-        [NSUserDefaults.standardUserDefaults
-            setObject:saved
-               forKey:@"PCLSelectedInstance"];
-    } else {
-        [NSUserDefaults.standardUserDefaults
-            removeObjectForKey:@"PCLSelectedInstance"];
-    }
+    [NSUserDefaults.standardUserDefaults
+        removeObjectForKey:@"PCLSelectedInstance"];
 
     [self.leftView reloadState];
 }
@@ -231,7 +161,6 @@
         field.autocapitalizationType =
             UITextAutocapitalizationTypeNone;
     }];
-
     [editor addAction:
         [UIAlertAction
             actionWithTitle:@"取消"
@@ -245,16 +174,13 @@
             actionWithTitle:@"创建"
                       style:UIAlertActionStyleDefault
                     handler:^(__unused UIAlertAction *action) {
-
         NSString *name =
             [editor.textFields.firstObject.text
                 stringByTrimmingCharactersInSet:
                     NSCharacterSet.whitespaceAndNewlineCharacterSet];
 
-        if (!name.length ||
-            name.length > 16) {
+        if (!name.length || name.length > 16)
             return;
-        }
 
         [NSUserDefaults.standardUserDefaults
             setObject:name
@@ -262,11 +188,6 @@
 
         [weakSelf.leftView reloadState];
     }]];
-
-    [self presentViewController:editor
-                       animated:YES
-                     completion:nil];
-}
 
     [self presentViewController:editor
                        animated:YES
@@ -310,19 +231,6 @@
 
     if (!profile.length || !instance.length)
         return;
-
-- (void)launchMinecraft {
-    NSString *profile =
-        [NSUserDefaults.standardUserDefaults
-            stringForKey:@"PCLProfileUsername"];
-
-    NSString *instance =
-        [NSUserDefaults.standardUserDefaults
-            stringForKey:@"PCLSelectedInstance"];
-
-    if (!profile.length || !instance.length)
-        return;
-
     NSString *message =
         [NSString stringWithFormat:
             @"档案：%@\n实例：%@",

@@ -303,7 +303,6 @@ static UIColor *PCLColor(NSUInteger rgb) {
     self.usernameLabel = [[UILabel alloc] init];
     self.usernameLabel.textAlignment =
         NSTextAlignmentCenter;
-cat >> Sources/App/PCLLaunchLeftView.m <<'EOF'
 
     self.usernameLabel.font =
         [UIFont systemFontOfSize:16.0];
