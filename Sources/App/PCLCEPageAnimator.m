@@ -1,0 +1,414 @@
+#import "PCLCEPageAnimator.h"
+#import <QuartzCore/QuartzCore.h>
+#import <math.h>
+
+static CGFloat PCLClamp(CGFloat value) {
+    return MIN(MAX(value, 0.0), 1.0);
+}
+
+static CGFloat PCLOutFluent(CGFloat t, CGFloat power) {
+    t = PCLClamp(t);
+    return 1.0 - pow(1.0 - t, power);
+}
+
+static CGFloat PCLInFluent(CGFloat t, CGFloat power) {
+    t = PCLClamp(t);
+    return pow(t, power);
+}
+
+static CGFloat PCLOutBack(CGFloat t, CGFloat power) {
+    t = PCLClamp(t);
+
+    CGFloat p =
+        3.0 - power * 0.5;
+
+    return 1.0
+        - pow(1.0 - t, p)
+        * cos(1.5 * M_PI * t);
+}
+
+static NSArray<NSNumber *> *PCLSamples(
+    NSUInteger count,
+    CGFloat (^function)(CGFloat)) {
+
+    NSMutableArray *values =
+        [NSMutableArray arrayWithCapacity:count];
+
+    for (NSUInteger i = 0; i < count; i++) {
+        CGFloat t =
+            (CGFloat)i / (CGFloat)(count - 1);
+
+        [values addObject:
+            @(function(t))];
+    }
+
+    return values;
+}
+
+static void PCLAnimateLayer(
+    CALayer *layer,
+    NSString *keyPath,
+    NSArray<NSNumber *> *values,
+    NSTimeInterval duration,
+    NSTimeInterval delay) {
+
+    CAKeyframeAnimation *animation =
+        [CAKeyframeAnimation
+            animationWithKeyPath:keyPath];
+
+    animation.values = values;
+    animation.duration = duration;
+
+    animation.beginTime =
+        CACurrentMediaTime() + delay;
+
+    animation.fillMode =
+        kCAFillModeBackwards;
+
+    animation.removedOnCompletion = YES;
+
+    [layer addAnimation:animation
+                 forKey:keyPath];
+}
+
+@implementation PCLCEPageAnimator
+
++ (void)hideSimpleLeftPage:(UIView *)view {
+
+    [view.layer removeAllAnimations];
+
+    NSMutableArray *scaleValues =
+
+        [NSMutableArray array];
+
+    for (NSInteger i = 0; i <= 60; i++) {
+
+        CGFloat t = i / 60.0;
+
+        CGFloat value =
+
+            1.0
+
+            + (0.95 - 1.0)
+
+            * PCLInFluent(t, 2.0);
+
+        [scaleValues addObject:@(value)];
+
+    }
+
+
+    view.layer.transform =
+        CATransform3DMakeScale(
+            0.95, 0.95, 1.0);
+
+    PCLAnimateLayer(
+        view.layer,
+        @"transform.scale",
+        scaleValues,
+        0.110,
+        0.0);
+
+    view.layer.opacity = 0.0;
+
+    PCLAnimateLayer(
+        view.layer,
+        @"opacity",
+        @[@1.0, @0.0],
+        0.080,
+        0.030);
+}
+
++ (void)showSimpleLeftPage:(UIView *)view {
+    [view.layer removeAllAnimations];
+
+    NSMutableArray *scaleValues =
+        [NSMutableArray array];
+
+    for (NSInteger i = 0; i <= 120; i++) {
+        CGFloat t = i / 120.0;
+
+        CGFloat value =
+            0.96
+            + 0.04
+            * PCLOutBack(t, 2.0);
+
+        [scaleValues addObject:@(value)];
+    }
+
+    view.layer.transform =
+        CATransform3DIdentity;
+
+    PCLAnimateLayer(
+        view.layer,
+        @"transform.scale",
+        scaleValues,
+        0.400,
+        0.0);
+
+    view.layer.opacity = 1.0;
+
+    PCLAnimateLayer(
+        view.layer,
+        @"opacity",
+        @[@0.0, @1.0],
+        0.100,
+        0.0);
+}
+
++ (void)showLeftItems:(NSArray<UIView *> *)items {
+    NSTimeInterval delay = 0.0;
+    NSInteger index = 0;
+
+    for (UIView *view in items) {
+        [view.layer removeAllAnimations];
+
+        CGFloat targetOpacity =
+            view.alpha;
+
+        NSMutableArray *xValues =
+            [NSMutableArray array];
+
+        for (NSInteger i = 0; i <= 120; i++) {
+            CGFloat seconds =
+                0.300 * i / 120.0;
+
+            CGFloat first =
+                5.0 * PCLOutFluent(
+                    seconds / 0.200,
+                    3.0);
+
+            CGFloat second =
+                20.0 * PCLOutBack(
+                    seconds / 0.300,
+                    2.0);
+
+            [xValues addObject:
+                @(-25.0 + first + second)];
+        }
+
+        NSMutableArray *opacityValues =
+            [NSMutableArray array];
+
+        for (NSInteger i = 0; i <= 40; i++) {
+            CGFloat t = i / 40.0;
+
+            [opacityValues addObject:
+                @(targetOpacity
+                  * PCLOutFluent(t, 2.0))];
+        }
+
+        [view.layer setValue:@0
+                 forKeyPath:@"transform.translation.x"];
+
+        view.layer.opacity =
+            targetOpacity;
+
+        PCLAnimateLayer(
+            view.layer,
+            @"transform.translation.x",
+            xValues,
+            0.300,
+            delay);
+
+        PCLAnimateLayer(
+            view.layer,
+            @"opacity",
+            opacityValues,
+            0.100,
+            delay);
+
+        NSInteger delta =
+            MAX(15 - index, 7) * 2;
+
+        delay += delta / 1000.0;
+        index++;
+    }
+}
+
++ (void)hideLeftItems:(NSArray<UIView *> *)items {
+    if (!items.count)
+        return;
+
+    for (NSUInteger i = 0;
+         i < items.count;
+         i++) {
+
+        UIView *view = items[i];
+
+        NSTimeInterval delay =
+            (0.070 / items.count) * i;
+
+        CGFloat startOpacity =
+            view.layer.opacity;
+
+        view.layer.opacity = 0.0;
+
+        [view.layer setValue:@(-6.0)
+                 forKeyPath:@"transform.translation.x"];
+
+        PCLAnimateLayer(
+            view.layer,
+            @"opacity",
+            @[@(startOpacity), @0.0],
+            0.050,
+            delay);
+
+        PCLAnimateLayer(
+            view.layer,
+            @"transform.translation.x",
+            @[@0.0, @(-6.0)],
+            0.050,
+            delay);
+    }
+}
+
++ (void)showRightItems:(NSArray<UIView *> *)items
+            scrollView:(UIScrollView *)scrollView {
+
+    NSTimeInterval delay = 0.0;
+
+    for (UIView *view in items) {
+        [view.layer removeAllAnimations];
+
+        CGFloat targetOpacity =
+            view.alpha;
+
+        NSMutableArray *yValues =
+            [NSMutableArray array];
+
+        for (NSInteger i = 0; i <= 140; i++) {
+            CGFloat seconds =
+                0.350 * i / 140.0;
+
+            CGFloat first =
+                5.0 * PCLOutFluent(
+                    seconds / 0.250,
+                    3.0);
+
+            CGFloat second =
+                11.0 * PCLOutBack(
+                    seconds / 0.350,
+                    3.0);
+
+            [yValues addObject:
+                @(-16.0 + first + second)];
+        }
+
+        NSMutableArray *opacityValues =
+            [NSMutableArray array];
+
+        for (NSInteger i = 0; i <= 40; i++) {
+            CGFloat t = i / 40.0;
+
+            [opacityValues addObject:
+                @(targetOpacity
+                  * PCLOutFluent(t, 2.0))];
+        }
+
+        [view.layer setValue:@0
+                 forKeyPath:@"transform.translation.y"];
+
+        view.layer.opacity =
+            targetOpacity;
+
+        PCLAnimateLayer(
+            view.layer,
+            @"transform.translation.y",
+            yValues,
+            0.350,
+            delay);
+
+        PCLAnimateLayer(
+            view.layer,
+            @"opacity",
+            opacityValues,
+            0.100,
+            delay);
+
+        delay += 0.025;
+    }
+
+    if (scrollView) {
+        NSMutableArray *xValues =
+            [NSMutableArray array];
+
+        for (NSInteger i = 0; i <= 120; i++) {
+            CGFloat t = i / 120.0;
+
+            CGFloat x =
+                10.0
+                * (1.0
+                   - PCLOutFluent(t, 3.0));
+
+            [xValues addObject:@(x)];
+        }
+
+        [scrollView.layer setValue:@0
+                       forKeyPath:@"transform.translation.x"];
+
+        PCLAnimateLayer(
+            scrollView.layer,
+            @"transform.translation.x",
+            xValues,
+            0.350,
+            0.0);
+    }
+}
+
++ (void)hideRightItems:(NSArray<UIView *> *)items
+            scrollView:(UIScrollView *)scrollView {
+
+    NSTimeInterval delay = 0.0;
+
+    for (UIView *view in items) {
+        CGFloat opacity =
+            view.layer.opacity;
+
+        view.layer.opacity = 0.0;
+
+        [view.layer setValue:@(-6.0)
+                 forKeyPath:@"transform.translation.y"];
+
+        PCLAnimateLayer(
+            view.layer,
+            @"opacity",
+            @[@(opacity), @0.0],
+            0.070,
+            delay);
+
+        PCLAnimateLayer(
+            view.layer,
+            @"transform.translation.y",
+            @[@0.0, @(-6.0)],
+            0.070,
+            delay);
+
+        delay += 0.015;
+    }
+
+    if (scrollView) {
+        NSMutableArray *xValues =
+            [NSMutableArray array];
+
+        for (NSInteger i = 0; i <= 40; i++) {
+            CGFloat t = i / 40.0;
+
+            [xValues addObject:
+                @(10.0
+                  * PCLInFluent(t, 3.0))];
+        }
+
+        [scrollView.layer setValue:@10.0
+                       forKeyPath:@"transform.translation.x"];
+
+        PCLAnimateLayer(
+            scrollView.layer,
+            @"transform.translation.x",
+            xValues,
+            0.090,
+            0.0);
+    }
+}
+
+@end
