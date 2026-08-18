@@ -540,8 +540,6 @@ static UIColor *PCLColor(NSUInteger rgb) {
     CGFloat ox =
         (width - designWidth) / 2.0;
 
-    CGFloat oy = 0.0;
-
     CGFloat launchHeight = 54.0 * scale;
     CGFloat smallHeight = 35.0 * scale;
 
