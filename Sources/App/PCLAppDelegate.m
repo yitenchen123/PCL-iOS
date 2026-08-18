@@ -26,45 +26,101 @@ didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
                          blue:232.0/255.0
                         alpha:1.0];
 
-    UIImage *image =
-        [UIImage imageNamed:@"SplashScreen"];
+    CGFloat w = CGRectGetWidth(splash.bounds);
+    CGFloat h = CGRectGetHeight(splash.bounds);
+    CGFloat shortSide = MIN(w, h);
 
-    UIImageView *backgroundView =
-        [[UIImageView alloc] initWithImage:image];
-    backgroundView.frame = splash.bounds;
-    backgroundView.autoresizingMask =
-        UIViewAutoresizingFlexibleWidth |
-        UIViewAutoresizingFlexibleHeight;
-    UIImageView *contentView =
-        [[UIImageView alloc] initWithImage:image];
-    contentView.translatesAutoresizingMaskIntoConstraints = NO;
-    contentView.contentMode = UIViewContentModeScaleAspectFit;
-    [splash addSubview:contentView];
+    splash.backgroundColor =
+        [UIColor colorWithRed:24.0/255.0
+                        green:111.0/255.0
+                         blue:232.0/255.0
+                        alpha:1.0];
 
-    [NSLayoutConstraint activateConstraints:@[
-        [contentView.centerXAnchor
-            constraintEqualToAnchor:splash.centerXAnchor],
-        [contentView.centerYAnchor
-            constraintEqualToAnchor:splash.centerYAnchor],
-        [contentView.widthAnchor
-            constraintLessThanOrEqualToAnchor:splash.widthAnchor],
-        [contentView.heightAnchor
-            constraintLessThanOrEqualToAnchor:splash.heightAnchor]
-    ]];
+    CGFloat pixel = shortSide * 0.075;
 
-    CGFloat ratio =
-        image.size.width / image.size.height;
+    NSArray *topPattern = @[
+        @[@0, @0, @0.22],
+        @[@1, @0, @0.12],
+        @[@2, @0, @0.08],
+        @[@0, @1, @0.12],
+        @[@1, @1, @0.18],
+        @[@0, @2, @0.08],
+        @[@1, @2, @0.12]
+    ];
 
-    [contentView.widthAnchor
-        constraintEqualToAnchor:contentView.heightAnchor
-                     multiplier:ratio].active = YES;
+    for (NSArray *item in topPattern) {
+        UIView *v = [[UIView alloc] init];
 
-    NSLayoutConstraint *height =
-        [contentView.heightAnchor
-            constraintEqualToAnchor:splash.heightAnchor
-                         multiplier:0.88];
-    height.priority = UILayoutPriorityDefaultHigh;
-    height.active = YES;
+        v.backgroundColor =
+            [UIColor colorWithWhite:1.0
+                              alpha:[item[2] doubleValue]];
+
+        v.frame = CGRectMake(
+            [item[0] doubleValue] * pixel,
+            [item[1] doubleValue] * pixel,
+            pixel,
+            pixel
+        );
+
+        [splash addSubview:v];
+    }
+
+    NSArray *bottomPattern = @[
+        @[@0, @2, @0.06],
+        @[@1, @1, @0.08],
+        @[@1, @2, @0.12],
+        @[@2, @0, @0.14],
+        @[@2, @1, @0.18],
+        @[@2, @2, @0.10],
+        @[@3, @1, @0.08],
+        @[@3, @2, @0.12]
+    ];
+
+    for (NSArray *item in bottomPattern) {
+        UIView *v = [[UIView alloc] init];
+
+        v.backgroundColor =
+            [UIColor colorWithWhite:1.0
+                              alpha:[item[2] doubleValue]];
+
+        CGFloat x =
+            w - pixel * 4.0 +
+            [item[0] doubleValue] * pixel;
+
+        CGFloat y =
+            h - pixel * 3.0 +
+            [item[1] doubleValue] * pixel;
+
+        v.frame = CGRectMake(x, y, pixel, pixel);
+        [splash addSubview:v];
+    }
+
+    NSArray *dots = @[
+        @[@0.24, @0.26, @0.018],
+        @[@0.80, @0.22, @0.016],
+        @[@0.16, @0.68, @0.016],
+        @[@0.74, @0.64, @0.017],
+        @[@0.61, @0.80, @0.016]
+    ];
+
+    for (NSArray *dot in dots) {
+        CGFloat size =
+            shortSide * [dot[2] doubleValue];
+
+        UIView *v = [[UIView alloc] init];
+
+        v.backgroundColor =
+            [UIColor colorWithWhite:1.0 alpha:0.20];
+
+        v.frame = CGRectMake(
+            w * [dot[0] doubleValue],
+            h * [dot[1] doubleValue],
+            size,
+            size
+        );
+
+        [splash addSubview:v];
+    }
 
     [self.window addSubview:splash];
 
