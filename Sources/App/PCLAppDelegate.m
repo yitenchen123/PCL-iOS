@@ -147,25 +147,46 @@ didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
         [logoView.layer addSublayer:layer];
     };
 
-    UIBezierPath *pPath = [UIBezierPath bezierPath];
+    // PCL reference-style P
+    CGFloat pStroke = unit * 0.42;
 
-    [pPath moveToPoint:CGPointMake(0.00 * unit, 0.00 * unit)];
-    [pPath addLineToPoint:CGPointMake(1.85 * unit, 0.00 * unit)];
-    [pPath addLineToPoint:CGPointMake(1.85 * unit, 1.32 * unit)];
-    [pPath addLineToPoint:CGPointMake(0.45 * unit, 1.32 * unit)];
-    [pPath addLineToPoint:CGPointMake(0.45 * unit, 2.25 * unit)];
-    [pPath addLineToPoint:CGPointMake(0.00 * unit, 2.25 * unit)];
-    [pPath closePath];
+    UIView *pLeft = [[UIView alloc] initWithFrame:
+        CGRectMake(0.00 * unit,
+                   0.00 * unit,
+                   pStroke,
+                   2.25 * unit)];
 
-    UIBezierPath *pHole =
-        [UIBezierPath bezierPathWithRect:
-            CGRectMake(0.45 * unit,
-                       0.43 * unit,
-                       0.96 * unit,
-                       0.47 * unit)];
+    pLeft.backgroundColor = UIColor.whiteColor;
+    [logoView addSubview:pLeft];
 
-    [pPath appendPath:pHole];
-    addShape(pPath);
+    UIView *pTop = [[UIView alloc] initWithFrame:
+        CGRectMake(0.00 * unit,
+                   0.00 * unit,
+                   1.85 * unit,
+                   pStroke)];
+
+    pTop.backgroundColor = UIColor.whiteColor;
+    [logoView addSubview:pTop];
+
+    UIView *pRight = [[UIView alloc] initWithFrame:
+        CGRectMake(1.43 * unit,
+                   0.00 * unit,
+                   pStroke,
+                   1.30 * unit)];
+
+    pRight.backgroundColor = UIColor.whiteColor;
+    [logoView addSubview:pRight];
+
+    UIView *pMiddle = [[UIView alloc] initWithFrame:
+        CGRectMake(0.72 * unit,
+                   0.88 * unit,
+                   1.13 * unit,
+                   pStroke)];
+
+    pMiddle.backgroundColor = UIColor.whiteColor;
+    [logoView addSubview:pMiddle];
+
+    CGFloat check = unit * 0.22;
 
     UIColor *splashBlue =
         [UIColor colorWithRed:24.0/255.0
@@ -173,26 +194,41 @@ didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
                          blue:232.0/255.0
                         alpha:1.0];
 
-    CGFloat check = unit * 0.22;
-
-    UIView *checkA = [[UIView alloc] initWithFrame:
-        CGRectMake(0.42 * unit,
-                   0.08 * unit,
-                   check,
-                   check)];
-
-    checkA.backgroundColor = splashBlue;
-    [logoView addSubview:checkA];
-
-    UIView *checkB = [[UIView alloc] initWithFrame:
+    UIView *blueA = [[UIView alloc] initWithFrame:
         CGRectMake(0.20 * unit,
-                   0.30 * unit,
+                   0.04 * unit,
                    check,
                    check)];
 
-    checkB.backgroundColor = splashBlue;
-    [logoView addSubview:checkB];
+    blueA.backgroundColor = splashBlue;
+    [logoView addSubview:blueA];
 
+    UIView *blueB = [[UIView alloc] initWithFrame:
+        CGRectMake(0.42 * unit,
+                   0.26 * unit,
+                   check,
+                   check)];
+
+    blueB.backgroundColor = splashBlue;
+    [logoView addSubview:blueB];
+
+    UIView *whiteA = [[UIView alloc] initWithFrame:
+        CGRectMake(0.42 * unit,
+                   0.04 * unit,
+                   check,
+                   check)];
+
+    whiteA.backgroundColor = UIColor.whiteColor;
+    [logoView addSubview:whiteA];
+
+    UIView *whiteB = [[UIView alloc] initWithFrame:
+        CGRectMake(0.20 * unit,
+                   0.26 * unit,
+                   check,
+                   check)];
+
+    whiteB.backgroundColor = UIColor.whiteColor;
+    [logoView addSubview:whiteB];
 
     UIBezierPath *cPath = [UIBezierPath bezierPath];
 
@@ -222,7 +258,7 @@ didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
     addShape(lPath);
 
     UILabel *ios = [[UILabel alloc] initWithFrame:
-        CGRectMake(6.45 * unit,
+        CGRectMake(6.58 * unit,
                    1.34 * unit,
                    1.70 * unit,
                    0.78 * unit)];
