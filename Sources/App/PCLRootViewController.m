@@ -1,11 +1,13 @@
 #import "PCLRootViewController.h"
 #import "PCLTopBarView.h"
+#import "PCLLaunchViewController.h"
 
 @interface PCLRootViewController () <PCLTopBarViewDelegate>
 
 @property (nonatomic, strong) PCLTopBarView *topBar;
 @property (nonatomic, strong) UIView *contentView;
 @property (nonatomic, strong) UILabel *pageLabel;
+@property (nonatomic, strong) PCLLaunchViewController *launchVC;
 
 @end
 
@@ -79,6 +81,26 @@
 
     [self.contentView addSubview:self.pageLabel];
 
+    self.launchVC =
+        [[PCLLaunchViewController alloc] init];
+
+    [self addChildViewController:self.launchVC];
+    self.launchVC.view.translatesAutoresizingMaskIntoConstraints = NO;
+
+    [self.contentView addSubview:self.launchVC.view];
+    [self.launchVC didMoveToParentViewController:self];
+
+    [NSLayoutConstraint activateConstraints:@[
+        [self.launchVC.view.topAnchor
+            constraintEqualToAnchor:self.contentView.topAnchor],
+        [self.launchVC.view.leadingAnchor
+            constraintEqualToAnchor:self.contentView.leadingAnchor],
+        [self.launchVC.view.trailingAnchor
+            constraintEqualToAnchor:self.contentView.trailingAnchor],
+        [self.launchVC.view.bottomAnchor
+            constraintEqualToAnchor:self.contentView.bottomAnchor]
+    ]];
+
     [NSLayoutConstraint activateConstraints:@[
         [self.pageLabel.centerXAnchor
             constraintEqualToAnchor:self.contentView.centerXAnchor],
@@ -95,17 +117,24 @@
 - (void)showPage:(PCLPageType)page {
     switch (page) {
         case PCLPageTypeLaunch:
-            self.pageLabel.text = @"启动";
+            self.launchVC.view.hidden = NO;
+            self.pageLabel.hidden = YES;
             break;
 
         case PCLPageTypeDownload:
+            self.launchVC.view.hidden = YES;
+            self.pageLabel.hidden = NO;
             self.pageLabel.text = @"下载";
             break;
         case PCLPageTypeSettings:
+            self.launchVC.view.hidden = YES;
+            self.pageLabel.hidden = NO;
             self.pageLabel.text = @"设置";
             break;
 
         case PCLPageTypeTools:
+            self.launchVC.view.hidden = YES;
+            self.pageLabel.hidden = NO;
             self.pageLabel.text = @"工具";
             break;
     }
