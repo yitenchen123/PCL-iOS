@@ -112,10 +112,10 @@
             UIEdgeInsetsMake(3.0, 12.0, 3.0, 12.0);
 
         button.imageEdgeInsets =
-            UIEdgeInsetsMake(0.0, 0.0, 0.0, 4.0);
+            UIEdgeInsetsMake(0.0, 0.0, 0.0, 6.0);
 
         button.titleEdgeInsets =
-            UIEdgeInsetsMake(0.0, 4.0, 0.0, 0.0);
+            UIEdgeInsetsMake(0.0, 6.0, 0.0, 0.0);
 
         [button addTarget:self
                    action:@selector(pageButtonPressed:)
