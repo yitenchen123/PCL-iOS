@@ -22,11 +22,7 @@
     [self setupContentView];
 
     self.topBar.alpha = 0.0;
-    self.topBar.transform =
-        CGAffineTransformMakeTranslation(0.0, -18.0);
     self.contentView.alpha = 0.0;
-    self.contentView.transform =
-        CGAffineTransformMakeTranslation(0.0, 24.0);
 
     [self showPage:PCLPageTypeLaunch];
 }
