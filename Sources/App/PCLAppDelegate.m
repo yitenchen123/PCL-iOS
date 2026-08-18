@@ -160,39 +160,28 @@ didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
     // Reference P
     CGFloat pStroke = unit * 0.43;
 
+    // P - measured from reference
     UIView *pLeft = [[UIView alloc] initWithFrame:
-        CGRectMake(0.00 * unit,
-                   0.00 * unit,
-                   pStroke,
-                   2.25 * unit)];
-
+        CGRectMake(0.00 * unit, 0.00 * unit,
+                   0.42 * unit, 2.19 * unit)];
     pLeft.backgroundColor = UIColor.whiteColor;
     [mainLogoView addSubview:pLeft];
 
     UIView *pTop = [[UIView alloc] initWithFrame:
-        CGRectMake(0.00 * unit,
-                   0.00 * unit,
-                   1.90 * unit,
-                   pStroke)];
-
+        CGRectMake(0.00 * unit, 0.00 * unit,
+                   1.90 * unit, 0.48 * unit)];
     pTop.backgroundColor = UIColor.whiteColor;
     [mainLogoView addSubview:pTop];
 
     UIView *pRight = [[UIView alloc] initWithFrame:
-        CGRectMake(1.47 * unit,
-                   0.00 * unit,
-                   pStroke,
-                   1.32 * unit)];
-
+        CGRectMake(1.48 * unit, 0.00 * unit,
+                   0.42 * unit, 1.59 * unit)];
     pRight.backgroundColor = UIColor.whiteColor;
     [mainLogoView addSubview:pRight];
 
     UIView *pMiddle = [[UIView alloc] initWithFrame:
-        CGRectMake(0.83 * unit,
-                   0.89 * unit,
-                   1.07 * unit,
-                   pStroke)];
-
+        CGRectMake(0.86 * unit, 1.15 * unit,
+                   1.04 * unit, 0.44 * unit)];
     pMiddle.backgroundColor = UIColor.whiteColor;
     [mainLogoView addSubview:pMiddle];
 
@@ -204,23 +193,23 @@ didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
 
     CGFloat mark = unit * 0.22;
 
-    UIView *markTop = [[UIView alloc] initWithFrame:
-        CGRectMake(0.43 * unit,
-                   0.10 * unit,
-                   mark,
-                   mark)];
+    UIView *markTR = [[UIView alloc] initWithFrame:
+        CGRectMake(0.42 * unit, 0.27 * unit,
+                   mark, mark)];
+    markTR.backgroundColor = markBlue;
+    [mainLogoView addSubview:markTR];
 
-    markTop.backgroundColor = markBlue;
-    [mainLogoView addSubview:markTop];
+    UIView *markBL = [[UIView alloc] initWithFrame:
+        CGRectMake(0.21 * unit, 0.48 * unit,
+                   mark, mark)];
+    markBL.backgroundColor = markBlue;
+    [mainLogoView addSubview:markBL];
 
-    UIView *markLeft = [[UIView alloc] initWithFrame:
-        CGRectMake(0.21 * unit,
-                   0.32 * unit,
-                   mark,
-                   mark)];
-
-    markLeft.backgroundColor = markBlue;
-    [mainLogoView addSubview:markLeft];
+    UIView *markBR = [[UIView alloc] initWithFrame:
+        CGRectMake(0.42 * unit, 0.48 * unit,
+                   mark, mark)];
+    markBR.backgroundColor = UIColor.whiteColor;
+    [mainLogoView addSubview:markBR];
 
     UIBezierPath *cPath = [UIBezierPath bezierPath];
 
@@ -273,6 +262,12 @@ didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
     ios.clipsToBounds = YES;
 
     [mainLogoView addSubview:ios];
+
+    CGFloat mainContentWidth = CGRectGetMaxX(ios.frame);
+    CGRect mainFrame = mainLogoView.frame;
+    mainFrame.origin.x =
+        (logoW - mainContentWidth) / 2.0;
+    mainLogoView.frame = mainFrame;
 
     UILabel *subtitle = [[UILabel alloc] initWithFrame:
         CGRectMake(0.0,
