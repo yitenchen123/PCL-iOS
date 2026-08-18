@@ -35,7 +35,7 @@
 - (void)buildCEBackground {
     self.backgroundGradient = [CAGradientLayer layer];
     self.backgroundGradient.colors = @[
-        (id)[UIColor colorWithRed:.59 green:.75 blue:.98 alpha:1].CGColor,
+        (id)[UIColor colorWithRed:.68 green:.80 blue:.98 alpha:1].CGColor,
         (id)[UIColor colorWithRed:.92 green:.96 blue:1 alpha:1].CGColor,
         (id)[UIColor colorWithRed:.76 green:.84 blue:.99 alpha:1].CGColor
     ];
