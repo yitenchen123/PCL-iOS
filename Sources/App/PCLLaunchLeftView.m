@@ -531,39 +531,31 @@ static UIColor *PCLColor(NSUInteger rgb) {
         CGRectGetHeight(self.bounds);
 
     CGFloat scale =
-        MIN(width / 300.0,
-            height / 417.2);
+        MIN(1.0, width / 300.0);
 
     CGFloat designWidth =
         300.0 * scale;
 
-    CGFloat designHeight =
-        417.2 * scale;
 
     CGFloat ox =
         (width - designWidth) / 2.0;
 
-    CGFloat oy =
-        (height - designHeight) / 2.0;
+    CGFloat oy = 0.0;
 
-    CGFloat loginHeight =
-        298.2 * scale;
-
-    CGFloat launchY =
-        oy + 298.2 * scale;
-
-    CGFloat launchHeight =
-        54.0 * scale;
+    CGFloat launchHeight = 54.0 * scale;
+    CGFloat smallHeight = 35.0 * scale;
 
     CGFloat instanceY =
-        oy + 362.2 * scale;
+        height - 20.0 * scale - smallHeight;
 
-    CGFloat smallHeight =
-        35.0 * scale;
+    CGFloat launchY =
+        instanceY - 10.0 * scale - launchHeight;
+
+    CGFloat loginHeight = launchY;
 
     self.panLogin.frame =
         CGRectMake(ox + 20.0 * scale,
-                   oy,
+                   0.0,
                    260.0 * scale,
                    loginHeight);
 

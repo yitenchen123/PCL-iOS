@@ -114,10 +114,10 @@
     [super viewDidLayoutSubviews];
     CGFloat w=CGRectGetWidth(self.view.bounds);
     CGFloat h=CGRectGetHeight(self.view.bounds);
-    CGFloat scale=MIN(w/850.0,h/417.2);
-    CGFloat pageH=417.2*scale;
+    CGFloat scale=MIN(1.0, MIN(w/850.0,h/417.2));
+    CGFloat pageH=h;
     CGFloat leftW=300.0*scale;
-    CGFloat y=(h-pageH)/2.0;
+    CGFloat y=0.0;
     self.backgroundGradient.frame=self.view.bounds;
     self.leftView.frame=CGRectMake(0,y,leftW,pageH);
     self.rightView.designScale=scale;

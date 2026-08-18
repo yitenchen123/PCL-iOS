@@ -207,7 +207,10 @@ static UIColor *PCLRightColor(NSUInteger rgb) {
     CGFloat height =
         CGRectGetHeight(self.bounds);
 
-    CGFloat scale = self.designScale > 0 ? self.designScale : 1.0;
+    CGFloat scale =
+        MIN(1.0, self.designScale > 0
+                 ? self.designScale
+                 : 1.0);
 
     self.scrollView.frame = self.bounds;
 
