@@ -140,7 +140,7 @@ static UIColor *PCLColor(NSUInteger rgb) {
 @property (nonatomic, strong) UIButton *editButton;
 @property (nonatomic, strong) UIButton *switchButton;
 
-@property (nonatomic, strong) UIButton *newProfileButton;
+@property (nonatomic, strong) UIButton *createProfileButton;
 
 @end
 
@@ -267,7 +267,7 @@ static UIColor *PCLColor(NSUInteger rgb) {
     newCard.layer.shadowRadius = 3.0;
 
     [self.profileSelectView addSubview:newCard];
-    self.newProfileButton =
+    self.createProfileButton =
         [UIButton buttonWithType:UIButtonTypeCustom];
 
     UIImageSymbolConfiguration *config =
@@ -278,19 +278,19 @@ static UIColor *PCLColor(NSUInteger rgb) {
     UIImage *icon =
         [[UIImage systemImageNamed:@"person.badge.plus"]
             imageByApplyingSymbolConfiguration:config];
-    [self.newProfileButton
+    [self.createProfileButton
         setImage:icon
         forState:UIControlStateNormal];
 
-    self.newProfileButton.tintColor =
+    self.createProfileButton.tintColor =
         PCLColor(0x343D4A);
 
-    [self.newProfileButton
+    [self.createProfileButton
         addTarget:self
            action:@selector(newProfilePressed)
  forControlEvents:UIControlEventTouchUpInside];
 
-    [newCard addSubview:self.newProfileButton];
+    [newCard addSubview:self.createProfileButton];
 }
 
 - (void)buildProfileSkinUI {
@@ -684,7 +684,7 @@ static UIColor *PCLColor(NSUInteger rgb) {
                    cardWidth,
                    cardHeight);
 
-    self.newProfileButton.frame =
+    self.createProfileButton.frame =
         CGRectMake(10.0 * scale,
                    3.0 * scale,
                    24.0 * scale,
