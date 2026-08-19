@@ -27,14 +27,14 @@ static UIColor *PCLColor(NSUInteger rgb) {
     [super touchesBegan:touches withEvent:event];
 
     [UIView animateWithDuration:0.08 animations:^{
-        self.transform = CGAffineTransformMakeScale(0.955, 0.955);
+        self.layer.transform = CATransform3DMakeScale(0.955, 0.955, 1.0);
         self.backgroundColor = PCLColor(0xE0EAFD);
     }];
 }
 
 - (void)restore {
     [UIView animateWithDuration:0.30 animations:^{
-        self.transform = CGAffineTransformIdentity;
+        self.layer.transform = CATransform3DIdentity;
         self.backgroundColor =
             [UIColor colorWithWhite:1 alpha:0x55 / 255.0];
     }];
@@ -615,19 +615,22 @@ static UIColor *PCLColor(NSUInteger rgb) {
     self.launchTitleLabel.font =
         [UIFont systemFontOfSize:13.0 * scale];
 
+    CGFloat launchWidth =
+        CGRectGetWidth(self.launchContentView.bounds);
+
     self.launchTitleLabel.frame =
-        CGRectMake(15.0 * scale,
+        CGRectMake(0,
                    7.0 * scale,
-                   230.0 * scale,
+                   launchWidth,
                    20.0 * scale);
 
     self.versionLabel.font =
         [UIFont systemFontOfSize:10.0 * scale];
 
     self.versionLabel.frame =
-        CGRectMake(15.0 * scale,
+        CGRectMake(0,
                    30.0 * scale,
-                   230.0 * scale,
+                   launchWidth,
                    14.0 * scale);
 
     self.instanceButton.titleLabel.font =
