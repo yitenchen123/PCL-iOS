@@ -1,6 +1,6 @@
 #import "PCLLaunchLeftView.h"
 #import "PCLCEPageAnimator.h"
-#import "PCLMouseSupport.h"
+#import <QuartzCore/QuartzCore.h>
 
 static UIColor *PCLColor(NSUInteger rgb) {
     return [UIColor colorWithRed:((rgb >> 16) & 255) / 255.0
@@ -10,9 +10,6 @@ static UIColor *PCLColor(NSUInteger rgb) {
 }
 
 @interface PCLCEButton : UIButton
-@property (nonatomic, strong) UIColor *pclIdleBorderColor;
-@property (nonatomic, strong) UIHoverGestureRecognizer *pclHover;
-@property (nonatomic, assign) BOOL pclPointerInside;
 @end
 
 @implementation PCLCEButton
@@ -24,80 +21,57 @@ static UIColor *PCLColor(NSUInteger rgb) {
     self.layer.cornerRadius = 3.0;
     self.layer.borderWidth = 1.0;
 
-    self.pclHover =
-        [[UIHoverGestureRecognizer alloc]
-            initWithTarget:self
-                    action:@selector(pclHoverChanged:)];
-
-    [self addGestureRecognizer:self.pclHover];
-
-    [[NSNotificationCenter defaultCenter]
-        addObserver:self
-           selector:@selector(pclMouseChanged)
-               name:PCLMouseAvailabilityDidChangeNotification
-             object:nil];
-
-    [self pclMouseChanged];
 
     return self;
 }
 
-- (void)pclMouseChanged {
-    self.pclHover.enabled =
-        PCLExternalMouseConnected();
 
-    if (!self.pclHover.enabled) {
-        self.pclPointerInside = NO;
-        [self pclApplyHover:NO];
-    }
-}
+- (void)pclAnimateScale:(CGFloat)target
+               duration:(NSTimeInterval)duration {
+    CALayer *shown=(CALayer *)self.layer.presentationLayer;
 
-- (void)pclHoverChanged:
-    (UIHoverGestureRecognizer *)hover {
+    CGFloat current=
+        shown ? shown.transform.m11 : self.layer.transform.m11;
 
-    BOOL inside =
-        hover.state == UIGestureRecognizerStateBegan ||
-        hover.state == UIGestureRecognizerStateChanged;
+    if (current<=0.0) current=1.0;
 
-    if (inside == self.pclPointerInside)
-        return;
+    [self.layer removeAnimationForKey:@"pcl.press.scale"];
 
-    self.pclPointerInside = inside;
-    [self pclApplyHover:inside];
-}
+    CABasicAnimation *a=
+        [CABasicAnimation animationWithKeyPath:@"transform.scale"];
 
-- (void)pclApplyHover:(BOOL)hover {
-    if (!self.enabled) return;
+    a.fromValue=@(current);
+    a.toValue=@(target);
+    a.duration=duration;
 
-    UIColor *bg = hover
-        ? [PCLColor(0xEAF2FE) colorWithAlphaComponent:0.78]
-        : [UIColor colorWithWhite:1 alpha:0x55/255.0];
+    a.timingFunction=
+        [CAMediaTimingFunction functionWithName:
+            kCAMediaTimingFunctionEaseOut];
 
-    UIColor *border = hover
-        ? PCLColor(0x1370F3)
-        : (self.pclIdleBorderColor ?: PCLColor(0x343D4A));
 
-    [UIView animateWithDuration:hover ? 0.10 : 0.20
-                     animations:^{
-        self.backgroundColor = bg;
-        self.layer.borderColor = border.CGColor;
-    }];
+    [CATransaction begin];
+    [CATransaction setDisableActions:YES];
+
+    self.layer.transform=
+        CATransform3DMakeScale(target,target,1.0);
+
+    [CATransaction commit];
+    [self.layer addAnimation:a forKey:@"pcl.press.scale"];
 }
 
 - (void)touchesBegan:(NSSet *)touches withEvent:(UIEvent *)event {
     [super touchesBegan:touches withEvent:event];
 
-    [UIView animateWithDuration:0.08 animations:^{
-        self.layer.transform = CATransform3DMakeScale(0.955, 0.955, 1.0);
-        self.backgroundColor = PCLColor(0xE0EAFD);
-    }];
+    [self pclAnimateScale:0.955 duration:0.09];
+    self.backgroundColor=PCLColor(0xE0EAFD);
 }
 
 - (void)restore {
-    [UIView animateWithDuration:0.30 animations:^{
-        self.layer.transform = CATransform3DIdentity;
-        self.backgroundColor =
-            [UIColor colorWithWhite:1 alpha:0x55 / 255.0];
+    [self pclAnimateScale:1.0 duration:0.18];
+
+    [UIView animateWithDuration:0.16 animations:^{
+        self.backgroundColor=
+            [UIColor colorWithWhite:1 alpha:0x55/255.0];
     }];
 }
 
@@ -250,7 +224,6 @@ static UIColor *PCLColor(NSUInteger rgb) {
     UIColor *color =
         PCLColor(highlight ? 0x0B5BCB : 0x343D4A);
 
-    button.pclIdleBorderColor = color;
     button.layer.borderColor = color.CGColor;
     button.backgroundColor =
         [UIColor colorWithWhite:1 alpha:0x55 / 255.0];

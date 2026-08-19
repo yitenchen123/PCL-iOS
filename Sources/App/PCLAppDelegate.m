@@ -1,6 +1,7 @@
 #import "PCLAppDelegate.h"
 #import "PCLRootViewController.h"
 #import "PCLMouseSupport.h"
+#import "PCLGlobalButtonHover.h"
 
 @implementation PCLAppDelegate
 
@@ -15,6 +16,7 @@ didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
 
     self.window.rootViewController = root;
     [self.window makeKeyAndVisible];
+    PCLInstallGlobalButtonHover(self.window);
     UIView *splash =
         [[UIView alloc] initWithFrame:self.window.bounds];
 
