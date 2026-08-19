@@ -80,6 +80,14 @@
     self.launchVC =
         [[PCLLaunchViewController alloc] init];
 
+    __weak typeof(self) weakSelf = self;
+    self.launchVC.onOpenDownload = ^{
+        [weakSelf.topBar
+            selectPage:PCLPageTypeDownload
+              animated:YES];
+        [weakSelf showPage:PCLPageTypeDownload];
+    };
+
     [self addChildViewController:self.launchVC];
     self.launchVC.view.translatesAutoresizingMaskIntoConstraints = NO;
 

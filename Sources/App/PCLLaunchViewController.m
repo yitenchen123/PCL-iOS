@@ -239,7 +239,13 @@
         [NSUserDefaults.standardUserDefaults
             stringForKey:@"PCLSelectedInstance"];
 
-    if (!profile.length || !instance.length)
+    if (!instance.length) {
+        if (self.onOpenDownload)
+            self.onOpenDownload();
+        return;
+    }
+
+    if (!profile.length)
         return;
     NSString *message =
         [NSString stringWithFormat:

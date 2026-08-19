@@ -221,7 +221,7 @@ static UIColor *PCLColor(NSUInteger rgb) {
     [self.launchButton addSubview:self.versionLabel];
 
     self.instanceButton =
-        [self pclButton:@"选择实例" highlight:NO];
+        [self pclButton:@"实例选择" highlight:NO];
 
     [self.instanceButton addTarget:self
                             action:@selector(instancePressed)
@@ -459,10 +459,14 @@ static UIColor *PCLColor(NSUInteger rgb) {
     self.versionLabel.text =
         hasInstance
         ? instance
-        : @"未选择实例";
+        : @"未找到可用实例";
+
+    [self.launchButton
+        setTitle:(hasInstance ? @"启动游戏" : @"下载游戏")
+        forState:UIControlStateNormal];
 
     BOOL canLaunch =
-        hasProfile && hasInstance;
+        hasInstance ? hasProfile : YES;
 
     self.launchButton.enabled =
         canLaunch;
