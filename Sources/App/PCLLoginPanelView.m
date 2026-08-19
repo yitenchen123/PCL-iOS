@@ -8,7 +8,6 @@ static UIColor *PCLLoginColor(NSUInteger rgb) {
 
 @interface PCLLoginPanelView ()
 
-@property(nonatomic,strong) UIView *selectPage;
 
 @property(nonatomic,strong) UIView *msPage;
 
@@ -30,11 +29,9 @@ static UIColor *PCLLoginColor(NSUInteger rgb) {
 - (instancetype)initWithFrame:(CGRect)frame {
     self=[super initWithFrame:frame];
     if (!self) return nil;
-    [self buildSelectPage];
     [self buildMicrosoftPage];
     [self buildOfflinePage];
     [self buildAuthPage];
-    [self showPage:self.selectPage];
     return self;
 }
 
@@ -62,60 +59,10 @@ static UIColor *PCLLoginColor(NSUInteger rgb) {
 }
 
 - (void)showPage:(UIView *)page {
-    self.selectPage.hidden=page!=self.selectPage;
     self.msPage.hidden=page!=self.msPage;
     self.offlinePage.hidden=page!=self.offlinePage;
     self.authPage.hidden=page!=self.authPage;
     self.statusLabel.text=@"";
-}
-
-
-- (void)buildSelectPage {
-
-    self.selectPage=[[UIView alloc] init];
-
-    [self addSubview:self.selectPage];
-
-    UILabel *title=[[UILabel alloc] init];
-
-    title.tag=100;
-
-    title.text=@"新建档案 - 选择验证类型";
-
-    title.textAlignment=NSTextAlignmentCenter;
-
-    [self.selectPage addSubview:title];
-
-
-    UIButton *ms=[self button:@"  正版验证"];
-    ms.tag=101;
-    [ms setImage:[UIImage systemImageNamed:@"shield.checkered"]
-        forState:UIControlStateNormal];
-    [ms addTarget:self action:@selector(openMicrosoft)
-        forControlEvents:UIControlEventTouchUpInside];
-    [self.selectPage addSubview:ms];
-
-    UIButton *offline=[self button:@"  离线验证"];
-    offline.tag=102;
-    [offline setImage:[UIImage systemImageNamed:@"link.badge.plus"]
-        forState:UIControlStateNormal];
-    [offline addTarget:self action:@selector(openOffline)
-        forControlEvents:UIControlEventTouchUpInside];
-    [self.selectPage addSubview:offline];
-
-    UIButton *auth=[self button:@"  第三方验证"];
-    auth.tag=103;
-    [auth setImage:[UIImage systemImageNamed:@"network"]
-        forState:UIControlStateNormal];
-    [auth addTarget:self action:@selector(openAuth)
-        forControlEvents:UIControlEventTouchUpInside];
-    [self.selectPage addSubview:auth];
-
-    UIButton *back=[self button:@"返回"];
-    back.tag=104;
-    [back addTarget:self action:@selector(closePressed)
-        forControlEvents:UIControlEventTouchUpInside];
-    [self.selectPage addSubview:back];
 }
 
 
@@ -149,12 +96,18 @@ static UIColor *PCLLoginColor(NSUInteger rgb) {
     buy.tag=202;
     UIButton *web=[self button:@"»  前往官网"];
     web.tag=203;
+    buy.layer.borderWidth=0;
+    web.layer.borderWidth=0;
+    buy.alpha=.35;
+    web.alpha=.35;
     [self.msPage addSubview:buy];
     [self.msPage addSubview:web];
 
     UIButton *back=[self button:@"«  返回"];
     back.tag=204;
-    [back addTarget:self action:@selector(showSelect)
+    back.layer.borderWidth=0;
+    back.alpha=.35;
+    [back addTarget:self action:@selector(closePressed)
         forControlEvents:UIControlEventTouchUpInside];
     [self.msPage addSubview:back];
 }
@@ -188,7 +141,7 @@ static UIColor *PCLLoginColor(NSUInteger rgb) {
 
     UIButton *back=[self button:@"返回"];
     back.tag=305;
-    [back addTarget:self action:@selector(showSelect)
+    [back addTarget:self action:@selector(closePressed)
         forControlEvents:UIControlEventTouchUpInside];
 
     UIButton *create=[self button:@"创建"];
@@ -215,11 +168,12 @@ static UIColor *PCLLoginColor(NSUInteger rgb) {
 
     UIButton *reg=[self button:@"注册账号"];
     reg.tag=403;
+    reg.layer.borderWidth=0;
     [self.authPage addSubview:reg];
 
     UIButton *back=[self button:@"返回"];
     back.tag=404;
-    [back addTarget:self action:@selector(showSelect)
+    [back addTarget:self action:@selector(closePressed)
         forControlEvents:UIControlEventTouchUpInside];
 
     UIButton *login=[self button:@"登录"];
@@ -235,10 +189,9 @@ static UIColor *PCLLoginColor(NSUInteger rgb) {
     [self addSubview:self.statusLabel];
 }
 
-- (void)showSelect { [self showPage:self.selectPage]; }
-- (void)openMicrosoft { [self showPage:self.msPage]; }
-- (void)openOffline { [self showPage:self.offlinePage]; }
-- (void)openAuth { [self showPage:self.authPage]; }
+- (void)showMicrosoft { [self showPage:self.msPage]; }
+- (void)showOffline { [self showPage:self.offlinePage]; }
+- (void)showThirdParty { [self showPage:self.authPage]; }
 
 - (void)closePressed {
     if (self.onClose) self.onClose();
@@ -282,20 +235,9 @@ static UIColor *PCLLoginColor(NSUInteger rgb) {
     CGFloat w=CGRectGetWidth(self.bounds);
 
     for (UIView *p in @[
-        self.selectPage,self.msPage,self.offlinePage,self.authPage])
+        self.msPage,self.offlinePage,self.authPage])
         p.frame=self.bounds;
 
-    UILabel *title=[self.selectPage viewWithTag:100];
-    title.font=[UIFont systemFontOfSize:14*s weight:UIFontWeightSemibold];
-    title.frame=CGRectMake(0,12*s,w,24*s);
-
-    for (NSInteger i=0;i<3;i++) {
-        UIButton *b=[self.selectPage viewWithTag:101+i];
-        b.frame=CGRectMake(20*s,(50+42*i)*s,w-40*s,34*s);
-    }
-
-    UIButton *selectBack=[self.selectPage viewWithTag:104];
-    selectBack.frame=CGRectMake((w-70*s)/2,180*s,70*s,30*s);
 
     UIImageView *msIcon=[self.msPage viewWithTag:200];
     msIcon.frame=CGRectMake((w-40*s)/2,20*s,40*s,40*s);

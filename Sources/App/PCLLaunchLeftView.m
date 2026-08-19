@@ -1,6 +1,7 @@
 #import "PCLLaunchLeftView.h"
 #import "PCLCEPageAnimator.h"
 #import "PCLLoginPanelView.h"
+#import "PCLCEProfileTypeDialog.h"
 #import <QuartzCore/QuartzCore.h>
 
 static UIColor *PCLColor(NSUInteger rgb) {
@@ -178,6 +179,7 @@ static UIColor *PCLColor(NSUInteger rgb) {
 
 @property (nonatomic, strong) UIButton *createProfileButton;
 @property (nonatomic, strong) PCLLoginPanelView *loginPanel;
+@property (nonatomic, strong) PCLCEProfileTypeDialog *profileDialog;
 
 @end
 
@@ -562,11 +564,42 @@ static UIColor *PCLColor(NSUInteger rgb) {
         self.onInstanceSettings();
 }
 
-- (void)newProfilePressed {
+- (void)openAuthType:(PCLProfileAuthType)type {
     self.profileSelectView.hidden=YES;
     self.loginPanel.hidden=NO;
+
+    if (type==PCLProfileAuthMicrosoft)
+        [self.loginPanel showMicrosoft];
+    else if (type==PCLProfileAuthOffline)
+        [self.loginPanel showOffline];
+    else
+        [self.loginPanel showThirdParty];
+
     [self setNeedsLayout];
 }
+
+- (void)newProfilePressed {
+    if (!self.window) return;
+
+    PCLCEProfileTypeDialog *dialog=
+        [[PCLCEProfileTypeDialog alloc] init];
+
+    self.profileDialog=dialog;
+
+    __weak typeof(self) weakSelf=self;
+
+    dialog.onSelect=^(PCLProfileAuthType type) {
+        [weakSelf openAuthType:type];
+        weakSelf.profileDialog=nil;
+    };
+
+    dialog.onCancel=^{
+        weakSelf.profileDialog=nil;
+    };
+
+    [dialog presentInView:self.window];
+}
+
 
 - (void)switchPressed {
     if (self.onSwitchProfile)

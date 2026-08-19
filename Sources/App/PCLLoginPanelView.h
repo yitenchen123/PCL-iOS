@@ -5,4 +5,7 @@
 @property(nonatomic,copy) void (^onClose)(void);
 
 @property(nonatomic,copy) void (^onOfflineCreate)(NSString *name);
+- (void)showMicrosoft;
+- (void)showOffline;
+- (void)showThirdParty;
 @end
