@@ -16,6 +16,7 @@ targets:
       - path: Resources
     dependencies:
       - sdk: QuartzCore.framework
+      - sdk: GameController.framework
     settings:
       base:
         INFOPLIST_FILE: Resources/Info.plist

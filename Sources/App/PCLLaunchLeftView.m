@@ -1,5 +1,6 @@
 #import "PCLLaunchLeftView.h"
 #import "PCLCEPageAnimator.h"
+#import "PCLMouseSupport.h"
 
 static UIColor *PCLColor(NSUInteger rgb) {
     return [UIColor colorWithRed:((rgb >> 16) & 255) / 255.0
@@ -9,6 +10,9 @@ static UIColor *PCLColor(NSUInteger rgb) {
 }
 
 @interface PCLCEButton : UIButton
+@property (nonatomic, strong) UIColor *pclIdleBorderColor;
+@property (nonatomic, strong) UIHoverGestureRecognizer *pclHover;
+@property (nonatomic, assign) BOOL pclPointerInside;
 @end
 
 @implementation PCLCEButton
@@ -20,7 +24,64 @@ static UIColor *PCLColor(NSUInteger rgb) {
     self.layer.cornerRadius = 3.0;
     self.layer.borderWidth = 1.0;
 
+    self.pclHover =
+        [[UIHoverGestureRecognizer alloc]
+            initWithTarget:self
+                    action:@selector(pclHoverChanged:)];
+
+    [self addGestureRecognizer:self.pclHover];
+
+    [[NSNotificationCenter defaultCenter]
+        addObserver:self
+           selector:@selector(pclMouseChanged)
+               name:PCLMouseAvailabilityDidChangeNotification
+             object:nil];
+
+    [self pclMouseChanged];
+
     return self;
+}
+
+- (void)pclMouseChanged {
+    self.pclHover.enabled =
+        PCLExternalMouseConnected();
+
+    if (!self.pclHover.enabled) {
+        self.pclPointerInside = NO;
+        [self pclApplyHover:NO];
+    }
+}
+
+- (void)pclHoverChanged:
+    (UIHoverGestureRecognizer *)hover {
+
+    BOOL inside =
+        hover.state == UIGestureRecognizerStateBegan ||
+        hover.state == UIGestureRecognizerStateChanged;
+
+    if (inside == self.pclPointerInside)
+        return;
+
+    self.pclPointerInside = inside;
+    [self pclApplyHover:inside];
+}
+
+- (void)pclApplyHover:(BOOL)hover {
+    if (!self.enabled) return;
+
+    UIColor *bg = hover
+        ? [PCLColor(0xEAF2FE) colorWithAlphaComponent:0.78]
+        : [UIColor colorWithWhite:1 alpha:0x55/255.0];
+
+    UIColor *border = hover
+        ? PCLColor(0x1370F3)
+        : (self.pclIdleBorderColor ?: PCLColor(0x343D4A));
+
+    [UIView animateWithDuration:hover ? 0.10 : 0.20
+                     animations:^{
+        self.backgroundColor = bg;
+        self.layer.borderColor = border.CGColor;
+    }];
 }
 
 - (void)touchesBegan:(NSSet *)touches withEvent:(UIEvent *)event {
@@ -189,6 +250,7 @@ static UIColor *PCLColor(NSUInteger rgb) {
     UIColor *color =
         PCLColor(highlight ? 0x0B5BCB : 0x343D4A);
 
+    button.pclIdleBorderColor = color;
     button.layer.borderColor = color.CGColor;
     button.backgroundColor =
         [UIColor colorWithWhite:1 alpha:0x55 / 255.0];

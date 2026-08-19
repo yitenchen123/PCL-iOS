@@ -1,10 +1,12 @@
 #import "PCLAppDelegate.h"
 #import "PCLRootViewController.h"
+#import "PCLMouseSupport.h"
 
 @implementation PCLAppDelegate
 
 - (BOOL)application:(UIApplication *)application
 didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
+    PCLStartMouseMonitoring();
     self.window = [[UIWindow alloc]
         initWithFrame:[UIScreen mainScreen].bounds];
 
