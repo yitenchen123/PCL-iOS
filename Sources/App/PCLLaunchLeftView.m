@@ -21,8 +21,47 @@ static UIColor *PCLColor(NSUInteger rgb) {
     self.layer.cornerRadius = 3.0;
     self.layer.borderWidth = 1.0;
 
+    [self addTarget:self action:@selector(pclPressDown)
+     forControlEvents:UIControlEventTouchDown];
+
+    [self addTarget:self action:@selector(pclPressUp)
+     forControlEvents:UIControlEventTouchUpInside |
+                      UIControlEventTouchUpOutside |
+                      UIControlEventTouchCancel];
+
 
     return self;
+}
+
+- (void)pclPressDown {
+    CALayer *p=(CALayer *)self.layer.presentationLayer;
+    CGFloat from=p ? p.transform.m11 : 1.0;
+
+    CABasicAnimation *a=
+        [CABasicAnimation animationWithKeyPath:@"transform.scale"];
+
+    a.fromValue=@(from);
+
+    a.toValue=@(0.955);
+
+    a.duration=0.09;
+    a.fillMode=kCAFillModeForwards;
+    a.removedOnCompletion=NO;
+    [self.layer addAnimation:a forKey:@"pcl.ce.scale"];
+}
+
+- (void)pclPressUp {
+    CALayer *p=(CALayer *)self.layer.presentationLayer;
+    CGFloat from=p ? p.transform.m11 : 0.955;
+
+    [self.layer removeAnimationForKey:@"pcl.ce.scale"];
+
+    CABasicAnimation *a=
+        [CABasicAnimation animationWithKeyPath:@"transform.scale"];
+    a.fromValue=@(from);
+    a.toValue=@(1.0);
+    a.duration=0.16;
+    [self.layer addAnimation:a forKey:@"pcl.ce.release"];
 }
 
 

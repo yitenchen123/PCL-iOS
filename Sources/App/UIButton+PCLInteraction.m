@@ -35,6 +35,13 @@ static char PCLPressInstalledKey;
     [self pcl_didMoveToWindow];
 
     if (!self.window) return;
+    if ([NSStringFromClass(self.class)
+        isEqualToString:@"PCLCEButton"]) return;
+
+    if ([NSStringFromClass(self.class)
+        isEqualToString:@"PCLCEButton"])
+        return;
+
     if (objc_getAssociatedObject(
         self,&PCLPressInstalledKey)) return;
 

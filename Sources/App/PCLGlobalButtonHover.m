@@ -66,7 +66,9 @@
     CGFloat h=CGRectGetHeight(button.bounds);
 
     BOOL iconOnly =
-        button.currentTitle.length == 0;
+        button.currentTitle.length == 0 &&
+        w <= 48.0 &&
+        h <= 48.0;
 
     v.layer.cornerRadius = iconOnly
         ? MIN(w,h)/2.0
@@ -86,8 +88,8 @@
         CGFloat alpha=bg ? CGColorGetAlpha(bg) : 0.0;
 
         v.backgroundColor = alpha > 0.5
-            ? [blue colorWithAlphaComponent:0.10]
-            : [UIColor colorWithWhite:1 alpha:0.28];
+            ? [blue colorWithAlphaComponent:0.14]
+            : [UIColor colorWithWhite:1 alpha:0.38];
     } else {
         v.backgroundColor =
             [blue colorWithAlphaComponent:
