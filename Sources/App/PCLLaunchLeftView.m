@@ -138,6 +138,8 @@ static UIColor *PCLColor(NSUInteger rgb) {
 @property (nonatomic, strong) UIView *panLogin;
 
 @property (nonatomic, strong) PCLCEButton *launchButton;
+@property (nonatomic, strong) UIView *launchContentView;
+@property (nonatomic, strong) UILabel *launchTitleLabel;
 @property (nonatomic, strong) UILabel *versionLabel;
 
 @property (nonatomic, strong) PCLCEButton *instanceButton;
@@ -205,7 +207,7 @@ static UIColor *PCLColor(NSUInteger rgb) {
     [self addSubview:self.panLogin];
 
     self.launchButton =
-        [self pclButton:@"启动游戏" highlight:YES];
+        [self pclButton:@"" highlight:YES];
 
     [self.launchButton addTarget:self
                           action:@selector(launchPressed)
@@ -213,12 +215,20 @@ static UIColor *PCLColor(NSUInteger rgb) {
 
     [self addSubview:self.launchButton];
 
+    self.launchContentView = [[UIView alloc] init];
+    self.launchContentView.userInteractionEnabled = NO;
+    [self.launchButton addSubview:self.launchContentView];
+
+    self.launchTitleLabel = [[UILabel alloc] init];
+    self.launchTitleLabel.textAlignment = NSTextAlignmentCenter;
+    [self.launchContentView addSubview:self.launchTitleLabel];
+
     self.versionLabel = [[UILabel alloc] init];
     self.versionLabel.textAlignment = NSTextAlignmentCenter;
     self.versionLabel.font = [UIFont systemFontOfSize:11.0];
     self.versionLabel.textColor = PCLColor(0x8C8C8C);
 
-    [self.launchButton addSubview:self.versionLabel];
+    [self.launchContentView addSubview:self.versionLabel];
 
     self.instanceButton =
         [self pclButton:@"实例选择" highlight:NO];
@@ -459,11 +469,10 @@ static UIColor *PCLColor(NSUInteger rgb) {
     self.versionLabel.text =
         hasInstance
         ? instance
-        : @"未找到可用实例";
+        : @"未找到可用的游戏实例";
 
-    [self.launchButton
-        setTitle:(hasInstance ? @"启动游戏" : @"下载游戏")
-        forState:UIControlStateNormal];
+    self.launchTitleLabel.text =
+        hasInstance ? @"启动游戏" : @"下载游戏";
 
     BOOL canLaunch =
         hasInstance ? hasProfile : YES;
@@ -483,6 +492,9 @@ static UIColor *PCLColor(NSUInteger rgb) {
 
     self.launchButton.layer.borderColor =
         launchColor.CGColor;
+
+    self.launchTitleLabel.textColor =
+        launchColor;
 
     [self.launchButton
         setTitleColor:launchColor
@@ -597,25 +609,26 @@ static UIColor *PCLColor(NSUInteger rgb) {
                    260.0 * scale,
                    launchHeight);
 
-    self.launchButton.titleLabel.font =
-        [UIFont systemFontOfSize:
-            13.0 * scale];
+    self.launchContentView.frame =
+        self.launchButton.bounds;
 
-    self.launchButton.titleEdgeInsets =
-        UIEdgeInsetsMake(0,
-                         0,
-                         15.0 * scale,
-                         0);
+    self.launchTitleLabel.font =
+        [UIFont systemFontOfSize:13.0 * scale];
+
+    self.launchTitleLabel.frame =
+        CGRectMake(15.0 * scale,
+                   7.0 * scale,
+                   230.0 * scale,
+                   20.0 * scale);
 
     self.versionLabel.font =
-        [UIFont systemFontOfSize:
-            11.0 * scale];
+        [UIFont systemFontOfSize:10.0 * scale];
 
     self.versionLabel.frame =
         CGRectMake(15.0 * scale,
-                   launchHeight - 25.0 * scale,
+                   30.0 * scale,
                    230.0 * scale,
-                   15.0 * scale);
+                   14.0 * scale);
 
     self.instanceButton.titleLabel.font =
         [UIFont systemFontOfSize:
