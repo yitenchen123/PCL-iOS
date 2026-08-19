@@ -531,7 +531,7 @@ static UIColor *PCLColor(NSUInteger rgb) {
         CGRectGetHeight(self.bounds);
 
     CGFloat scale =
-        MIN(1.0, width / 300.0);
+        MIN(width / 300.0, height / 417.2);
 
     CGFloat designWidth =
         300.0 * scale;
