@@ -1,5 +1,6 @@
 #import "PCLLaunchLeftView.h"
 #import "PCLCEPageAnimator.h"
+#import "PCLLoginPanelView.h"
 #import <QuartzCore/QuartzCore.h>
 
 static UIColor *PCLColor(NSUInteger rgb) {
@@ -176,6 +177,7 @@ static UIColor *PCLColor(NSUInteger rgb) {
 @property (nonatomic, strong) UIButton *switchButton;
 
 @property (nonatomic, strong) UIButton *createProfileButton;
+@property (nonatomic, strong) PCLLoginPanelView *loginPanel;
 
 @end
 
@@ -190,6 +192,7 @@ static UIColor *PCLColor(NSUInteger rgb) {
     [self buildMainUI];
     [self buildProfileSelectUI];
     [self buildProfileSkinUI];
+    [self buildLoginPanelUI];
 
     [self reloadState];
 
@@ -333,6 +336,17 @@ static UIColor *PCLColor(NSUInteger rgb) {
     [newCard addSubview:self.createProfileButton];
 }
 
+- (void)buildLoginPanelUI {
+    self.loginPanel=[[PCLLoginPanelView alloc] init];
+    self.loginPanel.hidden=YES;
+    [self.panLogin addSubview:self.loginPanel];
+
+    __weak typeof(self) weakSelf=self;
+    self.loginPanel.onClose=^{
+        weakSelf.loginPanel.hidden=YES;
+        weakSelf.profileSelectView.hidden=NO;
+        [weakSelf setNeedsLayout];
+    };
 - (void)buildProfileSkinUI {
     self.profileSkinView = [[UIView alloc] init];
     [self.panLogin addSubview:self.profileSkinView];
@@ -471,6 +485,9 @@ static UIColor *PCLColor(NSUInteger rgb) {
     self.profileSkinView.hidden =
         !hasProfile;
 
+    if (hasProfile)
+        self.loginPanel.hidden=YES;
+
     self.usernameLabel.text =
         hasProfile
         ? username
@@ -535,8 +552,9 @@ static UIColor *PCLColor(NSUInteger rgb) {
 }
 
 - (void)newProfilePressed {
-    if (self.onCreateProfile)
-        self.onCreateProfile();
+    self.profileSelectView.hidden=YES;
+    self.loginPanel.hidden=NO;
+    [self setNeedsLayout];
 }
 
 - (void)switchPressed {
@@ -690,6 +708,9 @@ static UIColor *PCLColor(NSUInteger rgb) {
 
     self.profileSelectView.frame =
         self.panLogin.bounds;
+
+    self.loginPanel.designScale=scale;
+    self.loginPanel.frame=self.panLogin.bounds;
 
     CGFloat loginWidth =
         CGRectGetWidth(self.panLogin.bounds);
