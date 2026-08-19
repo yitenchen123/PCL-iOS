@@ -347,6 +347,17 @@ static UIColor *PCLColor(NSUInteger rgb) {
         weakSelf.profileSelectView.hidden=NO;
         [weakSelf setNeedsLayout];
     };
+
+    self.loginPanel.onOfflineCreate=^(NSString *name) {
+        NSUserDefaults *d=NSUserDefaults.standardUserDefaults;
+        [d setObject:name forKey:@"PCLProfileUsername"];
+        [d setObject:@"offline" forKey:@"PCLProfileType"];
+        [weakSelf reloadState];
+    };
+}
+
+
+
 - (void)buildProfileSkinUI {
     self.profileSkinView = [[UIView alloc] init];
     [self.panLogin addSubview:self.profileSkinView];
