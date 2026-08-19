@@ -114,12 +114,14 @@
     [super viewDidLayoutSubviews];
     CGFloat w=CGRectGetWidth(self.view.bounds);
     CGFloat h=CGRectGetHeight(self.view.bounds);
-    CGFloat scale=MIN(1.0, MIN(w/850.0,h/417.2));
+    CGFloat scale=MIN(w/850.0,h/417.2);
     CGFloat pageH=h;
     CGFloat leftW=self.leftPanelWidth>0 ? MIN(self.leftPanelWidth,w) : 300.0*scale;
+    scale=MIN(scale,leftW/300.0);
     CGFloat y=0.0;
     self.backgroundGradient.frame=self.view.bounds;
     self.leftView.frame=CGRectMake(0,y,leftW,pageH);
+    self.leftView.designScale=scale;
     self.rightView.designScale=scale;
     self.rightView.frame=CGRectMake(leftW,y,MAX(0,w-leftW),pageH);
     self.leftShadowView.frame=CGRectMake(leftW,y,4*scale,pageH);

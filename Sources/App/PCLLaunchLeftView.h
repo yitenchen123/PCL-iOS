@@ -2,6 +2,8 @@
 
 @interface PCLLaunchLeftView : UIView
 
+@property (nonatomic) CGFloat designScale;
+
 @property (nonatomic, copy) void (^onLaunch)(void);
 @property (nonatomic, copy) void (^onSelectInstance)(void);
 @property (nonatomic, copy) void (^onInstanceSettings)(void);

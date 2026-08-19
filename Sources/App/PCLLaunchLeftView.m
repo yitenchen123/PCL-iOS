@@ -531,7 +531,9 @@ static UIColor *PCLColor(NSUInteger rgb) {
         CGRectGetHeight(self.bounds);
 
     CGFloat scale =
-        MIN(width / 300.0, height / 417.2);
+        self.designScale > 0.0
+        ? self.designScale
+        : 1.0;
 
     CGFloat designWidth =
         300.0 * scale;
@@ -549,11 +551,17 @@ static UIColor *PCLColor(NSUInteger rgb) {
     CGFloat launchY =
         instanceY - 10.0 * scale - launchHeight;
 
-    CGFloat loginHeight = launchY;
+    CGFloat loginAreaHeight = launchY;
+    CGFloat wantedLoginHeight =
+        (self.profileSelectView.hidden ? 235.0 : 114.0) * scale;
+    CGFloat loginHeight =
+        MIN(loginAreaHeight,wantedLoginHeight);
+    CGFloat loginY =
+        MAX(0.0,(loginAreaHeight-loginHeight)/2.0);
 
     self.panLogin.frame =
         CGRectMake(ox + 20.0 * scale,
-                   0.0,
+                   loginY,
                    260.0 * scale,
                    loginHeight);
 
