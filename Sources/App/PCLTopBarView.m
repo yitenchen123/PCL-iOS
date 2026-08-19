@@ -1,10 +1,11 @@
 #import "PCLTopBarView.h"
 #import "PCLMouseSupport.h"
-#import "PCLMouseSupport.h"
 
 @interface PCLTopBarView ()
 @property (nonatomic, strong) UIStackView *buttonStack;
 @property (nonatomic, strong) NSArray<UIButton *> *buttons;
+@property (nonatomic, strong)
+NSArray<UIHoverGestureRecognizer *> *hoverRecognizers;
 @property (nonatomic, strong) UILabel *pclLabel;
 @property (nonatomic, strong) UILabel *iosBadge;
 @end
@@ -174,38 +175,6 @@
 
     self.selectedPage = PCLPageTypeLaunch;
     [self updateButtonAppearanceAnimated:NO];
-}
-
-- (void)mouseAvailabilityChanged {
-    BOOL enabled = PCLExternalMouseConnected();
-
-    for (UIHoverGestureRecognizer *hover
-         in self.hoverRecognizers) {
-        hover.enabled = enabled;
-    }
-
-    if (!enabled)
-        [self updateButtonAppearanceAnimated:YES];
-}
-
-- (void)navHoverChanged:
-    (UIHoverGestureRecognizer *)hover {
-
-    UIButton *button = (UIButton *)hover.view;
-
-    if (button.tag == self.selectedPage)
-        return;
-
-    BOOL inside =
-        hover.state == UIGestureRecognizerStateBegan ||
-        hover.state == UIGestureRecognizerStateChanged;
-
-    [UIView animateWithDuration:inside ? 0.09 : 0.15
-                     animations:^{
-        button.backgroundColor = inside
-            ? [UIColor colorWithWhite:1 alpha:50.0/255.0]
-            : UIColor.clearColor;
-    }];
 }
 
 - (void)mouseAvailabilityChanged {
