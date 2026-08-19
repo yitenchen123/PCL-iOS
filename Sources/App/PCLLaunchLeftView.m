@@ -26,65 +26,6 @@ static UIColor *PCLColor(NSUInteger rgb) {
 }
 
 
-- (void)pclAnimateScale:(CGFloat)target
-               duration:(NSTimeInterval)duration {
-    CALayer *shown=(CALayer *)self.layer.presentationLayer;
-
-    CGFloat current=
-        shown ? shown.transform.m11 : self.layer.transform.m11;
-
-    if (current<=0.0) current=1.0;
-
-    [self.layer removeAnimationForKey:@"pcl.press.scale"];
-
-    CABasicAnimation *a=
-        [CABasicAnimation animationWithKeyPath:@"transform.scale"];
-
-    a.fromValue=@(current);
-    a.toValue=@(target);
-    a.duration=duration;
-
-    a.timingFunction=
-        [CAMediaTimingFunction functionWithName:
-            kCAMediaTimingFunctionEaseOut];
-
-
-    [CATransaction begin];
-    [CATransaction setDisableActions:YES];
-
-    self.layer.transform=
-        CATransform3DMakeScale(target,target,1.0);
-
-    [CATransaction commit];
-    [self.layer addAnimation:a forKey:@"pcl.press.scale"];
-}
-
-- (void)touchesBegan:(NSSet *)touches withEvent:(UIEvent *)event {
-    [super touchesBegan:touches withEvent:event];
-
-    [self pclAnimateScale:0.955 duration:0.09];
-    self.backgroundColor=PCLColor(0xE0EAFD);
-}
-
-- (void)restore {
-    [self pclAnimateScale:1.0 duration:0.18];
-
-    [UIView animateWithDuration:0.16 animations:^{
-        self.backgroundColor=
-            [UIColor colorWithWhite:1 alpha:0x55/255.0];
-    }];
-}
-
-- (void)touchesEnded:(NSSet *)touches withEvent:(UIEvent *)event {
-    [super touchesEnded:touches withEvent:event];
-    [self restore];
-}
-
-- (void)touchesCancelled:(NSSet *)touches withEvent:(UIEvent *)event {
-    [super touchesCancelled:touches withEvent:event];
-    [self restore];
-}
-
 @end
 
 @interface PCLSkinHeadView : UIView

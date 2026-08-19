@@ -46,6 +46,15 @@
     return b;
 }
 
+- (BOOL)isTopBarButton:(UIButton *)button {
+    for (UIView *v=button; v; v=v.superview) {
+        if ([NSStringFromClass(v.class)
+            isEqualToString:@"PCLTopBarView"])
+            return YES;
+    }
+    return NO;
+}
+
 - (void)showHover:(UIButton *)button {
     self.button=button;
 
@@ -53,18 +62,37 @@
     v.userInteractionEnabled=NO;
     v.autoresizingMask=UIViewAutoresizingFlexibleWidth |
                        UIViewAutoresizingFlexibleHeight;
-    v.layer.cornerRadius=button.layer.cornerRadius;
+    CGFloat w=CGRectGetWidth(button.bounds);
+    CGFloat h=CGRectGetHeight(button.bounds);
+
+    BOOL iconOnly =
+        button.currentTitle.length == 0;
+
+    v.layer.cornerRadius = iconOnly
+        ? MIN(w,h)/2.0
+        : MAX(button.layer.cornerRadius,3.0);
+
+    v.clipsToBounds=YES;
 
     UIColor *blue=[UIColor colorWithRed:19.0/255.0
         green:112.0/255.0 blue:243.0/255.0 alpha:1.0];
 
     BOOL topBar =
-        [NSStringFromClass(button.superview.superview.class)
-            containsString:@"StackView"];
+        [self isTopBarButton:button];
 
-    v.backgroundColor = topBar
-        ? [UIColor colorWithWhite:1 alpha:0.18]
-        : [blue colorWithAlphaComponent:0.10];
+
+    if (topBar) {
+        CGColorRef bg=button.backgroundColor.CGColor;
+        CGFloat alpha=bg ? CGColorGetAlpha(bg) : 0.0;
+
+        v.backgroundColor = alpha > 0.5
+            ? [blue colorWithAlphaComponent:0.10]
+            : [UIColor colorWithWhite:1 alpha:0.28];
+    } else {
+        v.backgroundColor =
+            [blue colorWithAlphaComponent:
+                iconOnly ? 0.12 : 0.10];
+    }
     v.alpha=0.0;
 
     [button insertSubview:v atIndex:0];

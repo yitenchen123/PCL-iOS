@@ -185,7 +185,6 @@
         UIButton *button = self.buttons[i];
         BOOL selected = (i == self.selectedPage);
 
-        [button.layer removeAllAnimations];
         NSTimeInterval duration =
             selected ? 0.12 : 0.07;
         void (^changes)(void) = ^{
