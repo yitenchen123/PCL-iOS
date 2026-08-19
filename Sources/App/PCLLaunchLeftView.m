@@ -291,7 +291,7 @@ static UIColor *PCLColor(NSUInteger rgb) {
         PCLColor(0x343D4A);
 
     self.hintLabel.text =
-        @"选择一个档案以启动游戏";
+        @"新建并选择一个档案以启动游戏";
 
     [self.hintView addSubview:self.hintLabel];
     UIView *newCard = [[UIView alloc] init];
@@ -476,9 +476,10 @@ static UIColor *PCLColor(NSUInteger rgb) {
         ? username
         : @"";
 
-    self.typeLabel.text =
-        hasProfile
-        ? @"离线登录"
+    NSString *type=[defaults stringForKey:@"PCLProfileType"];
+    self.typeLabel.text = hasProfile
+        ? ([type isEqualToString:@"microsoft"] ? @"正版验证" :
+           [type isEqualToString:@"authlib"] ? @"第三方验证" : @"离线验证")
         : @"";
 
     self.versionLabel.text =
