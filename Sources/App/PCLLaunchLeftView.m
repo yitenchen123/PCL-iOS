@@ -65,6 +65,7 @@ static UIColor *PCLColor(NSUInteger rgb) {
     self.layer.shadowColor = PCLColor(0x0B5BCB).CGColor;
     self.layer.shadowOpacity = 0.20;
     self.layer.shadowRadius = 10.0;
+    self.layer.shadowOffset = CGSizeZero;
 
     return self;
 }
@@ -72,7 +73,13 @@ static UIColor *PCLColor(NSUInteger rgb) {
 - (void)drawRect:(CGRect)rect {
     CGContextRef c = UIGraphicsGetCurrentContext();
 
-    CGFloat size = MIN(rect.size.width, rect.size.height);
+    CGFloat canvasSize = MIN(rect.size.width, rect.size.height);
+    CGFloat size = canvasSize * 48.0 / 64.0;
+    CGFloat origin = (canvasSize - size) / 2.0;
+
+    CGContextSaveGState(c);
+    CGContextTranslateCTM(c, origin, origin);
+
     CGFloat pixel = size / 8.0;
 
     UIColor *skin = PCLColor(0xB78363);
@@ -111,6 +118,17 @@ static UIColor *PCLColor(NSUInteger rgb) {
     CGContextFillRect(c,
         CGRectMake(pixel * 3, pixel * 6,
                    pixel * 2, pixel * 0.55));
+
+    CGContextRestoreGState(c);
+
+    CGFloat foreSize = canvasSize * 56.0 / 64.0;
+    CGFloat x = (canvasSize - foreSize) / 2.0;
+    CGFloat px = foreSize / 8.0;
+
+    [[hair colorWithAlphaComponent:0.42] setFill];
+    CGContextFillRect(c, CGRectMake(x,x,foreSize,px*1.35));
+    CGContextFillRect(c, CGRectMake(x,x,px,px*3.0));
+    CGContextFillRect(c, CGRectMake(x+foreSize-px,x,px,px*3.0));
 }
 
 @end
@@ -150,7 +168,7 @@ static UIColor *PCLColor(NSUInteger rgb) {
     self = [super initWithFrame:frame];
     if (!self) return nil;
 
-    self.backgroundColor = [UIColor colorWithRed:251/255.0 green:251/255.0 blue:251/255.0 alpha:210/255.0];
+    self.backgroundColor = [UIColor colorWithWhite:0.995 alpha:0.824];
 
     [self buildMainUI];
     [self buildProfileSelectUI];
@@ -254,17 +272,14 @@ static UIColor *PCLColor(NSUInteger rgb) {
     UIView *newCard = [[UIView alloc] init];
     newCard.tag = 9202;
 
-    newCard.backgroundColor =
-        [UIColor colorWithRed:251.0/255.0
-                        green:251.0/255.0
-                         blue:251.0/255.0
-                        alpha:210.0/255.0];
+    newCard.backgroundColor = [UIColor colorWithWhite:0.995 alpha:0.824];
     newCard.layer.cornerRadius = 5.0;
     newCard.layer.shadowColor =
         UIColor.blackColor.CGColor;
 
     newCard.layer.shadowOpacity = 0.07;
     newCard.layer.shadowRadius = 3.0;
+    newCard.layer.shadowOffset = CGSizeZero;
 
     [self.profileSelectView addSubview:newCard];
     self.createProfileButton =
@@ -329,11 +344,7 @@ static UIColor *PCLColor(NSUInteger rgb) {
     self.profileButtonsCard =
         [[UIView alloc] init];
 
-    self.profileButtonsCard.backgroundColor =
-        [UIColor colorWithRed:251.0/255.0
-                        green:251.0/255.0
-                         blue:251.0/255.0
-                        alpha:210.0/255.0];
+    self.profileButtonsCard.backgroundColor = [UIColor colorWithWhite:0.995 alpha:0.824];
 
     self.profileButtonsCard.layer.cornerRadius = 5.0;
 
@@ -342,6 +353,7 @@ static UIColor *PCLColor(NSUInteger rgb) {
 
     self.profileButtonsCard.layer.shadowOpacity = 0.07;
     self.profileButtonsCard.layer.shadowRadius = 3.0;
+    self.profileButtonsCard.layer.shadowOffset = CGSizeZero;
 
     [self.profileSkinView
         addSubview:self.profileButtonsCard];
@@ -535,6 +547,16 @@ static UIColor *PCLColor(NSUInteger rgb) {
         ? self.designScale
         : 1.0;
 
+    for (PCLCEButton *b in @[self.launchButton,self.instanceButton,self.moreButton]) {
+        b.layer.cornerRadius = 3.0 * scale;
+        b.layer.borderWidth = 1.0 * scale;
+    }
+
+    self.skinView.layer.shadowRadius = 10.0 * scale;
+    self.profileButtonsCard.layer.cornerRadius = 5.0 * scale;
+    self.profileButtonsCard.layer.shadowRadius = 3.0 * scale;
+    self.hintView.layer.cornerRadius = 2.0 * scale;
+
     CGFloat designWidth =
         300.0 * scale;
 
@@ -667,6 +689,9 @@ static UIColor *PCLColor(NSUInteger rgb) {
         [self.profileSelectView
             viewWithTag:9202];
 
+    newCard.layer.cornerRadius = 5.0 * scale;
+    newCard.layer.shadowRadius = 3.0 * scale;
+
     CGFloat cardWidth =
         44.0 * scale;
 
@@ -687,6 +712,15 @@ static UIColor *PCLColor(NSUInteger rgb) {
                    3.0 * scale,
                    24.0 * scale,
                    24.0 * scale);
+
+    UIImageSymbolConfiguration *newIcon =
+        [UIImageSymbolConfiguration configurationWithPointSize:14.0*scale
+                                                        weight:UIImageSymbolWeightRegular];
+
+    [self.createProfileButton
+        setImage:[[UIImage systemImageNamed:@"person.badge.plus"]
+        imageByApplyingSymbolConfiguration:newIcon]
+        forState:UIControlStateNormal];
 
     self.profileSkinView.frame =
         self.panLogin.bounds;
@@ -756,6 +790,19 @@ static UIColor *PCLColor(NSUInteger rgb) {
                    3.0 * scale,
                    24.0 * scale,
                    24.0 * scale);
+
+    UIImageSymbolConfiguration *icons =
+        [UIImageSymbolConfiguration configurationWithPointSize:13.0*scale
+                                                        weight:UIImageSymbolWeightRegular];
+
+    [self.skinButton setImage:[[UIImage systemImageNamed:@"tshirt"]
+        imageByApplyingSymbolConfiguration:icons] forState:UIControlStateNormal];
+
+    [self.editButton setImage:[[UIImage systemImageNamed:@"pencil"]
+        imageByApplyingSymbolConfiguration:icons] forState:UIControlStateNormal];
+
+    [self.switchButton setImage:[[UIImage systemImageNamed:@"arrow.left.arrow.right"]
+        imageByApplyingSymbolConfiguration:icons] forState:UIControlStateNormal];
 }
 
 
