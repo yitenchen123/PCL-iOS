@@ -754,7 +754,6 @@ static UIImage *PCLHeadFromSkin(UIImage *skin) {
 - (void)pclLoginTransition:(dispatch_block_t)changes {
     [self dismissTransientUI];
 
-    [self dismissTransientUI];
     [self.panLogin.layer removeAllAnimations];
     self.userInteractionEnabled=NO;
 
@@ -1064,7 +1063,6 @@ static UIImage *PCLHeadFromSkin(UIImage *skin) {
 
 
 - (void)newProfilePressed {
-    [self dismissTransientUI];
     if (!self.window) return;
 
     PCLCEProfileTypeDialog *dialog=
@@ -1262,19 +1260,6 @@ static UIImage *PCLHeadFromSkin(UIImage *skin) {
         openURL:url options:@{} completionHandler:nil];
 }
 
-- (NSString *)authWebRoot:(NSDictionary *)profile {
-    NSString *root=profile[@"server"] ?: @"";
-
-    NSRange api=[root rangeOfString:@"/api/yggdrasil"];
-    if (api.location!=NSNotFound)
-        root=[root substringToIndex:api.location];
-
-    while ([root hasSuffix:@"/"])
-        root=[root substringToIndex:root.length-1];
-
-    return root;
-}
-
 - (void)profileMessage:(NSString *)message {
     NSDictionary *profile=[PCLProfileStore selectedProfile];
     NSString *pid=profile[@"identifier"];
@@ -1306,6 +1291,8 @@ static UIImage *PCLHeadFromSkin(UIImage *skin) {
 
 - (void)showProfileOptionMenu:(NSInteger)mode {
     self.profileOptionMode=mode;
+    self.profileOptionAnchor=
+        mode==1 ? self.skinButton : self.editButton;
 
     for (UIView *v in self.profileOptionMenu.subviews)
         [v removeFromSuperview];
@@ -1353,71 +1340,23 @@ static UIImage *PCLHeadFromSkin(UIImage *skin) {
     }];
 }
 
-- (void)saveCurrentSkin {
-    NSString *text=self.skinView.sourceSkinURL;
+- (UIViewController *)profileHostController {
+    UIResponder *r=self;
 
-    if (!text.length) {
-        [self.skinView loadProfile:
-            [PCLProfileStore selectedProfile]];
-        [self profileMessage:@"正在获取皮肤，请稍后再试"];
-        return;
+    while (r) {
+        if ([r isKindOfClass:UIViewController.class])
+            return (UIViewController *)r;
+        r=r.nextResponder;
     }
 
-    NSURL *url=[NSURL URLWithString:text];
-
-    __weak typeof(self) weakSelf=self;
-    [[[NSURLSession sharedSession] dataTaskWithURL:url
-        completionHandler:^(NSData *data,
-                            NSURLResponse *response,
-                            NSError *error) {
-        if (!data.length) {
-            dispatch_async(dispatch_get_main_queue(), ^{
-                [weakSelf profileMessage:@"皮肤保存失败"];
-            });
-            return;
-        }
-
-        NSURL *documents=[NSFileManager.defaultManager
-            URLsForDirectory:NSDocumentDirectory
-            inDomains:NSUserDomainMask].firstObject;
-
-        NSURL *dir=[[documents
-            URLByAppendingPathComponent:@"PCL-iOS"]
-            URLByAppendingPathComponent:@"Skins"];
-
-        [NSFileManager.defaultManager
-            createDirectoryAtURL:dir
-            withIntermediateDirectories:YES
-            attributes:nil error:nil];
-
-        NSDictionary *profile=
-            [PCLProfileStore selectedProfile];
-
-        NSString *name=profile[@"username"] ?: @"skin";
-        NSCharacterSet *bad=
-            NSCharacterSet.alphanumericCharacterSet.invertedSet;
-
-        name=[[name componentsSeparatedByCharactersInSet:bad]
-            componentsJoinedByString:@"_"];
-
-        NSURL *file=[dir URLByAppendingPathComponent:
-            [name stringByAppendingString:@".png"]];
-
-        BOOL ok=[data writeToURL:file atomically:YES];
-
-        dispatch_async(dispatch_get_main_queue(), ^{
-            [weakSelf profileMessage:
-                ok ? @"皮肤已保存到 PCL-iOS/Skins"
-                   : @"皮肤保存失败"];
-        });
-    }] resume];
+    return nil;
 }
 
 - (void)exportCurrentSkin {
     NSString *text=self.skinView.sourceSkinURL;
 
     if (!text.length) {
-        [self profileHint:@"皮肤尚未加载完成"];
+        [self profileMessage:@"皮肤尚未加载完成"];
         return;
     }
 
@@ -1434,7 +1373,7 @@ static UIImage *PCLHeadFromSkin(UIImage *skin) {
 
         if (!image) {
             dispatch_async(dispatch_get_main_queue(), ^{
-                [weakSelf profileHint:@"皮肤保存失败"];
+                [weakSelf profileMessage:@"皮肤保存失败"];
             });
             return;
         }
@@ -1481,21 +1420,6 @@ static UIImage *PCLHeadFromSkin(UIImage *skin) {
 
     [self hideProfileOptionMenu];
 
-    if (mode==1 && tag==9500) {
-
-        if ([type isEqual:@"microsoft"]) {
-            [self openProfileURL:
-                @"https://www.minecraft.net/msaprofile/mygames/editprofile"];
-        } else if ([type isEqual:@"authlib"]) {
-            NSString *root=[self profileAuthWebRoot:profile];
-            [self openProfileURL:
-                [root stringByAppendingString:@"/user/closet"]];
-        } else {
-            [self profileHint:@"离线档案不支持修改皮肤"];
-        }
-        return;
-    }
-
     if (mode==1 && tag==9501) {
         [self exportCurrentSkin];
         return;
@@ -1504,11 +1428,11 @@ static UIImage *PCLHeadFromSkin(UIImage *skin) {
     if (mode==1 && tag==9502) {
         [PCLHeadCache() removeAllObjects];
         [self.skinView loadProfile:profile];
-        [self profileHint:@"正在刷新皮肤"];
+        [self profileMessage:@"正在刷新皮肤"];
         return;
     }
 
-    if (mode==1 && tag==9503) {
+    if (mode==1 && (tag==9500 || tag==9503)) {
         if ([type isEqual:@"microsoft"]) {
             [self openProfileURL:
                 @"https://www.minecraft.net/msaprofile/mygames/editprofile"];
@@ -1517,7 +1441,9 @@ static UIImage *PCLHeadFromSkin(UIImage *skin) {
             [self openProfileURL:
                 [root stringByAppendingString:@"/user/closet"]];
         } else {
-            [self profileHint:@"离线档案不支持披风"];
+            [self profileMessage:
+                tag==9500 ? @"离线档案不支持修改皮肤"
+                          : @"离线档案不支持披风"];
         }
         return;
     }
@@ -1534,10 +1460,10 @@ static UIImage *PCLHeadFromSkin(UIImage *skin) {
         return;
     }
 
-    if (mode==2 && tag==9500) {
+    if (mode==2 && tag==9501) {
         if ([type isEqual:@"microsoft"]) {
             [self openProfileURL:
-                @"https://account.live.com/password/Change"];
+                @"https://www.minecraft.net/msaprofile/mygames/editprofile"];
         } else if ([type isEqual:@"authlib"]) {
             NSString *root=[self profileAuthWebRoot:profile];
             [self openProfileURL:
@@ -1545,6 +1471,8 @@ static UIImage *PCLHeadFromSkin(UIImage *skin) {
         }
         return;
     }
+}
+
 - (void)skinPressed {
     if (!self.profileOptionMenu.hidden &&
         self.profileOptionMode==1) {
