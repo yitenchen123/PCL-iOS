@@ -794,7 +794,7 @@ static UIColor *PCLLoginColor(NSUInteger rgb) {
     ob.titleLabel.font=[UIFont systemFontOfSize:13*s];
     oc.titleLabel.font=[UIFont systemFontOfSize:13*s];
     CGFloat offlineButtonY=
-        (self.uuidMode==2 ? 132.0 : 104.0)*s;
+        (self.uuidMode==2 ? 154.0 : 116.0)*s;
     ob.frame=CGRectMake(80*s,offlineButtonY,50*s,28*s);
     oc.frame=CGRectMake(140*s,offlineButtonY,50*s,28*s);
 

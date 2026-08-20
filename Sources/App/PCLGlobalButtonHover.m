@@ -67,6 +67,18 @@
     return NO;
 }
 
+- (BOOL)isOfflineUuidRadio:(UIButton *)button {
+    if (button.tag < 302 || button.tag > 304)
+        return NO;
+
+    for (UIView *v=button; v; v=v.superview)
+        if ([NSStringFromClass(v.class)
+            isEqualToString:@"PCLLoginPanelView"])
+            return YES;
+
+    return NO;
+}
+
 - (void)showHover:(UIButton *)button {
     self.button=button;
 
@@ -76,6 +88,27 @@
                        UIViewAutoresizingFlexibleHeight;
     CGFloat w=CGRectGetWidth(button.bounds);
     CGFloat h=CGRectGetHeight(button.bounds);
+
+    BOOL uuidRadio=[self isOfflineUuidRadio:button];
+
+    if (uuidRadio) {
+        [button layoutIfNeeded];
+
+        CGFloat contentW=
+            CGRectGetMaxX(button.titleLabel.frame)+6.0;
+
+        CGFloat contentH=
+            MAX(24.0,
+                CGRectGetHeight(button.titleLabel.frame)+8.0);
+
+        v.frame=CGRectMake(
+            0,
+            (h-contentH)/2.0,
+            MIN(contentW,w),
+            contentH);
+
+        v.autoresizingMask=UIViewAutoresizingNone;
+    }
 
     BOOL iconOnly =
         button.currentTitle.length == 0 &&
