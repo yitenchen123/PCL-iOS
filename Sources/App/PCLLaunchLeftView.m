@@ -770,6 +770,7 @@ static UIImage *PCLHeadFromSkin(UIImage *skin) {
             weakSelf.loginPanel.hidden=YES;
             weakSelf.profileSkinView.hidden=YES;
             weakSelf.profileSelectView.hidden=NO;
+            [weakSelf grayLaunchForProfileSelection];
             [weakSelf setNeedsLayout];
         }];
     };
@@ -844,8 +845,7 @@ static UIImage *PCLHeadFromSkin(UIImage *skin) {
     self.profileOptionMenu.layer.shadowOpacity=.12;
     self.profileOptionMenu.layer.shadowRadius=5;
 
-    [self.profileSkinView
-        addSubview:self.profileOptionMenu];
+    [self addSubview:self.profileOptionMenu];
 
     self.skinButton =
         [UIButton buttonWithType:UIButtonTypeCustom];
@@ -1202,6 +1202,19 @@ static UIImage *PCLHeadFromSkin(UIImage *skin) {
         });
 }
 
+- (void)grayLaunchForProfileSelection {
+    if (![self.launchTitleLabel.text
+        isEqualToString:@"启动游戏"]) return;
+
+    UIColor *gray=PCLColor(0xA6A6A6);
+    self.launchButton.enabled=NO;
+    self.launchButton.layer.borderColor=gray.CGColor;
+    self.launchTitleLabel.textColor=gray;
+
+    [self.launchButton setTitleColor:gray
+        forState:UIControlStateNormal];
+}
+
 - (void)switchPressed {
     [self reloadProfileList];
 
@@ -1209,7 +1222,7 @@ static UIImage *PCLHeadFromSkin(UIImage *skin) {
         self.profileSkinView.hidden=YES;
         self.loginPanel.hidden=YES;
         self.profileSelectView.hidden=NO;
-        self.launchButton.enabled=NO;
+        [self grayLaunchForProfileSelection];
         [self setNeedsLayout];
     }];
 }
@@ -1239,8 +1252,7 @@ static UIImage *PCLHeadFromSkin(UIImage *skin) {
         [self.profileOptionMenu addSubview:b];
     }
 
-    [self.profileSkinView
-        bringSubviewToFront:self.profileOptionMenu];
+    [self bringSubviewToFront:self.profileOptionMenu];
 
     self.profileOptionMenu.hidden=NO;
     self.profileOptionMenu.alpha=0;
@@ -1669,22 +1681,21 @@ static UIImage *PCLHeadFromSkin(UIImage *skin) {
                    buttonsWidth,
                    buttonsHeight);
 
+
     NSInteger menuRows=
         self.profileOptionMode==1 ? 4 : 2;
-
     CGFloat menuW=128*scale;
     CGFloat menuH=(6+28*menuRows)*scale;
 
-    CGFloat menuY=
-        CGRectGetMinY(self.profileButtonsCard.frame)
-        -6*scale-menuH;
+    CGRect cardRect=
+        [self.profileButtonsCard
+            convertRect:self.profileButtonsCard.bounds
+            toView:self];
 
-    menuY=MAX(2*scale,menuY);
-
-    self.profileOptionMenu.frame=
-        CGRectMake(
-            (profileWidth-menuW)/2.0,
-            menuY,menuW,menuH);
+    self.profileOptionMenu.frame=CGRectMake(
+        CGRectGetMidX(cardRect)-menuW/2.0,
+        CGRectGetMaxY(cardRect)+6*scale,
+        menuW,menuH);
 
     for (NSInteger i=0;
          i<self.profileOptionMenu.subviews.count;i++) {

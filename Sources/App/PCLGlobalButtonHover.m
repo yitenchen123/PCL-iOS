@@ -55,6 +55,18 @@
     return NO;
 }
 
+- (BOOL)isOfflineUuidRadio:(UIButton *)button {
+    if (button.tag < 302 || button.tag > 304)
+        return NO;
+
+    for (UIView *v=button; v; v=v.superview)
+        if ([NSStringFromClass(v.class)
+            isEqualToString:@"PCLLoginPanelView"])
+            return YES;
+
+    return NO;
+}
+
 - (void)showHover:(UIButton *)button {
     self.button=button;
 
@@ -70,9 +82,11 @@
         w <= 48.0 &&
         h <= 48.0;
 
-    v.layer.cornerRadius = iconOnly
-        ? MIN(w,h)/2.0
-        : MAX(button.layer.cornerRadius,3.0);
+    v.layer.cornerRadius = uuidRadio
+        ? 4.0
+        : (iconOnly
+            ? MIN(w,h)/2.0
+            : MAX(button.layer.cornerRadius,3.0));
 
     v.clipsToBounds=YES;
 
@@ -93,7 +107,8 @@
     } else {
         v.backgroundColor =
             [blue colorWithAlphaComponent:
-                iconOnly ? 0.12 : 0.10];
+                uuidRadio ? 0.07 :
+                (iconOnly ? 0.12 : 0.10)];
     }
     v.alpha=0.0;
 

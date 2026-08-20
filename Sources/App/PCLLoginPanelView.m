@@ -772,7 +772,7 @@ static UIColor *PCLLoginColor(NSUInteger rgb) {
     CGFloat radioX=5.0*s;
     for (NSInteger i=0;i<3;i++) {
         UIButton *b=[self.offlinePage viewWithTag:302+i];
-        b.frame=CGRectMake(radioX+i*bw,47*s,bw,44*s);
+        b.frame=CGRectMake(radioX+i*bw,62*s,bw,44*s);
         UIView *ring=[b viewWithTag:9301];
         ring.frame=CGRectMake(1*s,13*s,18*s,18*s);
         ring.layer.cornerRadius=9*s;
@@ -785,9 +785,9 @@ static UIColor *PCLLoginColor(NSUInteger rgb) {
     }
 
     self.offlineUuidTitle.frame=
-        CGRectMake(0,94*s,50*s,28*s);
+        CGRectMake(0,116*s,50*s,28*s);
     self.offlineUuid.frame=
-        CGRectMake(50*s,94*s,w-50*s,28*s);
+        CGRectMake(50*s,116*s,w-50*s,28*s);
 
     UIButton *ob=[self.offlinePage viewWithTag:305];
     UIButton *oc=[self.offlinePage viewWithTag:306];
