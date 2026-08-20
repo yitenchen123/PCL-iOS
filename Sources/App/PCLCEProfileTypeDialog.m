@@ -2,6 +2,82 @@
 #import <QuartzCore/QuartzCore.h>
 #import <math.h>
 
+static UIImage *PCLAuthIcon(
+    PCLProfileAuthType type, CGFloat size, UIColor *color) {
+    UIGraphicsBeginImageContextWithOptions(
+        CGSizeMake(size,size),NO,0);
+    CGContextRef c=UIGraphicsGetCurrentContext();
+    CGContextScaleCTM(c,size/24.0,size/24.0);
+
+    CGContextSetStrokeColorWithColor(c,color.CGColor);
+    CGContextSetLineWidth(c,2.0);
+    CGContextSetLineCap(c,kCGLineCapRound);
+    CGContextSetLineJoin(c,kCGLineJoinRound);
+
+    if (type==PCLProfileAuthMicrosoft) {
+        CGContextMoveToPoint(c,20,13);
+        CGContextAddCurveToPoint(c,20,17.3,17.2,20.3,12,22);
+        CGContextAddCurveToPoint(c,6.8,20.3,4,17.3,4,13);
+        CGContextAddLineToPoint(c,4,6);
+
+        CGContextAddCurveToPoint(c,4,5.4,4.4,5,5,5);
+        CGContextAddCurveToPoint(c,7.3,5,9.7,3.8,11.3,2.4);
+        CGContextAddCurveToPoint(c,11.7,2.1,12.3,2.1,12.7,2.4);
+        CGContextAddCurveToPoint(c,14.3,3.8,16.7,5,19,5);
+        CGContextAddCurveToPoint(c,19.6,5,20,5.4,20,6);
+        CGContextClosePath(c);
+        CGContextStrokePath(c);
+
+        CGContextMoveToPoint(c,9,12);
+        CGContextAddLineToPoint(c,11,14);
+        CGContextAddLineToPoint(c,15,10);
+        CGContextStrokePath(c);
+    }
+
+    if (type==PCLProfileAuthThirdParty) {
+        for (NSValue *v in @[
+            [NSValue valueWithCGRect:CGRectMake(16,16,6,6)],
+            [NSValue valueWithCGRect:CGRectMake(2,16,6,6)],
+            [NSValue valueWithCGRect:CGRectMake(9,2,6,6)]]) {
+            UIBezierPath *r=[UIBezierPath bezierPathWithRoundedRect:
+                v.CGRectValue cornerRadius:1];
+            r.lineWidth=2; [color setStroke]; [r stroke];
+        }
+
+        CGContextMoveToPoint(c,5,16);
+        CGContextAddLineToPoint(c,5,13);
+        CGContextAddQuadCurveToPoint(c,5,12,6,12);
+        CGContextAddLineToPoint(c,18,12);
+        CGContextAddQuadCurveToPoint(c,19,12,19,13);
+        CGContextAddLineToPoint(c,19,16);
+        CGContextMoveToPoint(c,12,12);
+        CGContextAddLineToPoint(c,12,8);
+        CGContextStrokePath(c);
+    }
+
+    if (type==PCLProfileAuthOffline) {
+        CGContextMoveToPoint(c,9,17);
+        CGContextAddLineToPoint(c,7,17);
+        CGContextAddCurveToPoint(c,4.2,17,2,14.8,2,12);
+        CGContextAddCurveToPoint(c,2,9.2,4.2,7,7,7);
+        CGContextMoveToPoint(c,15,7);
+        CGContextAddLineToPoint(c,17,7);
+
+        CGContextAddCurveToPoint(c,19.8,7,22,9.2,22,12);
+        CGContextAddCurveToPoint(c,22,13.1,21.6,14.1,21,15);
+        CGContextMoveToPoint(c,8,12);
+        CGContextAddLineToPoint(c,12,12);
+        CGContextMoveToPoint(c,2,2);
+        CGContextAddLineToPoint(c,22,22);
+        CGContextStrokePath(c);
+    }
+
+    UIImage *image=UIGraphicsGetImageFromCurrentImageContext();
+    UIGraphicsEndImageContext();
+    return image;
+}
+
+
 @interface PCLCEProfileTypeDialog ()
 @property(nonatomic,strong) UIView *card;
 @property(nonatomic,strong) UILabel *titleLabel;
@@ -32,6 +108,8 @@
     [b setTitleColor:[UIColor colorWithWhite:.25 alpha:1]
              forState:UIControlStateNormal];
     b.layer.borderWidth=1;
+    b.layer.borderColor=
+        [UIColor colorWithWhite:.42 alpha:1].CGColor;
     b.layer.cornerRadius=3;
     return b;
 }
@@ -55,11 +133,11 @@
     [self.card addSubview:self.titleLine];
 
     UIButton *ms=[self row:@"正版验证"
-        icon:@"checkmark.shield" type:PCLProfileAuthMicrosoft];
+        type:PCLProfileAuthMicrosoft];
     UIButton *off=[self row:@"离线验证"
-        icon:@"link.slash" type:PCLProfileAuthOffline];
+        type:PCLProfileAuthOffline];
     UIButton *auth=[self row:@"第三方验证"
-        icon:@"network" type:PCLProfileAuthThirdParty];
+        type:PCLProfileAuthThirdParty];
 
     self.rows=@[ms,off,auth];
     for (UIButton *b in self.rows) [self.card addSubview:b];
@@ -83,35 +161,27 @@
 
 
 - (UIButton *)row:(NSString *)title
-             icon:(NSString *)icon
              type:(PCLProfileAuthType)type {
     UIButton *b=[UIButton buttonWithType:UIButtonTypeCustom];
     b.tag=100+type;
-    b.contentHorizontalAlignment=UIControlContentHorizontalAlignmentLeft;
+    b.contentHorizontalAlignment=
+        UIControlContentHorizontalAlignmentLeft;
+
+    UIColor *gray=[UIColor colorWithWhite:.27 alpha:1];
     [b setTitle:title forState:UIControlStateNormal];
-
-    [b setTitleColor:[UIColor colorWithWhite:.25 alpha:1]
-             forState:UIControlStateNormal];
-    [b setImage:[UIImage systemImageNamed:icon]
+    [b setTitleColor:gray forState:UIControlStateNormal];
+    [b setImage:PCLAuthIcon(type,24,gray)
        forState:UIControlStateNormal];
-    b.tintColor=[UIColor colorWithWhite:.32 alpha:1];
-    b.layer.cornerRadius=3;
+    b.layer.cornerRadius=6;
 
-    UIView *circle=[[UIView alloc] init];
-    circle.tag=9001;
-    circle.userInteractionEnabled=NO;
-    circle.layer.borderWidth=1.5;
-    circle.layer.cornerRadius=7;
-    [b addSubview:circle];
-
-    UIView *dot=[[UIView alloc] init];
-
-    dot.tag=9002;
-    dot.userInteractionEnabled=NO;
-    dot.backgroundColor=[UIColor colorWithRed:.075 green:.44 blue:.95 alpha:1];
-    dot.layer.cornerRadius=4;
-    dot.hidden=YES;
-    [circle addSubview:dot];
+    UIView *check=[[UIView alloc] init];
+    check.tag=9001;
+    check.hidden=YES;
+    check.backgroundColor=
+        [UIColor colorWithRed:.075 green:.44 blue:.95 alpha:1];
+    check.layer.cornerRadius=2;
+    check.userInteractionEnabled=NO;
+    [b addSubview:check];
 
     [b addTarget:self action:@selector(rowPressed:)
         forControlEvents:UIControlEventTouchUpInside];
@@ -121,20 +191,28 @@
 - (void)rowPressed:(UIButton *)sender {
     self.selected=sender.tag-100;
     UIColor *blue=[UIColor colorWithRed:.075 green:.44 blue:.95 alpha:1];
+    UIColor *gray=[UIColor colorWithWhite:.27 alpha:1];
 
     for (UIButton *row in self.rows) {
         BOOL on=row==sender;
-        UIView *circle=[row viewWithTag:9001];
-        UIView *dot=[row viewWithTag:9002];
+        [row viewWithTag:9001].hidden=!on;
 
-        circle.layer.borderColor=
-            (on ? blue : [UIColor colorWithWhite:.55 alpha:1]).CGColor;
-        dot.hidden=!on;
+        UIColor *c=on ? blue : gray;
+        [row setTitleColor:c forState:UIControlStateNormal];
+        row.backgroundColor=on
+            ? [blue colorWithAlphaComponent:.055]
+            : UIColor.clearColor;
+
+        CGFloat z=24*(self.scale>0 ? self.scale : 1);
+        [row setImage:PCLAuthIcon(row.tag-100,z,c)
+             forState:UIControlStateNormal];
     }
 
     self.continueButton.enabled=YES;
     self.continueButton.alpha=1;
     self.continueButton.layer.borderColor=blue.CGColor;
+    [self.continueButton setTitleColor:blue
+                              forState:UIControlStateNormal];
 }
 
 - (void)presentInView:(UIView *)view {
@@ -219,19 +297,20 @@
 
     for (NSInteger i=0;i<self.rows.count;i++) {
         UIButton *row=self.rows[i];
-        row.frame=CGRectMake(29*s,(81+43*i)*s,cw-58*s,36*s);
-        row.titleLabel.font=[UIFont systemFontOfSize:14*s];
-        row.contentEdgeInsets=UIEdgeInsetsMake(0,36*s,0,8*s);
-
-        UIView *circle=[row viewWithTag:9001];
-
-        circle.frame=CGRectMake(7*s,11*s,14*s,14*s);
-        circle.layer.cornerRadius=7*s;
-
-        UIView *dot=[row viewWithTag:9002];
-        dot.frame=CGRectMake(3*s,3*s,8*s,8*s);
-        dot.layer.cornerRadius=4*s;
+        row.frame=CGRectMake(
+            29*s,(78+42*i)*s,cw-58*s,42*s);
+        row.layer.cornerRadius=6*s;
+        row.titleLabel.font=
+            [UIFont systemFontOfSize:14*s];
+        row.contentEdgeInsets=
+            UIEdgeInsetsMake(0,8*s,0,8*s);
+        row.titleEdgeInsets=
+            UIEdgeInsetsMake(0,5*s,0,0);
+        UIView *check=[row viewWithTag:9001];
+        check.frame=CGRectMake(-1*s,6*s,5*s,30*s);
+        check.layer.cornerRadius=2*s;
     }
+
 
     CGFloat bw=66*s;
     CGFloat by=ch-51*s;
