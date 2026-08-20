@@ -28,6 +28,8 @@ static UIColor *PCLLoginColor(NSUInteger rgb) {
 @property(nonatomic,strong) UITextField *authServer;
 @property(nonatomic,strong) UITextField *authEmail;
 @property(nonatomic,strong) UITextField *authPassword;
+@property(nonatomic,strong) UILabel *authServerName;
+@property(nonatomic,strong) UIView *authServerMenu;
 @property(nonatomic,strong) PCLAccountAuthenticator *microsoftAuth;
 @end
 
@@ -260,6 +262,8 @@ static UIColor *PCLLoginColor(NSUInteger rgb) {
 
     self.offlineUuidTitle=[[UILabel alloc] init];
     self.offlineUuidTitle.text=@"UUID";
+    self.offlineUuidTitle.textAlignment=
+        NSTextAlignmentCenter;
 
     self.offlineUuid=[self field:nil];
     [self.offlinePage addSubview:self.offlineUuidTitle];
@@ -285,6 +289,11 @@ static UIColor *PCLLoginColor(NSUInteger rgb) {
 - (void)buildAuthPage {
     self.authPage=[[UIView alloc] init];
     [self addSubview:self.authPage];
+    self.authServerName=[[UILabel alloc] init];
+    self.authServerName.hidden=YES;
+    self.authServerName.textAlignment=NSTextAlignmentCenter;
+    self.authServerName.textColor=PCLLoginColor(0x343D4A);
+    [self.authPage addSubview:self.authServerName];
 
     self.authServer=[self field:@"验证服务器"];
     self.authEmail=[self field:@"邮箱"];
@@ -294,14 +303,15 @@ static UIColor *PCLLoginColor(NSUInteger rgb) {
         action:@selector(authFieldsChanged)
         forControlEvents:UIControlEventEditingChanged];
     self.authServer.placeholder=nil;
-    UIImageView *drop=[[UIImageView alloc]
-        initWithImage:[UIImage systemImageNamed:@"chevron.down"]];
-    drop.tintColor=PCLLoginColor(0x777777);
-    drop.contentMode=UIViewContentModeCenter;
+    UIButton *drop=[UIButton buttonWithType:UIButtonTypeCustom];
+    [drop setImage:[UIImage systemImageNamed:@"chevron.down"]
+          forState:UIControlStateNormal];
+    drop.tintColor=PCLLoginColor(0x737373);
     drop.frame=CGRectMake(0,0,28,28);
+    [drop addTarget:self action:@selector(toggleAuthServerMenu)
+        forControlEvents:UIControlEventTouchUpInside];
     self.authServer.rightView=drop;
-    self.authServer.rightViewMode=
-        UITextFieldViewModeAlways;
+    self.authServer.rightViewMode=UITextFieldViewModeAlways;
     self.authEmail.placeholder=nil;
     self.authPassword.placeholder=nil;
 
@@ -317,6 +327,32 @@ static UIColor *PCLLoginColor(NSUInteger rgb) {
     [self.authPage addSubview:self.authServer];
     [self.authPage addSubview:self.authEmail];
     [self.authPage addSubview:self.authPassword];
+    self.authServerMenu=[[UIView alloc] init];
+    self.authServerMenu.hidden=YES;
+    self.authServerMenu.backgroundColor=PCLLoginColor(0xFBFBFB);
+    self.authServerMenu.layer.borderWidth=1;
+    self.authServerMenu.layer.borderColor=
+        PCLLoginColor(0x96C0F9).CGColor;
+    self.authServerMenu.layer.cornerRadius=3;
+
+    NSArray *servers=@[@"预设 - LittleSkin",@"自定义"];
+    for (NSInteger i=0;i<servers.count;i++) {
+        UIButton *item=[UIButton buttonWithType:UIButtonTypeCustom];
+        item.tag=440+i;
+        [item setTitle:servers[i] forState:UIControlStateNormal];
+        [item setTitleColor:PCLLoginColor(0x343D4A)
+                   forState:UIControlStateNormal];
+        item.contentHorizontalAlignment=
+            UIControlContentHorizontalAlignmentLeft;
+
+        item.contentEdgeInsets=UIEdgeInsetsMake(0,8,0,0);
+        [item addTarget:self action:@selector(authServerChoice:)
+            forControlEvents:UIControlEventTouchUpInside];
+        [self.authServerMenu addSubview:item];
+    }
+
+    [self.authPage addSubview:self.authServerMenu];
+
 
     UIButton *reg=[self button:@"注册账号"];
     reg.tag=403;
@@ -434,6 +470,40 @@ static UIColor *PCLLoginColor(NSUInteger rgb) {
     }];
 }
 
+- (void)toggleAuthServerMenu {
+    [self endEditing:YES];
+
+    BOOL show=self.authServerMenu.hidden;
+    self.authServerMenu.hidden=NO;
+    self.authServerMenu.alpha=show ? 0 : 1;
+
+    [self.authPage bringSubviewToFront:self.authServerMenu];
+
+    [UIView animateWithDuration:.12 animations:^{
+        self.authServerMenu.alpha=show ? 1 : 0;
+    } completion:^(BOOL done) {
+        self.authServerMenu.hidden=!show;
+    }];
+}
+
+- (void)authServerChoice:(UIButton *)sender {
+    self.authServerMenu.hidden=YES;
+
+    if (sender.tag==440) {
+        self.authServer.text=
+            @"https://littleskin.cn/api/yggdrasil";
+        self.authServerName.text=
+            @"验证服务器: LittleSkin";
+        self.authServerName.hidden=NO;
+    } else {
+        self.authServer.text=@"";
+        self.authServerName.hidden=YES;
+        [self.authServer becomeFirstResponder];
+    }
+
+    [self authFieldsChanged];
+}
+
 - (void)authFieldsChanged {
     UIButton *link=[self.authPage viewWithTag:403];
     BOOL little=[self.authServer.text.lowercaseString
@@ -529,14 +599,55 @@ static UIColor *PCLLoginColor(NSUInteger rgb) {
         UIView *dot=[b viewWithTag:9302];
         ring.layer.borderColor=
             (on ? blue : PCLLoginColor(0x343D4A)).CGColor;
-        dot.hidden=!on;
+
+        if (on) {
+            dot.hidden=NO;
+            dot.alpha=0;
+            dot.transform=CGAffineTransformMakeScale(.1,.1);
+            ring.transform=CGAffineTransformMakeScale(.56,.56);
+
+            [UIView animateWithDuration:.30 delay:.09
+                options:UIViewAnimationOptionCurveEaseOut
+                animations:^{
+                    ring.transform=CGAffineTransformIdentity;
+                    dot.transform=CGAffineTransformIdentity;
+                    dot.alpha=1;
+                } completion:nil];
+
+        } else {
+            ring.transform=CGAffineTransformIdentity;
+
+            [UIView animateWithDuration:.15 animations:^{
+                dot.alpha=0;
+                dot.transform=CGAffineTransformMakeScale(.1,.1);
+            } completion:^(BOOL done) {
+                dot.hidden=YES;
+                dot.transform=CGAffineTransformIdentity;
+            }];
+        }
     }
 
     BOOL custom=self.uuidMode==2;
 
-    self.offlineUuidTitle.hidden=!custom;
-    self.offlineUuid.hidden=!custom;
+    if (custom) {
+        self.offlineUuidTitle.hidden=NO;
+        self.offlineUuid.hidden=NO;
+        self.offlineUuidTitle.alpha=0;
+        self.offlineUuid.alpha=0;
+    }
+
     [self setNeedsLayout];
+
+    [UIView animateWithDuration:.15 animations:^{
+        self.offlineUuidTitle.alpha=custom ? 1 : 0;
+        self.offlineUuid.alpha=custom ? 1 : 0;
+        [self layoutIfNeeded];
+    } completion:^(BOOL done) {
+        if (!custom) {
+            self.offlineUuidTitle.hidden=YES;
+            self.offlineUuid.hidden=YES;
+        }
+    }];
 }
 
 - (void)createOffline {
@@ -558,7 +669,15 @@ static UIColor *PCLLoginColor(NSUInteger rgb) {
 
     NSString *uuid=nil;
 
-    if (self.uuidMode==2) {
+    if (self.uuidMode==0) {
+        uuid=[PCLAccountAuthenticator
+            offlineUUIDForName:name legacy:NO];
+
+    } else if (self.uuidMode==1) {
+        uuid=[PCLAccountAuthenticator
+            offlineUUIDForName:name legacy:YES];
+
+    } else {
         uuid=[self.offlineUuid.text
             stringByReplacingOccurrencesOfString:@"-" withString:@""];
         NSPredicate *hex=[NSPredicate predicateWithFormat:
@@ -567,9 +686,6 @@ static UIColor *PCLLoginColor(NSUInteger rgb) {
             [self setStatus:@"自定义 UUID 必须为 32 位十六进制" error:YES];
             return;
         }
-    } else {
-        uuid=[PCLAccountAuthenticator offlineUUIDForName:name
-            legacy:self.uuidMode==1];
     }
 
     [self saveProfile:@{
@@ -631,7 +747,7 @@ static UIColor *PCLLoginColor(NSUInteger rgb) {
                                 weight:UIFontWeightSemibold];
 
     CGFloat bw=85*s;
-    CGFloat radioX=(w-bw*3)/2.0;
+    CGFloat radioX=5.0*s;
     for (NSInteger i=0;i<3;i++) {
         UIButton *b=[self.offlinePage viewWithTag:302+i];
         b.frame=CGRectMake(radioX+i*bw,47*s,bw,44*s);
@@ -660,7 +776,21 @@ static UIColor *PCLLoginColor(NSUInteger rgb) {
     ob.frame=CGRectMake(80*s,offlineButtonY,50*s,28*s);
     oc.frame=CGRectMake(140*s,offlineButtonY,50*s,28*s);
 
+    self.authServerName.frame=
+        CGRectMake(50*s,0,w-50*s,18*s);
+    self.authServerName.font=
+        [UIFont systemFontOfSize:13*s];
+
     self.authServer.frame=CGRectMake(50*s,26*s,w-50*s,28*s);
+
+    self.authServerMenu.frame=
+        CGRectMake(50*s,54*s,w-50*s,56*s);
+
+    for (NSInteger i=0;i<2;i++) {
+        UIButton *item=[self.authServerMenu viewWithTag:440+i];
+        item.frame=CGRectMake(0,28*i*s,w-50*s,28*s);
+        item.titleLabel.font=[UIFont systemFontOfSize:13*s];
+    }
 
     self.authEmail.frame=CGRectMake(50*s,64*s,w-50*s,28*s);
     self.authPassword.frame=CGRectMake(50*s,102*s,w-50*s,28*s);
@@ -677,7 +807,7 @@ static UIColor *PCLLoginColor(NSUInteger rgb) {
     }
 
     UIButton *reg=[self.authPage viewWithTag:403];
-    reg.frame=CGRectMake(w-90*s,136*s,90*s,24*s);
+    reg.frame=CGRectMake(w-90*s,140*s,90*s,20*s);
 
     UIButton *ab=[self.authPage viewWithTag:404];
     UIButton *al=[self.authPage viewWithTag:405];

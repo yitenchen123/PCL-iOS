@@ -195,6 +195,60 @@ static UIImage *PCLHeadFromSkin(UIImage *skin) {
 }
 
 
+- (void)pclLoadMicrosoft:(NSDictionary *)profile
+                    token:(NSString *)token {
+    NSString *uuid=[profile[@"uuid"]
+        stringByReplacingOccurrencesOfString:@"-" withString:@""];
+    if (!uuid.length) return;
+
+    NSString *saved=profile[@"skinURL"];
+    if (saved.length)
+        [self pclLoadURL:saved crop:YES token:token];
+
+    NSString *text=[NSString stringWithFormat:
+        @"https://sessionserver.mojang.com/session/minecraft/profile/%@?unsigned=false",
+        uuid];
+
+    NSURL *url=[NSURL URLWithString:text];
+    __weak typeof(self) weakSelf=self;
+
+    [[[NSURLSession sharedSession] dataTaskWithURL:url
+        completionHandler:^(NSData *data,
+                            NSURLResponse *response,
+                            NSError *error) {
+        NSDictionary *json=data.length
+            ? [NSJSONSerialization JSONObjectWithData:data
+                options:0 error:nil] : nil;
+        NSString *skinURL=nil;
+
+        for (NSDictionary *item in json[@"properties"]) {
+            if (![item[@"name"] isEqual:@"textures"]) continue;
+
+            NSData *decoded=[[NSData alloc]
+                initWithBase64EncodedString:item[@"value"]
+                options:0];
+
+            NSDictionary *textures=decoded.length
+                ? [NSJSONSerialization JSONObjectWithData:decoded
+                    options:0 error:nil] : nil;
+
+            skinURL=textures[@"textures"][@"SKIN"][@"url"];
+        }
+
+        dispatch_async(dispatch_get_main_queue(), ^{
+            if (skinURL.length) {
+                [weakSelf pclLoadURL:skinURL crop:YES token:token];
+                return;
+            }
+
+            NSString *who=profile[@"username"] ?: uuid;
+            NSString *fallback=[NSString stringWithFormat:
+                @"https://mc-heads.net/avatar/%@/64",who];
+            [weakSelf pclLoadURL:fallback crop:NO token:token];
+        });
+    }] resume];
+}
+
 - (void)pclLoadAuth:(NSDictionary *)profile
               token:(NSString *)token {
     NSString *root=profile[@"server"];
@@ -263,14 +317,7 @@ static UIImage *PCLHeadFromSkin(UIImage *skin) {
     NSString *skinURL=profile[@"skinURL"];
 
     if ([type isEqual:@"microsoft"]) {
-        if (skinURL.length) {
-            [self pclLoadURL:skinURL crop:YES token:token];
-        } else {
-            NSString *url=[NSString stringWithFormat:
-                @"https://mc-heads.net/avatar/%@/64",
-                profile[@"uuid"]];
-            [self pclLoadURL:url crop:NO token:token];
-        }
+        [self pclLoadMicrosoft:profile token:token];
         return;
     }
 
@@ -1180,7 +1227,7 @@ static UIImage *PCLHeadFromSkin(UIImage *skin) {
 
     self.skinView.frame =
         CGRectMake((profileWidth - skinSize) / 2.0,
-                   80.0 * scale,
+                   60.0 * scale,
                    skinSize,
                    skinSize);
 
@@ -1190,7 +1237,7 @@ static UIImage *PCLHeadFromSkin(UIImage *skin) {
 
     self.usernameLabel.frame =
         CGRectMake(8.0 * scale,
-                   154.0 * scale,
+                   134.0 * scale,
                    profileWidth
                        - 16.0 * scale,
                    21.0 * scale);
@@ -1201,7 +1248,7 @@ static UIImage *PCLHeadFromSkin(UIImage *skin) {
 
     self.typeLabel.frame =
         CGRectMake(8.0 * scale,
-                   179.0 * scale,
+                   159.0 * scale,
                    profileWidth
                        - 16.0 * scale,
                    18.0 * scale);
@@ -1215,7 +1262,7 @@ static UIImage *PCLHeadFromSkin(UIImage *skin) {
     self.profileButtonsCard.frame =
         CGRectMake((profileWidth
                     - buttonsWidth) / 2.0,
-                   205.0 * scale,
+                   185.0 * scale,
                    buttonsWidth,
                    buttonsHeight);
 
