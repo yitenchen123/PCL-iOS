@@ -177,6 +177,42 @@
     [self.leftView dismissTransientUI];
 }
 
+- (void)playExitFadeWithCompletion:
+
+        (dispatch_block_t)completion {
+
+    [self dismissTransientUI];
+
+    self.view.userInteractionEnabled=NO;
+
+    [UIView animateWithDuration:.14
+
+        delay:0
+
+        options:UIViewAnimationOptionBeginFromCurrentState |
+
+                UIViewAnimationOptionCurveEaseIn
+
+        animations:^{
+
+            self.view.alpha=0;
+
+        }
+
+        completion:^(BOOL finished) {
+
+            if (completion)
+
+                completion();
+
+            self.view.alpha=1;
+
+            self.view.userInteractionEnabled=YES;
+
+        }];
+
+}
+
 - (void)launchMinecraft {
     NSString *profile =
         [NSUserDefaults.standardUserDefaults
