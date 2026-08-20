@@ -237,14 +237,13 @@ static UIImage *PCLAuthIcon(
 
 - (void)presentInView:(UIView *)view {
     self.frame=view.bounds;
-    self.autoresizingMask=UIViewAutoresizingFlexibleWidth |
-                          UIViewAutoresizingFlexibleHeight;
+    self.autoresizingMask=
+        UIViewAutoresizingFlexibleWidth |
+        UIViewAutoresizingFlexibleHeight;
     [view addSubview:self];
-    [self setNeedsLayout];
     [self layoutIfNeeded];
 
     CGFloat r=-4.0*M_PI/180.0;
-
     self.card.transform=
         CGAffineTransformRotate(
             CGAffineTransformMakeTranslation(0,40*self.scale),r);
@@ -254,13 +253,30 @@ static UIImage *PCLAuthIcon(
         self.backgroundColor=[UIColor colorWithWhite:0 alpha:90.0/255.0];
     }];
 
-    [UIView animateWithDuration:.30 delay:.06
-        usingSpringWithDamping:.78 initialSpringVelocity:0
-        options:UIViewAnimationOptionAllowUserInteraction
+    [UIView animateWithDuration:.12 delay:.06
+        options:UIViewAnimationOptionCurveEaseOut animations:^{
+        self.card.alpha=1;
+    } completion:nil];
+
+    [UIView animateKeyframesWithDuration:.30 delay:.06
+        options:UIViewKeyframeAnimationOptionCalculationModeCubic
         animations:^{
-            self.card.alpha=1;
+        [UIView addKeyframeWithRelativeStartTime:0 duration:.78 animations:^{
+            self.card.transform=
+                CGAffineTransformMakeTranslation(0,-2*self.scale);
+        }];
+
+        [UIView addKeyframeWithRelativeStartTime:.78 duration:.22 animations:^{
             self.card.transform=CGAffineTransformIdentity;
-        } completion:nil];
+        }];
+    } completion:nil];
+}
+
+
+        [UIView addKeyframeWithRelativeStartTime:.78 duration:.22 animations:^{
+            self.card.transform=CGAffineTransformIdentity;
+        }];
+    } completion:nil];
 }
 
 - (void)dismissWithType:(NSInteger)type {
@@ -271,7 +287,8 @@ static UIImage *PCLAuthIcon(
 
     UIViewAnimationOptions opt=
         UIViewAnimationOptionBeginFromCurrentState |
-        UIViewAnimationOptionAllowUserInteraction;
+        UIViewAnimationOptionAllowUserInteraction |
+        UIViewAnimationOptionCurveEaseOut;
 
     [UIView animateWithDuration:.15 delay:0 options:opt animations:^{
         self.card.transform=out;

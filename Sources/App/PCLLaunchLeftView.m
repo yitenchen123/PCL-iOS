@@ -100,6 +100,7 @@ static UIColor *PCLColor(NSUInteger rgb) {
 
     self.requestedUUID=clean;
     self.remoteHead=nil;
+    self.layer.shadowOpacity=clean.length ? 0.20 : 0.0;
     [self setNeedsDisplay];
 
     if (!clean.length) return;
@@ -126,72 +127,33 @@ static UIColor *PCLColor(NSUInteger rgb) {
 }
 
 - (void)drawRect:(CGRect)rect {
-    CGContextRef c = UIGraphicsGetCurrentContext();
-
-    CGFloat canvasSize = MIN(rect.size.width, rect.size.height);
+    CGFloat canvas=MIN(rect.size.width,rect.size.height);
 
     if (self.remoteHead) {
-        CGFloat size=canvasSize*56.0/64.0;
-        CGFloat x=(canvasSize-size)/2.0;
+        CGFloat size=canvas*56.0/64.0;
+        CGFloat x=(canvas-size)/2.0;
         [self.remoteHead drawInRect:CGRectMake(x,x,size,size)];
         return;
     }
-    CGFloat size = canvasSize * 48.0 / 64.0;
-    CGFloat origin = (canvasSize - size) / 2.0;
 
-    CGContextSaveGState(c);
-    CGContextTranslateCTM(c, origin, origin);
+    CGFloat point=40.0*canvas/64.0;
+    UIImageSymbolConfiguration *config=
+        [UIImageSymbolConfiguration
+            configurationWithPointSize:point
+                                weight:UIImageSymbolWeightRegular];
 
-    CGFloat pixel = size / 8.0;
+    UIImage *icon=[[UIImage systemImageNamed:@"person"]
+        imageByApplyingSymbolConfiguration:config];
 
-    UIColor *skin = PCLColor(0xB78363);
-    UIColor *light = PCLColor(0xD9A17E);
-    UIColor *hair = PCLColor(0x3A281C);
-    UIColor *eye = PCLColor(0x4A78A8);
+    icon=[icon imageWithTintColor:
+        [PCLColor(0x4B5D73) colorWithAlphaComponent:.72]
+        renderingMode:UIImageRenderingModeAlwaysOriginal];
 
-    [skin setFill];
-    CGContextFillRect(c, CGRectMake(0, 0, size, size));
-
-    [hair setFill];
-    CGContextFillRect(c, CGRectMake(0, 0, size, pixel * 2));
-    CGContextFillRect(c, CGRectMake(0, 0, pixel, pixel * 4));
-    CGContextFillRect(c, CGRectMake(size - pixel, 0, pixel, pixel * 4));
-
-    [light setFill];
-    CGContextFillRect(c,
-        CGRectMake(pixel * 2, pixel * 3,
-                   pixel, pixel));
-
-    CGContextFillRect(c,
-        CGRectMake(pixel * 5, pixel * 3,
-                   pixel, pixel));
-
-    [eye setFill];
-
-    CGContextFillRect(c,
-        CGRectMake(pixel * 2, pixel * 3,
-                   pixel, pixel * 0.45));
-
-    CGContextFillRect(c,
-        CGRectMake(pixel * 5, pixel * 3,
-                   pixel, pixel * 0.45));
-
-    [hair setFill];
-    CGContextFillRect(c,
-        CGRectMake(pixel * 3, pixel * 6,
-                   pixel * 2, pixel * 0.55));
-
-    CGContextRestoreGState(c);
-
-    CGFloat foreSize = canvasSize * 56.0 / 64.0;
-    CGFloat x = (canvasSize - foreSize) / 2.0;
-    CGFloat px = foreSize / 8.0;
-
-    [[hair colorWithAlphaComponent:0.42] setFill];
-    CGContextFillRect(c, CGRectMake(x,x,foreSize,px*1.35));
-    CGContextFillRect(c, CGRectMake(x,x,px,px*3.0));
-    CGContextFillRect(c, CGRectMake(x+foreSize-px,x,px,px*3.0));
+    CGFloat x=(canvas-icon.size.width)/2.0;
+    CGFloat y=(canvas-icon.size.height)/2.0;
+    [icon drawAtPoint:CGPointMake(x,y)];
 }
+
 
 @end
 
@@ -458,18 +420,24 @@ static UIColor *PCLColor(NSUInteger rgb) {
 }
 
 - (void)pclLoginTransition:(dispatch_block_t)changes {
+    [self.panLogin.layer removeAllAnimations];
     self.userInteractionEnabled=NO;
 
-    [UIView animateWithDuration:.10 animations:^{
+    UIViewAnimationOptions out=
+        UIViewAnimationOptionBeginFromCurrentState |
+        UIViewAnimationOptionCurveEaseOut;
+
+    [UIView animateWithDuration:.10 delay:0 options:out animations:^{
         self.panLogin.alpha=0;
     } completion:^(BOOL done) {
         if (changes) changes();
+        self.panLogin.alpha=0;
+        [self.panLogin layoutIfNeeded];
 
         [UIView animateWithDuration:.10 delay:.02
             options:UIViewAnimationOptionCurveEaseIn
-            animations:^{
-                self.panLogin.alpha=1;
-            } completion:^(BOOL finished) {
+            animations:^{ self.panLogin.alpha=1; }
+            completion:^(BOOL finished) {
                 self.userInteractionEnabled=YES;
             }];
     }];

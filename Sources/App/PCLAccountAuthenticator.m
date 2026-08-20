@@ -148,6 +148,44 @@ static NSString *PCLServerError(NSDictionary *json, NSInteger code) {
     return uuid;
 }
 
+
+    NSURL *url=[NSURL URLWithString:root];
+    if (!url.host.length) {
+        completion(nil,@"验证服务器地址无效");
+        return;
+    }
+
+    NSMutableURLRequest *r=[NSMutableURLRequest requestWithURL:url];
+    r.HTTPMethod=@"HEAD";
+    r.timeoutInterval=8;
+
+    [[[NSURLSession sharedSession] dataTaskWithRequest:r
+        completionHandler:^(NSData *data,NSURLResponse *response,NSError *error) {
+
+        NSHTTPURLResponse *http=(NSHTTPURLResponse *)response;
+        NSString *location=nil;
+
+        for (id key in http.allHeaderFields) {
+            if ([[key description] caseInsensitiveCompare:
+                @"X-Authlib-Injector-Api-Location"]==NSOrderedSame)
+                location=[http.allHeaderFields[key] description];
+        }
+
+        if (location.length) {
+            NSURL *resolved=[NSURL URLWithString:location
+                                  relativeToURL:http.URL];
+            root=resolved.absoluteURL.absoluteString ?: root;
+        }
+
+        while ([root hasSuffix:@"/"])
+            root=[root substringToIndex:root.length-1];
+
+        dispatch_async(dispatch_get_main_queue(), ^{
+            completion(root,nil);
+        });
+    }] resume];
+}
+
 + (void)loginAuthlibServer:(NSString *)input
                   username:(NSString *)username
                   password:(NSString *)password
@@ -195,8 +233,9 @@ static NSString *PCLServerError(NSDictionary *json, NSInteger code) {
         @"requestUser":@YES
     };
 
-    NSString *url=
-        [server stringByAppendingString:@"/authserver/authenticate"];
+    NSString *url=[server hasSuffix:@"/authserver"]
+        ? [server stringByAppendingString:@"/authenticate"]
+        : [server stringByAppendingString:@"/authserver/authenticate"];
 
     PCLJSONRequest(@"POST",url,body,nil,
         ^(NSDictionary *json, NSInteger code, NSError *error) {

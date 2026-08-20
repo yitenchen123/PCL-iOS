@@ -11,6 +11,9 @@ typedef void (^PCLAuthResultBlock)(
 - (void)startMicrosoftWithStatus:(PCLAuthStatusBlock)status
                       completion:(PCLAuthResultBlock)completion;
 
++ (void)resolveAuthlibServer:(NSString *)server
+    completion:(void (^)(NSString *resolved, NSString *error))completion;
+
 + (void)loginAuthlibServer:(NSString *)server
                   username:(NSString *)username
                   password:(NSString *)password

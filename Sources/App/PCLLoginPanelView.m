@@ -85,16 +85,22 @@ static UIColor *PCLLoginColor(NSUInteger rgb) {
 }
 
 - (void)showPage:(UIView *)page {
-    if (self.currentPage==page) return;
-
-    UIView *old=self.currentPage;
-    self.currentPage=page;
-
-    if (!old) {
+    if (self.currentPage==page) {
         page.hidden=NO;
         page.alpha=1;
         return;
     }
+
+    UIView *old=self.currentPage;
+    self.currentPage=page;
+
+    if (!old || self.hidden || self.superview.alpha<0.05) {
+        for (UIView *p in @[self.msPage,self.offlinePage,self.authPage])
+            p.hidden=p!=page;
+        page.alpha=1;
+        return;
+    }
+
     self.userInteractionEnabled=NO;
 
     [UIView animateWithDuration:.10 animations:^{
@@ -105,13 +111,20 @@ static UIColor *PCLLoginColor(NSUInteger rgb) {
         page.hidden=NO;
         page.alpha=0;
 
-        [UIView animateWithDuration:.10 delay:.02
-            options:UIViewAnimationOptionCurveEaseIn
-            animations:^{
-                page.alpha=1;
-            } completion:^(BOOL finished) {
-                self.userInteractionEnabled=YES;
-            }];
+        [UIView animateWithDuration:.10 animations:^{
+            page.alpha=1;
+        } completion:^(BOOL done) {
+            self.userInteractionEnabled=YES;
+        }];
+    }];
+}
+
+
+        [UIView animateWithDuration:.10 animations:^{
+            page.alpha=1;
+        } completion:^(BOOL done) {
+            self.userInteractionEnabled=YES;
+        }];
     }];
 }
 
@@ -130,6 +143,7 @@ static UIColor *PCLLoginColor(NSUInteger rgb) {
 
     UIView *ring=[[UIView alloc] init];
     ring.tag=9301;
+    ring.userInteractionEnabled=NO;
     ring.layer.borderWidth=1.3;
     ring.layer.cornerRadius=5;
     ring.backgroundColor=
@@ -138,6 +152,7 @@ static UIColor *PCLLoginColor(NSUInteger rgb) {
 
     UIView *dot=[[UIView alloc] init];
     dot.tag=9302;
+    dot.userInteractionEnabled=NO;
 
     dot.layer.cornerRadius=2.5;
     dot.hidden=YES;
@@ -242,6 +257,9 @@ static UIColor *PCLLoginColor(NSUInteger rgb) {
 
     UIButton *create=[self button:@"创建"];
     create.tag=306;
+    create.layer.borderColor=PCLLoginColor(0x0B5BCB).CGColor;
+    [create setTitleColor:PCLLoginColor(0x0B5BCB)
+                 forState:UIControlStateNormal];
 
     [create addTarget:self action:@selector(createOffline)
         forControlEvents:UIControlEventTouchUpInside];
@@ -257,6 +275,9 @@ static UIColor *PCLLoginColor(NSUInteger rgb) {
     self.authEmail=[self field:@"邮箱"];
     self.authPassword=[self field:@"密码"];
     self.authPassword.secureTextEntry=YES;
+    [self.authEmail addTarget:self
+        action:@selector(authFieldsChanged)
+        forControlEvents:UIControlEventEditingChanged];
     self.authServer.placeholder=nil;
     UIImageView *drop=[[UIImageView alloc]
         initWithImage:[UIImage systemImageNamed:@"chevron.down"]];
@@ -284,6 +305,8 @@ static UIColor *PCLLoginColor(NSUInteger rgb) {
 
     UIButton *reg=[self button:@"注册账号"];
     reg.tag=403;
+    [reg addTarget:self action:@selector(authLinkPressed)
+        forControlEvents:UIControlEventTouchUpInside];
     reg.layer.borderWidth=0;
     reg.hidden=YES;
     [self.authPage addSubview:reg];
@@ -295,6 +318,9 @@ static UIColor *PCLLoginColor(NSUInteger rgb) {
 
     UIButton *login=[self button:@"登录"];
     login.tag=405;
+    login.layer.borderColor=PCLLoginColor(0x0B5BCB).CGColor;
+    [login setTitleColor:PCLLoginColor(0x0B5BCB)
+                forState:UIControlStateNormal];
 
     [login addTarget:self action:@selector(authLogin)
         forControlEvents:UIControlEventTouchUpInside];
@@ -309,15 +335,22 @@ static UIColor *PCLLoginColor(NSUInteger rgb) {
 
 - (void)showMicrosoft { [self showPage:self.msPage]; }
 - (void)showOffline {
-    [self showPage:self.offlinePage];
+    self.offlineName.text=@"";
+    self.offlineUuid.text=@"";
+    self.statusLabel.text=@"";
     self.uuidMode=0;
     [self uuidPressed:[self.offlinePage viewWithTag:302]];
+    [self showPage:self.offlinePage];
 }
 - (void)showThirdParty {
     if (!self.authServer.text.length)
         self.authServer.text=
             @"https://littleskin.cn/api/yggdrasil";
 
+    self.authEmail.text=@"";
+    self.authPassword.text=@"";
+    self.statusLabel.text=@"";
+    [self authFieldsChanged];
     [self showPage:self.authPage];
 }
 
@@ -339,23 +372,73 @@ static UIColor *PCLLoginColor(NSUInteger rgb) {
               : PCLLoginColor(0x343D4A);
 }
 
+- (NSString *)msPercent:(NSString *)text {
+    if ([text containsString:@"Microsoft 登录"]) return @"0%";
+    if ([text containsString:@"Microsoft 令牌"]) return @"20%";
+    if ([text containsString:@"Xbox Live"]) return @"40%";
+    if ([text containsString:@"XSTS"]) return @"60%";
+    if ([text containsString:@"登录 Minecraft"]) return @"80%";
+    if ([text containsString:@"Minecraft 档案"]) return @"90%";
+    return @"0%";
+}
+
 - (void)msStart {
     UIButton *button=[self.msPage viewWithTag:201];
+    UIButton *back=[self.msPage viewWithTag:204];
+
     button.enabled=NO;
+    back.hidden=YES;
+    [button setTitle:@"0%" forState:UIControlStateNormal];
+    self.statusLabel.text=@"";
 
     self.microsoftAuth=
         [[PCLAccountAuthenticator alloc] initWithAnchorView:self];
 
     __weak typeof(self) weakSelf=self;
-    [self.microsoftAuth
-        startMicrosoftWithStatus:^(NSString *text) {
-            [weakSelf setStatus:text error:NO];
-        } completion:^(NSDictionary *profile, NSString *error) {
-            button.enabled=YES;
-            if (profile) [weakSelf saveProfile:profile];
-            else [weakSelf setStatus:error error:YES];
-            weakSelf.microsoftAuth=nil;
-        }];
+    [self.microsoftAuth startMicrosoftWithStatus:^(NSString *text) {
+        [button setTitle:[weakSelf msPercent:text]
+                forState:UIControlStateNormal];
+
+    } completion:^(NSDictionary *profile,NSString *error) {
+        if (profile) {
+            [button setTitle:@"100%" forState:UIControlStateNormal];
+
+            dispatch_after(dispatch_time(DISPATCH_TIME_NOW,60*NSEC_PER_MSEC),
+                dispatch_get_main_queue(), ^{
+                [weakSelf saveProfile:profile];
+            });
+            return;
+        }
+
+        button.enabled=YES;
+        back.hidden=NO;
+        [button setTitle:@"开始正版验证"
+                forState:UIControlStateNormal];
+        [weakSelf setStatus:error error:YES];
+        weakSelf.microsoftAuth=nil;
+    }];
+}
+
+- (void)authFieldsChanged {
+    UIButton *link=[self.authPage viewWithTag:403];
+    BOOL little=[self.authServer.text.lowercaseString
+        containsString:@"littleskin.cn"];
+
+    link.hidden=!little;
+    NSString *title=self.authEmail.text.length
+        ? @"忘记密码" : @"注册账号";
+    [link setTitle:title forState:UIControlStateNormal];
+}
+
+- (void)authLinkPressed {
+    UIButton *link=[self.authPage viewWithTag:403];
+    BOOL forgot=[link.currentTitle isEqual:@"忘记密码"];
+
+    NSString *text=forgot
+        ? @"https://littleskin.cn/auth/forgot"
+        : @"https://littleskin.cn/auth/register";
+    [UIApplication.sharedApplication openURL:[NSURL URLWithString:text]
+        options:@{} completionHandler:nil];
 }
 
 - (void)authLogin {
@@ -373,22 +456,50 @@ static UIColor *PCLLoginColor(NSUInteger rgb) {
     }
 
     UIButton *login=[self.authPage viewWithTag:405];
+    UIButton *back=[self.authPage viewWithTag:404];
     login.enabled=NO;
+    back.enabled=NO;
+    [login setTitle:@"0%" forState:UIControlStateNormal];
 
     __weak typeof(self) weakSelf=self;
-    [PCLAccountAuthenticator
-        loginAuthlibServer:server username:user password:pass
-        status:^(NSString *text) {
-            [weakSelf setStatus:text error:NO];
-        } completion:^(NSDictionary *profile, NSString *error) {
+    [PCLAccountAuthenticator resolveAuthlibServer:server
+        completion:^(NSString *resolved,NSString *resolveError) {
+
+        if (resolveError) {
             login.enabled=YES;
-            if (profile) {
-                weakSelf.authPassword.text=@"";
-                [weakSelf saveProfile:profile];
-            } else {
+            back.enabled=YES;
+            [login setTitle:@"登录" forState:UIControlStateNormal];
+            [weakSelf setStatus:resolveError error:YES];
+            return;
+        }
+
+        weakSelf.authServer.text=resolved;
+        [login setTitle:@"35%" forState:UIControlStateNormal];
+
+        [PCLAccountAuthenticator
+            loginAuthlibServer:resolved username:user password:pass
+            status:^(NSString *text) {
+                [login setTitle:@"70%" forState:UIControlStateNormal];
+            } completion:^(NSDictionary *profile,NSString *error) {
+
+                if (profile) {
+                    [login setTitle:@"100%" forState:UIControlStateNormal];
+                    weakSelf.authPassword.text=@"";
+
+                    dispatch_after(
+                        dispatch_time(DISPATCH_TIME_NOW,60*NSEC_PER_MSEC),
+                        dispatch_get_main_queue(), ^{
+                            [weakSelf saveProfile:profile];
+                        });
+                    return;
+                }
+
+                login.enabled=YES;
+                back.enabled=YES;
+                [login setTitle:@"登录" forState:UIControlStateNormal];
                 [weakSelf setStatus:error error:YES];
-            }
-        }];
+            }];
+    }];
 }
 
 - (void)uuidPressed:(UIButton *)sender {
@@ -488,6 +599,7 @@ static UIColor *PCLLoginColor(NSUInteger rgb) {
 
     UILabel *name=[self.offlinePage viewWithTag:300];
     name.textColor=PCLLoginColor(0x343D4A);
+    name.textAlignment=NSTextAlignmentCenter;
     UILabel *uuid=[self.offlinePage viewWithTag:301];
     uuid.textColor=PCLLoginColor(0x343D4A);
     self.offlineUuidTitle.textColor=PCLLoginColor(0x343D4A);
@@ -506,9 +618,9 @@ static UIColor *PCLLoginColor(NSUInteger rgb) {
     CGFloat bw=(w-10*s)/3;
     for (NSInteger i=0;i<3;i++) {
         UIButton *b=[self.offlinePage viewWithTag:302+i];
-        b.frame=CGRectMake(5*s+i*bw,58*s,bw,22*s);
+        b.frame=CGRectMake(5*s+i*bw,47*s,bw,44*s);
         UIView *ring=[b viewWithTag:9301];
-        ring.frame=CGRectMake(1*s,2*s,18*s,18*s);
+        ring.frame=CGRectMake(1*s,13*s,18*s,18*s);
         ring.layer.cornerRadius=9*s;
         ring.layer.borderWidth=1.1*s;
         UIView *dot=[ring viewWithTag:9302];
@@ -532,10 +644,10 @@ static UIColor *PCLLoginColor(NSUInteger rgb) {
     ob.frame=CGRectMake(80*s,offlineButtonY,50*s,28*s);
     oc.frame=CGRectMake(140*s,offlineButtonY,50*s,28*s);
 
-    self.authServer.frame=CGRectMake(50*s,26*s,w-50*s,28*s);
+    self.authServer.frame=CGRectMake(50*s,10*s,w-50*s,28*s);
 
-    self.authEmail.frame=CGRectMake(50*s,64*s,w-50*s,28*s);
-    self.authPassword.frame=CGRectMake(50*s,102*s,w-50*s,28*s);
+    self.authEmail.frame=CGRectMake(50*s,48*s,w-50*s,28*s);
+    self.authPassword.frame=CGRectMake(50*s,86*s,w-50*s,28*s);
 
     self.authServer.font=[UIFont systemFontOfSize:13*s];
     self.authEmail.font=[UIFont systemFontOfSize:13*s];
@@ -545,7 +657,7 @@ static UIColor *PCLLoginColor(NSUInteger rgb) {
         UILabel *label=[self.authPage viewWithTag:410+i];
         label.font=[UIFont systemFontOfSize:13*s];
         label.textColor=PCLLoginColor(0x343D4A);
-        label.frame=CGRectMake(0,(26+38*i)*s,50*s,28*s);
+        label.frame=CGRectMake(0,(10+38*i)*s,50*s,28*s);
     }
 
     UIButton *reg=[self.authPage viewWithTag:403];
