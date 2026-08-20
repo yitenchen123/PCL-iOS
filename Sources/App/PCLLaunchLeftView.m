@@ -1875,7 +1875,7 @@ static UIImage *PCLHeadFromSkin(UIImage *skin) {
     CGFloat menuX=
         CGRectGetMinX(anchorRect)+10.0*scale;
     CGFloat menuY=
-        CGRectGetMaxY(anchorRect)+18.0*scale;
+        CGRectGetMaxY(anchorRect)+6.0*scale;
 
     menuX=MAX(6.0*scale,menuX);
     menuX=MIN(menuX,width-menuW-6.0*scale);
