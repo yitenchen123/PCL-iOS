@@ -300,9 +300,6 @@ static UIColor *PCLLoginColor(NSUInteger rgb) {
     self.authEmail=[self field:@"邮箱"];
     self.authPassword=[self field:@"密码"];
     self.authPassword.secureTextEntry=YES;
-    [self.authEmail addTarget:self
-        action:@selector(authFieldsChanged)
-        forControlEvents:UIControlEventEditingChanged];
     self.authServer.placeholder=nil;
     UIButton *drop=[UIButton buttonWithType:UIButtonTypeCustom];
     [drop setImage:[UIImage systemImageNamed:@"chevron.down"]
@@ -355,13 +352,6 @@ static UIColor *PCLLoginColor(NSUInteger rgb) {
     [self.authPage addSubview:self.authServerMenu];
 
 
-    UIButton *reg=[self button:@"注册账号"];
-    reg.tag=403;
-    [reg addTarget:self action:@selector(authLinkPressed)
-        forControlEvents:UIControlEventTouchUpInside];
-    reg.layer.borderWidth=0;
-    reg.hidden=YES;
-    [self.authPage addSubview:reg];
 
     UIButton *back=[self button:@"返回"];
     back.tag=404;
@@ -432,11 +422,7 @@ static UIColor *PCLLoginColor(NSUInteger rgb) {
     self.authEmail.text=@"";
     self.authPassword.text=@"";
     self.statusLabel.text=@"";
-    [self authFieldsChanged];
 
-    UIButton *link=
-        [self.authPage viewWithTag:403];
-    link.hidden=NO;
 
     [self showPage:self.authPage];
 }
@@ -537,29 +523,6 @@ static UIColor *PCLLoginColor(NSUInteger rgb) {
         [self.authServer becomeFirstResponder];
     }
 
-    [self authFieldsChanged];
-}
-
-- (void)authFieldsChanged {
-    UIButton *link=[self.authPage viewWithTag:403];
-    BOOL little=[self.authServer.text.lowercaseString
-        containsString:@"littleskin.cn"];
-
-    link.hidden=!little;
-    NSString *title=self.authEmail.text.length
-        ? @"忘记密码" : @"注册账号";
-    [link setTitle:title forState:UIControlStateNormal];
-}
-
-- (void)authLinkPressed {
-    UIButton *link=[self.authPage viewWithTag:403];
-    BOOL forgot=[link.currentTitle isEqual:@"忘记密码"];
-
-    NSString *text=forgot
-        ? @"https://littleskin.cn/auth/forgot"
-        : @"https://littleskin.cn/auth/register";
-    [UIApplication.sharedApplication openURL:[NSURL URLWithString:text]
-        options:@{} completionHandler:nil];
 }
 
 - (void)authLogin {
@@ -865,18 +828,15 @@ static UIColor *PCLLoginColor(NSUInteger rgb) {
         label.frame=CGRectMake(0,(26+38*i)*s,50*s,28*s);
     }
 
-    UIButton *reg=[self.authPage viewWithTag:403];
-    reg.frame=CGRectMake(w-90*s,140*s,90*s,20*s);
-
     UIButton *ab=[self.authPage viewWithTag:404];
     UIButton *al=[self.authPage viewWithTag:405];
     ab.titleLabel.font=[UIFont systemFontOfSize:13*s];
     al.titleLabel.font=[UIFont systemFontOfSize:13*s];
-    ab.frame=CGRectMake(80*s,178*s,50*s,28*s);
-    al.frame=CGRectMake(140*s,178*s,50*s,28*s);
+    ab.frame=CGRectMake(80*s,150*s,50*s,28*s);
+    al.frame=CGRectMake(140*s,150*s,50*s,28*s);
 
     self.statusLabel.font=[UIFont systemFontOfSize:11*s];
-    self.statusLabel.frame=CGRectMake(0,215*s,w,18*s);
+    self.statusLabel.frame=CGRectMake(0,190*s,w,18*s);
 }
 
 @end

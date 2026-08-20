@@ -424,7 +424,7 @@ static UIImage *PCLHeadFromSkin(UIImage *skin) {
 
 @end
 
-@interface PCLLaunchLeftView ()
+@interface PCLLaunchLeftView () <UIGestureRecognizerDelegate>
 
 @property (nonatomic, strong) UIView *panLogin;
 
@@ -910,6 +910,9 @@ static UIImage *PCLHeadFromSkin(UIImage *skin) {
             initWithTarget:self
                     action:@selector(profileTapped)];
 
+    tap.delegate=self;
+    tap.cancelsTouchesInView=NO;
+
     [self.profileSkinView addGestureRecognizer:tap];
 }
 
@@ -1091,6 +1094,10 @@ static UIImage *PCLHeadFromSkin(UIImage *skin) {
         BOOL open=[row.accessibilityIdentifier isEqual:pid];
         UIView *actions=[row viewWithTag:9303];
 
+        row.backgroundColor=open
+            ? [PCLColor(0x1370F3) colorWithAlphaComponent:.055]
+            : UIColor.clearColor;
+
         if (open) {
             actions.hidden=NO;
             actions.alpha=0;
@@ -1232,6 +1239,9 @@ static UIImage *PCLHeadFromSkin(UIImage *skin) {
         [self.profileOptionMenu addSubview:b];
     }
 
+    [self.profileSkinView
+        bringSubviewToFront:self.profileOptionMenu];
+
     self.profileOptionMenu.hidden=NO;
     self.profileOptionMenu.alpha=0;
     self.profileOptionMenu.transform=
@@ -1303,7 +1313,25 @@ static UIImage *PCLHeadFromSkin(UIImage *skin) {
     [self showProfileOptionMenu:2];
 }
 
+- (BOOL)gestureRecognizer:(UIGestureRecognizer *)gesture
+        shouldReceiveTouch:(UITouch *)touch {
+    UIView *v=touch.view;
+
+    while (v && v!=self.profileSkinView) {
+        if ([v isKindOfClass:UIControl.class])
+            return NO;
+        v=v.superview;
+    }
+
+    return YES;
+}
+
 - (void)profileTapped {
+    if (!self.profileOptionMenu.hidden) {
+        [self hideProfileOptionMenu];
+        return;
+    }
+
     CGFloat target =
         self.profileButtonsCard.alpha > 0.5
         ? 0.0
@@ -1538,6 +1566,35 @@ static UIImage *PCLHeadFromSkin(UIImage *skin) {
         UIButton *del=(UIButton *)
             [actions viewWithTag:9311];
 
+        aux.frame=CGRectMake(
+            0,0,31*scale,42*scale);
+
+        del.frame=CGRectMake(
+            31*scale,0,31*scale,42*scale);
+
+        UIImageSymbolConfiguration *actionCfg=
+            [UIImageSymbolConfiguration
+                configurationWithPointSize:12.5*scale
+                                    weight:UIImageSymbolWeightRegular];
+
+        NSDictionary *profile=
+            [self profileForIdentifier:
+                row.accessibilityIdentifier];
+
+        NSString *auxIcon=
+            [profile[@"type"] isEqual:@"offline"]
+                ? @"pencil" : @"doc.on.doc";
+
+        [aux setImage:
+            [[UIImage systemImageNamed:auxIcon]
+                imageByApplyingSymbolConfiguration:actionCfg]
+            forState:UIControlStateNormal];
+
+        [del setImage:
+            [[UIImage systemImageNamed:@"trash"]
+                imageByApplyingSymbolConfiguration:actionCfg]
+            forState:UIControlStateNormal];
+
 
         rowY+=44*scale;
     }
@@ -1611,6 +1668,36 @@ static UIImage *PCLHeadFromSkin(UIImage *skin) {
                    175.0 * scale,
                    buttonsWidth,
                    buttonsHeight);
+
+    NSInteger menuRows=
+        self.profileOptionMode==1 ? 4 : 2;
+
+    CGFloat menuW=128*scale;
+    CGFloat menuH=(6+28*menuRows)*scale;
+
+    CGFloat menuY=
+        CGRectGetMinY(self.profileButtonsCard.frame)
+        -6*scale-menuH;
+
+    menuY=MAX(2*scale,menuY);
+
+    self.profileOptionMenu.frame=
+        CGRectMake(
+            (profileWidth-menuW)/2.0,
+            menuY,menuW,menuH);
+
+    for (NSInteger i=0;
+         i<self.profileOptionMenu.subviews.count;i++) {
+        UIButton *b=
+            (UIButton *)self.profileOptionMenu.subviews[i];
+
+        b.frame=CGRectMake(
+            3*scale,(3+28*i)*scale,
+            menuW-6*scale,28*scale);
+
+        b.titleLabel.font=
+            [UIFont systemFontOfSize:12.5*scale];
+    }
 
     self.skinButton.frame =
         CGRectMake(10.0 * scale,
