@@ -440,17 +440,5 @@ static UIColor *PCLRightColor(NSUInteger rgb) {
         scrollView:self.scrollView];
 }
 
-- (void)resetCEAnimationState {
-    for (UIView *view in [self ceAnimatedViews]) {
-        [view.layer removeAllAnimations];
-        view.layer.opacity=view.alpha;
-        [view.layer setValue:@0
-            forKeyPath:@"transform.translation.y"];
-    }
-
-    [self.scrollView.layer removeAllAnimations];
-    [self.scrollView.layer setValue:@0
-        forKeyPath:@"transform.translation.x"];
-}
 
 @end

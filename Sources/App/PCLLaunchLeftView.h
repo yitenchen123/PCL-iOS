@@ -16,7 +16,6 @@
 - (void)reloadState;
 - (void)playCEEnterAnimation;
 - (void)playCEExitAnimation;
-- (void)resetCEAnimationState;
 
 - (void)dismissTransientUI;
 @end

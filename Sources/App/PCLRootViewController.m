@@ -124,12 +124,20 @@
     [self showPage:page];
 }
 - (void)showPage:(PCLPageType)page {
+    BOOL enteringLaunch=
+        page==PCLPageTypeLaunch &&
+        self.launchVC.view.hidden;
+
     [self.launchVC dismissTransientUI];
 
     switch (page) {
         case PCLPageTypeLaunch:
-            self.launchVC.view.hidden = NO;
-            self.pageLabel.hidden = YES;
+            self.launchVC.view.hidden=NO;
+            self.pageLabel.hidden=YES;
+
+            if (enteringLaunch)
+                [self.launchVC playCEEnterAnimation];
+
             break;
 
         case PCLPageTypeDownload:

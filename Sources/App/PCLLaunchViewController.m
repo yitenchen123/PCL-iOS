@@ -177,6 +177,26 @@
     [self.leftView dismissTransientUI];
 }
 
+- (void)playCEEnterAnimation {
+    self.view.userInteractionEnabled=NO;
+
+    dispatch_after(
+        dispatch_time(DISPATCH_TIME_NOW,
+            (int64_t)(0.030*NSEC_PER_SEC)),
+        dispatch_get_main_queue(), ^{
+
+        [self.leftView playCEEnterAnimation];
+        [self.rightView playCEEnterAnimation];
+
+        dispatch_after(
+            dispatch_time(DISPATCH_TIME_NOW,
+                (int64_t)(0.400*NSEC_PER_SEC)),
+            dispatch_get_main_queue(), ^{
+                self.view.userInteractionEnabled=YES;
+            });
+    });
+}
+
 - (void)playExitFadeWithCompletion:
         (dispatch_block_t)completion {
 
@@ -193,9 +213,6 @@
 
         if (completion)
             completion();
-
-        [self.leftView resetCEAnimationState];
-        [self.rightView resetCEAnimationState];
 
         self.view.userInteractionEnabled=YES;
     });
