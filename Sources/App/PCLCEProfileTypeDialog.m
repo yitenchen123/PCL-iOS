@@ -170,8 +170,6 @@ static UIImage *PCLAuthIcon(
     UIColor *gray=[UIColor colorWithWhite:.27 alpha:1];
     [b setTitle:title forState:UIControlStateNormal];
     [b setTitleColor:gray forState:UIControlStateNormal];
-    [b setImage:PCLAuthIcon(type,26,gray)
-       forState:UIControlStateNormal];
     b.layer.cornerRadius=6;
     b.adjustsImageWhenHighlighted=NO;
 
@@ -189,28 +187,49 @@ static UIImage *PCLAuthIcon(
     return b;
 }
 
-- (void)rowPressed:(UIButton *)sender {
-    self.selected=sender.tag-100;
+- (void)refreshRows {
+    CGFloat s=self.scale>0 ? self.scale : 1;
     UIColor *blue=[UIColor colorWithRed:.075 green:.44 blue:.95 alpha:1];
     UIColor *gray=[UIColor colorWithWhite:.27 alpha:1];
 
     for (UIButton *row in self.rows) {
-        BOOL on=row==sender;
-        [row viewWithTag:9001].hidden=!on;
-
+        BOOL on=(row.tag-100)==self.selected;
         UIColor *c=on ? blue : gray;
-        [row setTitleColor:c forState:UIControlStateNormal];
+
+        row.titleLabel.font=
+            [UIFont systemFontOfSize:15*s
+                              weight:UIFontWeightRegular];
+        row.titleLabel.adjustsFontSizeToFitWidth=NO;
+        row.titleLabel.minimumScaleFactor=1.0;
+
+        for (NSNumber *state in @[@0,@1,@4]) {
+            [row setTitleColor:c
+                      forState:state.unsignedIntegerValue];
+        }
+
+        UIImage *icon=PCLAuthIcon(row.tag-100,26*s,c);
+
+        [row setImage:icon forState:UIControlStateNormal];
+        [row setImage:icon forState:UIControlStateHighlighted];
+        [row setImage:icon forState:UIControlStateSelected];
+
+        [row viewWithTag:9001].hidden=!on;
         row.backgroundColor=on
             ? [blue colorWithAlphaComponent:.055]
             : UIColor.clearColor;
-
-        CGFloat z=26*(self.scale>0 ? self.scale : 1);
-        [row setImage:PCLAuthIcon(row.tag-100,z,c)
-             forState:UIControlStateNormal];
     }
+}
+
+- (void)rowPressed:(UIButton *)sender {
+    self.selected=sender.tag-100;
+    [self refreshRows];
+
+    UIColor *blue=
+        [UIColor colorWithRed:.075 green:.44 blue:.95 alpha:1];
 
     self.continueButton.enabled=YES;
     self.continueButton.alpha=1;
+
     self.continueButton.layer.borderColor=blue.CGColor;
     [self.continueButton setTitleColor:blue
                               forState:UIControlStateNormal];
@@ -328,6 +347,8 @@ static UIImage *PCLAuthIcon(
         [UIFont systemFontOfSize:13*s];
     self.cancelButton.titleLabel.font=
         [UIFont systemFontOfSize:13*s];
+
+    [self refreshRows];
 
     CGFloat bw=66*s;
     CGFloat by=ch-51*s;

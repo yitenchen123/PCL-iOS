@@ -17,6 +17,8 @@ targets:
     dependencies:
       - sdk: QuartzCore.framework
       - sdk: GameController.framework
+      - sdk: AuthenticationServices.framework
+      - sdk: Security.framework
     settings:
       base:
         INFOPLIST_FILE: Resources/Info.plist

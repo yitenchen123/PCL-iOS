@@ -350,10 +350,7 @@ static UIColor *PCLColor(NSUInteger rgb) {
         [weakSelf setNeedsLayout];
     };
 
-    self.loginPanel.onOfflineCreate=^(NSString *name) {
-        NSUserDefaults *d=NSUserDefaults.standardUserDefaults;
-        [d setObject:name forKey:@"PCLProfileUsername"];
-        [d setObject:@"offline" forKey:@"PCLProfileType"];
+    self.loginPanel.onProfileCreated=^{
         [weakSelf reloadState];
     };
 }

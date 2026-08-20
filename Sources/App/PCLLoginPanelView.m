@@ -1,4 +1,5 @@
 #import "PCLLoginPanelView.h"
+#import "PCLAccountAuthenticator.h"
 
 static UIColor *PCLLoginColor(NSUInteger rgb) {
     return [UIColor colorWithRed:((rgb>>16)&255)/255.0
@@ -25,6 +26,7 @@ static UIColor *PCLLoginColor(NSUInteger rgb) {
 @property(nonatomic,strong) UITextField *authServer;
 @property(nonatomic,strong) UITextField *authEmail;
 @property(nonatomic,strong) UITextField *authPassword;
+@property(nonatomic,strong) PCLAccountAuthenticator *microsoftAuth;
 @end
 
 @implementation PCLLoginPanelView
@@ -43,6 +45,10 @@ static UIColor *PCLLoginColor(NSUInteger rgb) {
     [b setTitle:text forState:UIControlStateNormal];
     [b setTitleColor:PCLLoginColor(0x343D4A)
              forState:UIControlStateNormal];
+    [b setTitleColor:PCLLoginColor(0x1370F3)
+             forState:UIControlStateHighlighted];
+    [b setTitleColor:PCLLoginColor(0xA6A6A6)
+             forState:UIControlStateDisabled];
     b.titleLabel.font=[UIFont systemFontOfSize:13];
     b.layer.borderWidth=1;
     b.layer.borderColor=PCLLoginColor(0x8A8A8A).CGColor;
@@ -53,7 +59,17 @@ static UIColor *PCLLoginColor(NSUInteger rgb) {
 - (UITextField *)field:(NSString *)placeholder {
     UITextField *f=[[UITextField alloc] init];
     f.font=[UIFont systemFontOfSize:13];
-    f.placeholder=placeholder;
+    f.textColor=PCLLoginColor(0x343D4A);
+    f.tintColor=PCLLoginColor(0x1370F3);
+    f.backgroundColor=
+        [UIColor colorWithWhite:1 alpha:0.42];
+    f.keyboardAppearance=UIKeyboardAppearanceLight;
+    if (placeholder.length) {
+        f.attributedPlaceholder=
+            [[NSAttributedString alloc] initWithString:placeholder
+            attributes:@{NSForegroundColorAttributeName:
+                PCLLoginColor(0x8C8C8C)}];
+    }
     f.borderStyle=UITextBorderStyleNone;
     f.layer.borderWidth=1;
     f.layer.borderColor=PCLLoginColor(0xAAAAAA).CGColor;
@@ -76,7 +92,11 @@ static UIColor *PCLLoginColor(NSUInteger rgb) {
     [b setTitle:text forState:UIControlStateNormal];
     [b setTitleColor:PCLLoginColor(0x343D4A)
              forState:UIControlStateNormal];
-    b.titleLabel.font=[UIFont systemFontOfSize:12];
+    b.titleLabel.font=[UIFont systemFontOfSize:13];
+    [b setTitleColor:PCLLoginColor(0x343D4A)
+             forState:UIControlStateHighlighted];
+    [b setTitleColor:PCLLoginColor(0x343D4A)
+             forState:UIControlStateSelected];
     b.contentHorizontalAlignment=
         UIControlContentHorizontalAlignmentLeft;
 
@@ -159,6 +179,7 @@ static UIColor *PCLLoginColor(NSUInteger rgb) {
     UILabel *name=[[UILabel alloc] init];
     name.tag=300;
     name.text=@"玩家 ID";
+
     [self.offlinePage addSubview:name];
 
     self.offlineName=[self field:@"3 - 16 位玩家 ID"];
@@ -167,6 +188,7 @@ static UIColor *PCLLoginColor(NSUInteger rgb) {
     UILabel *uuid=[[UILabel alloc] init];
     uuid.tag=301;
     uuid.text=@"UUID 标准";
+
     uuid.textAlignment=NSTextAlignmentCenter;
     [self.offlinePage addSubview:uuid];
     NSArray *names=@[@"行业规范",@"旧版",@"自定义"];
@@ -180,6 +202,7 @@ static UIColor *PCLLoginColor(NSUInteger rgb) {
 
     self.offlineUuidTitle=[[UILabel alloc] init];
     self.offlineUuidTitle.text=@"UUID";
+
     self.offlineUuid=[self field:nil];
     [self.offlinePage addSubview:self.offlineUuidTitle];
     [self.offlinePage addSubview:self.offlineUuid];
@@ -252,6 +275,7 @@ static UIColor *PCLLoginColor(NSUInteger rgb) {
 
     self.statusLabel=[[UILabel alloc] init];
     self.statusLabel.textAlignment=NSTextAlignmentCenter;
+    self.statusLabel.textColor=PCLLoginColor(0x343D4A);
     [self addSubview:self.statusLabel];
 }
 
@@ -267,12 +291,86 @@ static UIColor *PCLLoginColor(NSUInteger rgb) {
     if (self.onClose) self.onClose();
 }
 
+- (void)saveProfile:(NSDictionary *)profile {
+    NSUserDefaults *d=NSUserDefaults.standardUserDefaults;
+
+    [d setObject:profile[@"username"]
+          forKey:@"PCLProfileUsername"];
+    [d setObject:profile[@"uuid"]
+          forKey:@"PCLProfileUUID"];
+    [d setObject:profile[@"type"]
+          forKey:@"PCLProfileType"];
+
+    NSString *server=profile[@"server"];
+    NSString *prefix=profile[@"credentialPrefix"];
+
+    if (server) [d setObject:server forKey:@"PCLProfileServer"];
+    else [d removeObjectForKey:@"PCLProfileServer"];
+
+    if (prefix) [d setObject:prefix forKey:@"PCLCredentialPrefix"];
+    else [d removeObjectForKey:@"PCLCredentialPrefix"];
+
+    if (self.onProfileCreated)
+        self.onProfileCreated();
+}
+
+- (void)setStatus:(NSString *)text error:(BOOL)error {
+    self.statusLabel.text=text ?: @"";
+    self.statusLabel.textColor=
+        error ? PCLLoginColor(0xD84545)
+              : PCLLoginColor(0x343D4A);
+}
+
 - (void)msStart {
-    self.statusLabel.text=@"正版验证接口正在接入";
+    UIButton *button=[self.msPage viewWithTag:201];
+    button.enabled=NO;
+
+    self.microsoftAuth=
+        [[PCLAccountAuthenticator alloc] initWithAnchorView:self];
+
+    __weak typeof(self) weakSelf=self;
+    [self.microsoftAuth
+        startMicrosoftWithStatus:^(NSString *text) {
+            [weakSelf setStatus:text error:NO];
+        } completion:^(NSDictionary *profile, NSString *error) {
+            button.enabled=YES;
+            if (profile) [weakSelf saveProfile:profile];
+            else [weakSelf setStatus:error error:YES];
+            weakSelf.microsoftAuth=nil;
+        }];
 }
 
 - (void)authLogin {
-    self.statusLabel.text=@"第三方验证接口正在接入";
+    NSString *server=[self.authServer.text
+        stringByTrimmingCharactersInSet:
+            NSCharacterSet.whitespaceAndNewlineCharacterSet];
+    NSString *user=[self.authEmail.text
+        stringByTrimmingCharactersInSet:
+            NSCharacterSet.whitespaceAndNewlineCharacterSet];
+    NSString *pass=self.authPassword.text;
+
+    if (!server.length || !user.length || !pass.length) {
+        [self setStatus:@"服务器、邮箱与密码不能为空" error:YES];
+        return;
+    }
+
+    UIButton *login=[self.authPage viewWithTag:405];
+    login.enabled=NO;
+
+    __weak typeof(self) weakSelf=self;
+    [PCLAccountAuthenticator
+        loginAuthlibServer:server username:user password:pass
+        status:^(NSString *text) {
+            [weakSelf setStatus:text error:NO];
+        } completion:^(NSDictionary *profile, NSString *error) {
+            login.enabled=YES;
+            if (profile) {
+                weakSelf.authPassword.text=@"";
+                [weakSelf saveProfile:profile];
+            } else {
+                [weakSelf setStatus:error error:YES];
+            }
+        }];
 }
 
 - (void)uuidPressed:(UIButton *)sender {
@@ -314,9 +412,27 @@ static UIColor *PCLLoginColor(NSUInteger rgb) {
 
     }
 
-    if (self.onOfflineCreate)
+    NSString *uuid=nil;
 
-        self.onOfflineCreate(name);
+    if (self.uuidMode==2) {
+        uuid=[self.offlineUuid.text
+            stringByReplacingOccurrencesOfString:@"-" withString:@""];
+        NSPredicate *hex=[NSPredicate predicateWithFormat:
+            @"SELF MATCHES %@",@"[0-9A-Fa-f]{32}"];
+        if (![hex evaluateWithObject:uuid]) {
+            [self setStatus:@"自定义 UUID 必须为 32 位十六进制" error:YES];
+            return;
+        }
+    } else {
+        uuid=[PCLAccountAuthenticator offlineUUIDForName:name
+            legacy:self.uuidMode==1];
+    }
+
+    [self saveProfile:@{
+        @"username":name,
+        @"uuid":uuid,
+        @"type":@"offline"
+    }];
 
 }
 
@@ -353,6 +469,10 @@ static UIColor *PCLLoginColor(NSUInteger rgb) {
         [UIFont systemFontOfSize:13*s];
 
     UILabel *name=[self.offlinePage viewWithTag:300];
+    name.textColor=PCLLoginColor(0x343D4A);
+    UILabel *uuid=[self.offlinePage viewWithTag:301];
+    uuid.textColor=PCLLoginColor(0x343D4A);
+    self.offlineUuidTitle.textColor=PCLLoginColor(0x343D4A);
     name.font=[UIFont systemFontOfSize:13*s];
     self.offlineName.font=[UIFont systemFontOfSize:13*s];
     self.offlineUuidTitle.font=[UIFont systemFontOfSize:13*s];
@@ -360,7 +480,6 @@ static UIColor *PCLLoginColor(NSUInteger rgb) {
     name.frame=CGRectMake(0,0,50*s,28*s);
     self.offlineName.frame=CGRectMake(50*s,0,w-50*s,28*s);
 
-    UILabel *uuid=[self.offlinePage viewWithTag:301];
     uuid.frame=CGRectMake(5*s,38*s,w-50*s,22*s);
 
     uuid.font=[UIFont systemFontOfSize:13*s
@@ -407,6 +526,7 @@ static UIColor *PCLLoginColor(NSUInteger rgb) {
     for (NSInteger i=0;i<3;i++) {
         UILabel *label=[self.authPage viewWithTag:410+i];
         label.font=[UIFont systemFontOfSize:13*s];
+        label.textColor=PCLLoginColor(0x343D4A);
         label.frame=CGRectMake(0,(26+38*i)*s,50*s,28*s);
     }
 

@@ -4,7 +4,7 @@
 @property(nonatomic) CGFloat designScale;
 @property(nonatomic,copy) void (^onClose)(void);
 
-@property(nonatomic,copy) void (^onOfflineCreate)(NSString *name);
+@property(nonatomic,copy) void (^onProfileCreated)(void);
 - (void)showMicrosoft;
 - (void)showOffline;
 - (void)showThirdParty;
