@@ -2,6 +2,7 @@
 #import "PCLCEPageAnimator.h"
 #import "PCLLoginPanelView.h"
 #import "PCLCEProfileTypeDialog.h"
+#import "PCLProfileStore.h"
 #import <QuartzCore/QuartzCore.h>
 
 static UIColor *PCLColor(NSUInteger rgb) {
@@ -70,6 +71,12 @@ static UIColor *PCLColor(NSUInteger rgb) {
 @end
 
 @interface PCLSkinHeadView : UIView
+- (void)loadMicrosoftUUID:(NSString *)uuid;
+@end
+
+@interface PCLSkinHeadView ()
+@property(nonatomic,strong) UIImage *remoteHead;
+@property(nonatomic,copy) NSString *requestedUUID;
 @end
 
 @implementation PCLSkinHeadView
@@ -87,10 +94,48 @@ static UIColor *PCLColor(NSUInteger rgb) {
     return self;
 }
 
+- (void)loadMicrosoftUUID:(NSString *)uuid {
+    NSString *clean=
+        [uuid stringByReplacingOccurrencesOfString:@"-" withString:@""];
+
+    self.requestedUUID=clean;
+    self.remoteHead=nil;
+    [self setNeedsDisplay];
+
+    if (!clean.length) return;
+
+    NSString *text=[NSString stringWithFormat:
+        @"https://mc-heads.net/avatar/%@/64",clean];
+    NSURL *url=[NSURL URLWithString:text];
+
+    __weak typeof(self) weakSelf=self;
+    [[[NSURLSession sharedSession] dataTaskWithURL:url
+        completionHandler:^(NSData *data,
+                            NSURLResponse *response,
+                            NSError *error) {
+        UIImage *image=data.length
+            ? [UIImage imageWithData:data] : nil;
+        if (!image) return;
+
+        dispatch_async(dispatch_get_main_queue(), ^{
+            if (![weakSelf.requestedUUID isEqual:clean]) return;
+            weakSelf.remoteHead=image;
+            [weakSelf setNeedsDisplay];
+        });
+    }] resume];
+}
+
 - (void)drawRect:(CGRect)rect {
     CGContextRef c = UIGraphicsGetCurrentContext();
 
     CGFloat canvasSize = MIN(rect.size.width, rect.size.height);
+
+    if (self.remoteHead) {
+        CGFloat size=canvasSize*56.0/64.0;
+        CGFloat x=(canvasSize-size)/2.0;
+        [self.remoteHead drawInRect:CGRectMake(x,x,size,size)];
+        return;
+    }
     CGFloat size = canvasSize * 48.0 / 64.0;
     CGFloat origin = (canvasSize - size) / 2.0;
 
@@ -178,6 +223,8 @@ static UIColor *PCLColor(NSUInteger rgb) {
 @property (nonatomic, strong) UIButton *switchButton;
 
 @property (nonatomic, strong) UIButton *createProfileButton;
+@property (nonatomic, strong) UIScrollView *profileScrollView;
+@property (nonatomic, strong) NSMutableArray<UIButton *> *profileRows;
 @property (nonatomic, strong) PCLLoginPanelView *loginPanel;
 @property (nonatomic, strong) PCLCEProfileTypeDialog *profileDialog;
 
@@ -299,6 +346,12 @@ static UIColor *PCLColor(NSUInteger rgb) {
         @"新建并选择一个档案以启动游戏";
 
     [self.hintView addSubview:self.hintLabel];
+
+    self.profileScrollView=[[UIScrollView alloc] init];
+    self.profileScrollView.showsVerticalScrollIndicator=NO;
+    [self.profileSelectView addSubview:self.profileScrollView];
+
+    self.profileRows=[NSMutableArray array];
     UIView *newCard = [[UIView alloc] init];
     newCard.tag = 9202;
 
@@ -338,6 +391,90 @@ static UIColor *PCLColor(NSUInteger rgb) {
     [newCard addSubview:self.createProfileButton];
 }
 
+- (NSString *)profileInfo:(NSDictionary *)profile {
+    NSString *type=profile[@"type"];
+
+    if ([type isEqual:@"microsoft"])
+        return @"正版验证";
+    if ([type isEqual:@"offline"])
+        return @"离线验证";
+
+    NSString *server=profile[@"server"];
+    NSURLComponents *url=
+        [NSURLComponents componentsWithString:server];
+
+    return url.host.length
+        ? [NSString stringWithFormat:@"第三方验证 / %@",url.host]
+        : @"第三方验证";
+}
+
+
+- (void)reloadProfileList {
+    NSArray *profiles=[PCLProfileStore profiles];
+
+    for (UIButton *row in self.profileRows)
+        [row removeFromSuperview];
+    [self.profileRows removeAllObjects];
+
+    self.hintLabel.text=profiles.count
+        ? @"选择一个档案以启动游戏"
+        : @"新建并选择一个档案以启动游戏";
+
+    for (NSDictionary *profile in profiles) {
+        UIButton *row=[UIButton buttonWithType:UIButtonTypeCustom];
+        row.accessibilityIdentifier=profile[@"identifier"];
+        row.layer.cornerRadius=6;
+        row.clipsToBounds=YES;
+
+        UIImageView *icon=[[UIImageView alloc]
+            initWithImage:[UIImage systemImageNamed:@"person"]];
+        icon.tag=9300;
+        icon.tintColor=PCLColor(0x343D4A);
+        [row addSubview:icon];
+
+        UILabel *title=[[UILabel alloc] init];
+        title.tag=9301;
+        title.text=profile[@"username"];
+        title.textColor=PCLColor(0x343D4A);
+        title.font=[UIFont systemFontOfSize:14];
+        [row addSubview:title];
+
+        UILabel *info=[[UILabel alloc] init];
+        info.tag=9302;
+
+        info.text=[self profileInfo:profile];
+        info.textColor=PCLColor(0x8C8C8C);
+        info.font=[UIFont systemFontOfSize:11];
+        [row addSubview:info];
+
+        [row addTarget:self
+                action:@selector(profileRowPressed:)
+      forControlEvents:UIControlEventTouchUpInside];
+
+        [self.profileScrollView addSubview:row];
+        [self.profileRows addObject:row];
+    }
+    [self setNeedsLayout];
+}
+
+- (void)pclLoginTransition:(dispatch_block_t)changes {
+    self.userInteractionEnabled=NO;
+
+    [UIView animateWithDuration:.10 animations:^{
+        self.panLogin.alpha=0;
+    } completion:^(BOOL done) {
+        if (changes) changes();
+
+        [UIView animateWithDuration:.10 delay:.02
+            options:UIViewAnimationOptionCurveEaseIn
+            animations:^{
+                self.panLogin.alpha=1;
+            } completion:^(BOOL finished) {
+                self.userInteractionEnabled=YES;
+            }];
+    }];
+}
+
 - (void)buildLoginPanelUI {
     self.loginPanel=[[PCLLoginPanelView alloc] init];
     self.loginPanel.hidden=YES;
@@ -345,13 +482,19 @@ static UIColor *PCLColor(NSUInteger rgb) {
 
     __weak typeof(self) weakSelf=self;
     self.loginPanel.onClose=^{
-        weakSelf.loginPanel.hidden=YES;
-        weakSelf.profileSelectView.hidden=NO;
-        [weakSelf setNeedsLayout];
+        [weakSelf reloadProfileList];
+        [weakSelf pclLoginTransition:^{
+            weakSelf.loginPanel.hidden=YES;
+            weakSelf.profileSkinView.hidden=YES;
+            weakSelf.profileSelectView.hidden=NO;
+            [weakSelf setNeedsLayout];
+        }];
     };
 
     self.loginPanel.onProfileCreated=^{
-        [weakSelf reloadState];
+        [weakSelf pclLoginTransition:^{
+            [weakSelf reloadState];
+        }];
     };
 }
 
@@ -477,8 +620,12 @@ static UIColor *PCLColor(NSUInteger rgb) {
     NSUserDefaults *defaults =
         NSUserDefaults.standardUserDefaults;
 
-    NSString *username =
-        [defaults stringForKey:@"PCLProfileUsername"];
+    [self reloadProfileList];
+
+    NSDictionary *profile=
+        [PCLProfileStore selectedProfile];
+
+    NSString *username=profile[@"username"];
 
     NSString *instance =
         [defaults stringForKey:@"PCLSelectedInstance"];
@@ -503,11 +650,23 @@ static UIColor *PCLColor(NSUInteger rgb) {
         ? username
         : @"";
 
-    NSString *type=[defaults stringForKey:@"PCLProfileType"];
-    self.typeLabel.text = hasProfile
-        ? ([type isEqualToString:@"microsoft"] ? @"正版验证" :
-           [type isEqualToString:@"authlib"] ? @"第三方验证" : @"离线验证")
-        : @"";
+    NSString *type=profile[@"type"];
+    NSString *info=@"离线验证";
+    if ([type isEqual:@"microsoft"]) info=@"正版验证";
+    if ([type isEqual:@"authlib"]) {
+        NSString *host=[NSURLComponents
+            componentsWithString:profile[@"server"]].host;
+        info=host.length
+            ? [NSString stringWithFormat:@"第三方验证 / %@",host]
+            : @"第三方验证";
+    }
+    self.typeLabel.text=hasProfile ? info : @"";
+
+    self.editButton.hidden=
+        [type isEqualToString:@"offline"];
+
+    [self.skinView loadMicrosoftUUID:
+        [type isEqual:@"microsoft"] ? profile[@"uuid"] : nil];
 
     self.versionLabel.text =
         hasInstance
@@ -562,16 +721,20 @@ static UIColor *PCLColor(NSUInteger rgb) {
 }
 
 - (void)openAuthType:(PCLProfileAuthType)type {
-    self.profileSelectView.hidden=YES;
-    self.loginPanel.hidden=NO;
-    if (type==PCLProfileAuthMicrosoft)
-        [self.loginPanel showMicrosoft];
-    else if (type==PCLProfileAuthOffline)
-        [self.loginPanel showOffline];
-    else
-        [self.loginPanel showThirdParty];
+    [self pclLoginTransition:^{
+        self.profileSelectView.hidden=YES;
+        self.profileSkinView.hidden=YES;
+        self.loginPanel.hidden=NO;
 
-    [self setNeedsLayout];
+        if (type==PCLProfileAuthMicrosoft)
+            [self.loginPanel showMicrosoft];
+        else if (type==PCLProfileAuthOffline)
+            [self.loginPanel showOffline];
+        else
+            [self.loginPanel showThirdParty];
+
+        [self setNeedsLayout];
+    }];
 }
 
 
@@ -599,10 +762,27 @@ static UIColor *PCLColor(NSUInteger rgb) {
 
 
 
-- (void)switchPressed {
-    if (self.onSwitchProfile)
-        self.onSwitchProfile();
+- (void)profileRowPressed:(UIButton *)sender {
+    [PCLProfileStore
+        selectProfileWithIdentifier:sender.accessibilityIdentifier];
+
+    [self pclLoginTransition:^{
+        [self reloadState];
+    }];
 }
+
+- (void)switchPressed {
+    [self reloadProfileList];
+
+    [self pclLoginTransition:^{
+        self.profileSkinView.hidden=YES;
+        self.loginPanel.hidden=YES;
+        self.profileSelectView.hidden=NO;
+        self.launchButton.enabled=NO;
+        [self setNeedsLayout];
+    }];
+}
+
 
 - (void)skinPressed {
     if (self.onSkinOptions)
@@ -666,8 +846,12 @@ static UIColor *PCLColor(NSUInteger rgb) {
         instanceY - 10.0 * scale - launchHeight;
 
     CGFloat loginAreaHeight = launchY;
+    BOOL hasStoredProfiles=
+        [PCLProfileStore profiles].count>0;
+
     CGFloat wantedLoginHeight =
-        (self.profileSelectView.hidden ? 235.0 : 114.0) * scale;
+        ((!self.profileSelectView.hidden && !hasStoredProfiles)
+            ? 114.0 : 235.0) * scale;
     CGFloat loginHeight =
         MIN(loginAreaHeight,wantedLoginHeight);
     CGFloat loginY =
@@ -806,6 +990,41 @@ static UIColor *PCLColor(NSUInteger rgb) {
                    cardWidth,
                    cardHeight);
 
+    CGFloat listTop=50.0*scale;
+    CGFloat listBottom=CGRectGetMinY(newCard.frame)-8.0*scale;
+
+    self.profileScrollView.frame=
+        CGRectMake(0,listTop,loginWidth,
+                   MAX(0,listBottom-listTop));
+
+    CGFloat rowY=0;
+    for (UIButton *row in self.profileRows) {
+        row.frame=CGRectMake(8*scale,rowY,
+            loginWidth-18*scale,42*scale);
+
+        UIImageView *icon=[row viewWithTag:9300];
+        icon.frame=CGRectMake(8*scale,9*scale,
+                              24*scale,24*scale);
+
+
+        UILabel *title=[row viewWithTag:9301];
+        UILabel *info=[row viewWithTag:9302];
+
+        title.font=[UIFont systemFontOfSize:14*scale];
+        info.font=[UIFont systemFontOfSize:11*scale];
+
+        title.frame=CGRectMake(40*scale,4*scale,
+            CGRectGetWidth(row.bounds)-45*scale,19*scale);
+        info.frame=CGRectMake(40*scale,23*scale,
+            CGRectGetWidth(row.bounds)-45*scale,15*scale);
+
+        rowY+=44*scale;
+    }
+
+    self.profileScrollView.contentSize=
+        CGSizeMake(loginWidth,rowY);
+
+
     self.createProfileButton.frame =
         CGRectMake(10.0 * scale,
                    3.0 * scale,
@@ -860,7 +1079,7 @@ static UIColor *PCLColor(NSUInteger rgb) {
                    18.0 * scale);
 
     CGFloat buttonsWidth =
-        109.0 * scale;
+        (self.editButton.hidden ? 76.0 : 109.0) * scale;
 
     CGFloat buttonsHeight =
         30.0 * scale;
@@ -884,8 +1103,11 @@ static UIColor *PCLColor(NSUInteger rgb) {
                    24.0 * scale,
                    24.0 * scale);
 
+    CGFloat switchX=
+        self.editButton.hidden ? 43.0 : 76.0;
+
     self.switchButton.frame =
-        CGRectMake(76.0 * scale,
+        CGRectMake(switchX * scale,
                    3.0 * scale,
                    24.0 * scale,
                    24.0 * scale);

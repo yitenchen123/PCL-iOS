@@ -1,5 +1,6 @@
 #import "PCLLoginPanelView.h"
 #import "PCLAccountAuthenticator.h"
+#import "PCLProfileStore.h"
 
 static UIColor *PCLLoginColor(NSUInteger rgb) {
     return [UIColor colorWithRed:((rgb>>16)&255)/255.0
@@ -15,6 +16,7 @@ static UIColor *PCLLoginColor(NSUInteger rgb) {
 @property(nonatomic,strong) UIView *offlinePage;
 
 @property(nonatomic,strong) UIView *authPage;
+@property(nonatomic,weak) UIView *currentPage;
 
 @property(nonatomic,strong) UILabel *statusLabel;
 
@@ -37,6 +39,9 @@ static UIColor *PCLLoginColor(NSUInteger rgb) {
     [self buildMicrosoftPage];
     [self buildOfflinePage];
     [self buildAuthPage];
+    self.msPage.hidden=YES;
+    self.offlinePage.hidden=YES;
+    self.authPage.hidden=YES;
     return self;
 }
 
@@ -80,12 +85,35 @@ static UIColor *PCLLoginColor(NSUInteger rgb) {
 }
 
 - (void)showPage:(UIView *)page {
-    self.msPage.hidden=page!=self.msPage;
-    self.offlinePage.hidden=page!=self.offlinePage;
-    self.authPage.hidden=page!=self.authPage;
-    self.statusLabel.text=@"";
-}
+    if (self.currentPage==page) return;
 
+    UIView *old=self.currentPage;
+    self.currentPage=page;
+
+    if (!old) {
+        page.hidden=NO;
+        page.alpha=1;
+        return;
+    }
+    self.userInteractionEnabled=NO;
+
+    [UIView animateWithDuration:.10 animations:^{
+        old.alpha=0;
+    } completion:^(BOOL done) {
+        old.hidden=YES;
+        old.alpha=1;
+        page.hidden=NO;
+        page.alpha=0;
+
+        [UIView animateWithDuration:.10 delay:.02
+            options:UIViewAnimationOptionCurveEaseIn
+            animations:^{
+                page.alpha=1;
+            } completion:^(BOOL finished) {
+                self.userInteractionEnabled=YES;
+            }];
+    }];
+}
 
 - (UIButton *)radio:(NSString *)text {
     UIButton *b=[UIButton buttonWithType:UIButtonTypeCustom];
@@ -285,30 +313,20 @@ static UIColor *PCLLoginColor(NSUInteger rgb) {
     self.uuidMode=0;
     [self uuidPressed:[self.offlinePage viewWithTag:302]];
 }
-- (void)showThirdParty { [self showPage:self.authPage]; }
+- (void)showThirdParty {
+    if (!self.authServer.text.length)
+        self.authServer.text=
+            @"https://littleskin.cn/api/yggdrasil";
+
+    [self showPage:self.authPage];
+}
 
 - (void)closePressed {
     if (self.onClose) self.onClose();
 }
 
 - (void)saveProfile:(NSDictionary *)profile {
-    NSUserDefaults *d=NSUserDefaults.standardUserDefaults;
-
-    [d setObject:profile[@"username"]
-          forKey:@"PCLProfileUsername"];
-    [d setObject:profile[@"uuid"]
-          forKey:@"PCLProfileUUID"];
-    [d setObject:profile[@"type"]
-          forKey:@"PCLProfileType"];
-
-    NSString *server=profile[@"server"];
-    NSString *prefix=profile[@"credentialPrefix"];
-
-    if (server) [d setObject:server forKey:@"PCLProfileServer"];
-    else [d removeObjectForKey:@"PCLProfileServer"];
-
-    if (prefix) [d setObject:prefix forKey:@"PCLCredentialPrefix"];
-    else [d removeObjectForKey:@"PCLCredentialPrefix"];
+    [PCLProfileStore saveAndSelectProfile:profile];
 
     if (self.onProfileCreated)
         self.onProfileCreated();

@@ -81,10 +81,6 @@
     };
 
 
-    self.leftView.onSwitchProfile = ^{
-        [weakSelf switchProfile];
-    };
-
     self.leftView.onSkinOptions = ^{
         [weakSelf skinOptions];
     };
@@ -157,14 +153,6 @@
 
 
 
-- (void)switchProfile {
-    [NSUserDefaults.standardUserDefaults
-        removeObjectForKey:@"PCLProfileUsername"];
-    [NSUserDefaults.standardUserDefaults
-        removeObjectForKey:@"PCLProfileType"];
-
-    [self.leftView reloadState];
-}
 
 - (void)skinOptions {
     [self temporaryMessage:
