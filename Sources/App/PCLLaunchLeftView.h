@@ -14,6 +14,7 @@
 @property (nonatomic, copy) void (^onEditProfile)(void);
 
 - (void)reloadState;
+- (void)prepareCEEnterAnimation;
 - (void)playCEEnterAnimation;
 - (void)playCEExitAnimation;
 

@@ -177,27 +177,26 @@
     [self.leftView dismissTransientUI];
 }
 
-- (void)playCEEnterAnimation {
+- (void)prepareCEEnterAnimation {
+    [self.leftView prepareCEEnterAnimation];
+    [self.rightView prepareCEEnterAnimation];
+
     self.view.userInteractionEnabled=NO;
+}
+
+- (void)playCEEnterAnimation {
+    [self.leftView playCEEnterAnimation];
+    [self.rightView playCEEnterAnimation];
 
     dispatch_after(
         dispatch_time(DISPATCH_TIME_NOW,
-            (int64_t)(0.030*NSEC_PER_SEC)),
+            (int64_t)(.400*NSEC_PER_SEC)),
         dispatch_get_main_queue(), ^{
-
-        [self.leftView playCEEnterAnimation];
-        [self.rightView playCEEnterAnimation];
-
-        dispatch_after(
-            dispatch_time(DISPATCH_TIME_NOW,
-                (int64_t)(0.400*NSEC_PER_SEC)),
-            dispatch_get_main_queue(), ^{
-                self.view.userInteractionEnabled=YES;
-            });
-    });
+            self.view.userInteractionEnabled=YES;
+        });
 }
 
-- (void)playExitFadeWithCompletion:
+- (void)playCEExitWithCompletion:
         (dispatch_block_t)completion {
 
     [self dismissTransientUI];
@@ -208,14 +207,11 @@
 
     dispatch_after(
         dispatch_time(DISPATCH_TIME_NOW,
-            (int64_t)(0.110*NSEC_PER_SEC)),
+            (int64_t)(.110*NSEC_PER_SEC)),
         dispatch_get_main_queue(), ^{
-
-        if (completion)
-            completion();
-
-        self.view.userInteractionEnabled=YES;
-    });
+            if (completion)
+                completion();
+        });
 }
 
 - (void)launchMinecraft {

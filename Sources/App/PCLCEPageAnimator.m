@@ -71,89 +71,146 @@ static void PCLAnimateLayer(
                  forKey:keyPath];
 }
 
+static CGFloat PCLLayerScale(CALayer *layer) {
+    CATransform3D t=layer.transform;
+
+    CGFloat scale=hypot(t.m11,t.m12);
+
+    return scale>0.001 ? scale : 1.0;
+}
+
 @implementation PCLCEPageAnimator
 
 + (void)hideSimpleLeftPage:(UIView *)view {
 
+    CALayer *presentation=
+
+        (CALayer *)view.layer.presentationLayer;
+
+    CGFloat fromScale=
+
+        PCLLayerScale(presentation ?: view.layer);
+
+    CGFloat fromOpacity=
+
+        presentation
+
+        ? presentation.opacity
+
+        : view.layer.opacity;
+
     [view.layer removeAllAnimations];
 
-    NSMutableArray *scaleValues =
+    [CATransaction begin];
 
-        [NSMutableArray array];
+    [CATransaction setDisableActions:YES];
 
-    for (NSInteger i = 0; i <= 60; i++) {
+    view.layer.transform=
 
-        CGFloat t = i / 60.0;
+        CATransform3DMakeScale(.95,.95,1);
 
-        CGFloat value =
+    view.layer.opacity=0;
 
-            1.0
+    [CATransaction commit];
+    NSMutableArray *values=
 
-            + (0.95 - 1.0)
+        NSMutableArray.array;
 
-            * PCLInFluent(t, 2.0);
+    for (NSInteger i=0;i<=60;i++) {
 
-        [scaleValues addObject:@(value)];
+        CGFloat t=i/60.0;
+
+        CGFloat p=PCLInFluent(t,2.0);
+
+        [values addObject:
+
+            @(fromScale+(.95-fromScale)*p)];
 
     }
 
-
-    view.layer.transform =
-        CATransform3DMakeScale(
-            0.95, 0.95, 1.0);
-
     PCLAnimateLayer(
+
         view.layer,
+
         @"transform.scale",
-        scaleValues,
-        0.110,
-        0.0);
 
-    view.layer.opacity = 0.0;
+        values,
+
+        .110,
+
+        0);
 
     PCLAnimateLayer(
+
         view.layer,
+
         @"opacity",
-        @[@1.0, @0.0],
-        0.080,
-        0.030);
+
+        @[@(fromOpacity),@0],
+
+        .080,
+
+        .030);
+
 }
 
 + (void)showSimpleLeftPage:(UIView *)view {
+
     [view.layer removeAllAnimations];
 
-    NSMutableArray *scaleValues =
-        [NSMutableArray array];
+    [CATransaction begin];
 
-    for (NSInteger i = 0; i <= 120; i++) {
-        CGFloat t = i / 120.0;
+    [CATransaction setDisableActions:YES];
 
-        CGFloat value =
-            0.96
-            + 0.04
-            * PCLOutBack(t, 2.0);
+    view.layer.transform=
 
-        [scaleValues addObject:@(value)];
-    }
-
-    view.layer.transform =
         CATransform3DIdentity;
 
+    view.layer.opacity=1.0;
+
+    [CATransaction commit];
+
+    NSMutableArray *values=
+
+        NSMutableArray.array;
+
+    for (NSInteger i=0;i<=120;i++) {
+
+        CGFloat t=i/120.0;
+
+        CGFloat scale=
+
+            .96+
+
+            .04*PCLOutBack(t,2.0);
+
+        [values addObject:@(scale)];
+
+    }
     PCLAnimateLayer(
+
         view.layer,
+
         @"transform.scale",
-        scaleValues,
-        0.400,
-        0.0);
 
-    view.layer.opacity = 1.0;
+        values,
+
+        .400,
+
+        0);
 
     PCLAnimateLayer(
+
         view.layer,
+
         @"opacity",
-        @[@0.0, @1.0],
-        0.100,
-        0.0);
+
+        @[@0,@1],
+
+        .100,
+
+        0);
+
 }
 
 + (void)showLeftItems:(NSArray<UIView *> *)items {

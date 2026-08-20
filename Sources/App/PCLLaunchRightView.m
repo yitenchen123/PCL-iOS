@@ -428,6 +428,20 @@ static UIColor *PCLRightColor(NSUInteger rgb) {
     return views;
 }
 
+- (void)prepareCEEnterAnimation {
+    for (UIView *view in [self ceAnimatedViews]) {
+        [view.layer removeAllAnimations];
+
+        view.layer.opacity=0.0;
+        [view.layer setValue:@(-16.0)
+            forKeyPath:@"transform.translation.y"];
+    }
+
+    [self.scrollView.layer removeAllAnimations];
+    [self.scrollView.layer setValue:@10.0
+        forKeyPath:@"transform.translation.x"];
+}
+
 - (void)playCEEnterAnimation {
     [PCLCEPageAnimator
         showRightItems:[self ceAnimatedViews]

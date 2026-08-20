@@ -2099,6 +2099,19 @@ static UIImage *PCLHeadFromSkin(UIImage *skin) {
 }
 
 
+- (void)prepareCEEnterAnimation {
+    [self.layer removeAllAnimations];
+
+    [CATransaction begin];
+    [CATransaction setDisableActions:YES];
+
+    self.layer.transform=
+        CATransform3DMakeScale(.96,.96,1.0);
+    self.layer.opacity=0.0;
+
+    [CATransaction commit];
+}
+
 - (void)playCEEnterAnimation {
     [PCLCEPageAnimator
         showSimpleLeftPage:self];

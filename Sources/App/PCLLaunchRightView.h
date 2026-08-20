@@ -7,6 +7,7 @@
 @property (nonatomic) CGFloat designScale;
 
 - (void)setHintHidden:(BOOL)hidden;
+- (void)prepareCEEnterAnimation;
 - (void)playCEEnterAnimation;
 - (void)playCEExitAnimation;
 - (void)setDebugLog:(NSString *)text visible:(BOOL)visible;

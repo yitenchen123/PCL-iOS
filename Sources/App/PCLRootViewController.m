@@ -50,6 +50,7 @@
 
 - (void)setupContentView {
     self.contentView = [[UIView alloc] init];
+    self.contentView.clipsToBounds=YES;
     self.contentView.translatesAutoresizingMaskIntoConstraints = NO;
 
     [self.view addSubview:self.contentView];
@@ -87,7 +88,7 @@
               animated:YES];
 
         [weakSelf.launchVC
-            playExitFadeWithCompletion:^{
+            playCEExitWithCompletion:^{
                 [weakSelf showPage:
                     PCLPageTypeDownload];
             }];
@@ -98,6 +99,8 @@
 
     [self.contentView addSubview:self.launchVC.view];
     [self.launchVC didMoveToParentViewController:self];
+
+    [self.view bringSubviewToFront:self.topBar];
 
     [NSLayoutConstraint activateConstraints:@[
         [self.launchVC.view.topAnchor
@@ -132,11 +135,22 @@
 
     switch (page) {
         case PCLPageTypeLaunch:
+            if (enteringLaunch)
+                [self.launchVC prepareCEEnterAnimation];
+
             self.launchVC.view.hidden=NO;
             self.pageLabel.hidden=YES;
 
-            if (enteringLaunch)
-                [self.launchVC playCEEnterAnimation];
+            if (enteringLaunch) {
+                dispatch_after(
+                    dispatch_time(
+                        DISPATCH_TIME_NOW,
+                        (int64_t)(.030*NSEC_PER_SEC)),
+                    dispatch_get_main_queue(), ^{
+                        [self.launchVC
+                            playCEEnterAnimation];
+                    });
+            }
 
             break;
 
