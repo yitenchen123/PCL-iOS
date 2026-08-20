@@ -170,9 +170,10 @@ static UIImage *PCLAuthIcon(
     UIColor *gray=[UIColor colorWithWhite:.27 alpha:1];
     [b setTitle:title forState:UIControlStateNormal];
     [b setTitleColor:gray forState:UIControlStateNormal];
-    [b setImage:PCLAuthIcon(type,24,gray)
+    [b setImage:PCLAuthIcon(type,26,gray)
        forState:UIControlStateNormal];
     b.layer.cornerRadius=6;
+    b.adjustsImageWhenHighlighted=NO;
 
     UIView *check=[[UIView alloc] init];
     check.tag=9001;
@@ -203,7 +204,7 @@ static UIImage *PCLAuthIcon(
             ? [blue colorWithAlphaComponent:.055]
             : UIColor.clearColor;
 
-        CGFloat z=24*(self.scale>0 ? self.scale : 1);
+        CGFloat z=26*(self.scale>0 ? self.scale : 1);
         [row setImage:PCLAuthIcon(row.tag-100,z,c)
              forState:UIControlStateNormal];
     }
@@ -245,21 +246,31 @@ static UIImage *PCLAuthIcon(
 
 - (void)dismissWithType:(NSInteger)type {
     CGFloat r=6.0*M_PI/180.0;
+    CGAffineTransform out=
+        CGAffineTransformRotate(
+            CGAffineTransformMakeTranslation(0,20*self.scale),r);
 
-    [UIView animateWithDuration:.15 animations:^{
+    UIViewAnimationOptions opt=
+        UIViewAnimationOptionBeginFromCurrentState |
+        UIViewAnimationOptionAllowUserInteraction;
+
+    [UIView animateWithDuration:.15 delay:0 options:opt animations:^{
+        self.card.transform=out;
+    } completion:nil];
+
+    [UIView animateWithDuration:.08 delay:.02 options:opt animations:^{
         self.card.alpha=0;
-        self.card.transform=
-            CGAffineTransformRotate(
-                CGAffineTransformMakeTranslation(0,20*self.scale),r);
-        self.backgroundColor=UIColor.clearColor;
+    } completion:nil];
 
-    } completion:^(BOOL finished) {
+    [UIView animateWithDuration:.20 delay:.03 options:opt animations:^{
+        self.backgroundColor=UIColor.clearColor;
+    } completion:^(BOOL done) {
         [self removeFromSuperview];
 
         if (type>=0) {
             if (self.onSelect) self.onSelect(type);
-        } else {
-            if (self.onCancel) self.onCancel();
+        } else if (self.onCancel) {
+            self.onCancel();
         }
     }];
 }
@@ -301,7 +312,8 @@ static UIImage *PCLAuthIcon(
             29*s,(78+42*i)*s,cw-58*s,42*s);
         row.layer.cornerRadius=6*s;
         row.titleLabel.font=
-            [UIFont systemFontOfSize:14*s];
+            [UIFont systemFontOfSize:15*s
+                weight:UIFontWeightRegular];
         row.contentEdgeInsets=
             UIEdgeInsetsMake(0,8*s,0,8*s);
         row.titleEdgeInsets=
@@ -311,6 +323,11 @@ static UIImage *PCLAuthIcon(
         check.layer.cornerRadius=2*s;
     }
 
+
+    self.continueButton.titleLabel.font=
+        [UIFont systemFontOfSize:13*s];
+    self.cancelButton.titleLabel.font=
+        [UIFont systemFontOfSize:13*s];
 
     CGFloat bw=66*s;
     CGFloat by=ch-51*s;

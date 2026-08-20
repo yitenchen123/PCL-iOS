@@ -84,6 +84,8 @@ static UIColor *PCLLoginColor(NSUInteger rgb) {
     ring.tag=9301;
     ring.layer.borderWidth=1.3;
     ring.layer.cornerRadius=5;
+    ring.backgroundColor=
+        [UIColor colorWithWhite:1 alpha:.45];
     [b addSubview:ring];
 
     UIView *dot=[[UIView alloc] init];
@@ -142,9 +144,9 @@ static UIColor *PCLLoginColor(NSUInteger rgb) {
     UIButton *back=[self button:@"«  返回"];
     back.tag=204;
     back.layer.borderWidth=0;
-    back.alpha=.30;
-    back.layer.borderWidth=0;
-    back.alpha=.30;
+    back.alpha=1.0;
+    [back setTitleColor:PCLLoginColor(0x343D4A)
+               forState:UIControlStateNormal];
     [back addTarget:self action:@selector(closePressed)
         forControlEvents:UIControlEventTouchUpInside];
     [self.msPage addSubview:back];
@@ -205,6 +207,14 @@ static UIColor *PCLLoginColor(NSUInteger rgb) {
     self.authPassword=[self field:@"密码"];
     self.authPassword.secureTextEntry=YES;
     self.authServer.placeholder=nil;
+    UIImageView *drop=[[UIImageView alloc]
+        initWithImage:[UIImage systemImageNamed:@"chevron.down"]];
+    drop.tintColor=PCLLoginColor(0x777777);
+    drop.contentMode=UIViewContentModeCenter;
+    drop.frame=CGRectMake(0,0,28,28);
+    self.authServer.rightView=drop;
+    self.authServer.rightViewMode=
+        UITextFieldViewModeAlways;
     self.authEmail.placeholder=nil;
     self.authPassword.placeholder=nil;
 
@@ -224,6 +234,7 @@ static UIColor *PCLLoginColor(NSUInteger rgb) {
     UIButton *reg=[self button:@"注册账号"];
     reg.tag=403;
     reg.layer.borderWidth=0;
+    reg.hidden=YES;
     [self.authPage addSubview:reg];
 
     UIButton *back=[self button:@"返回"];
@@ -283,6 +294,7 @@ static UIColor *PCLLoginColor(NSUInteger rgb) {
 
     self.offlineUuidTitle.hidden=!custom;
     self.offlineUuid.hidden=!custom;
+    [self setNeedsLayout];
 }
 
 - (void)createOffline {
@@ -324,51 +336,78 @@ static UIColor *PCLLoginColor(NSUInteger rgb) {
 
     UIButton *ms=[self.msPage viewWithTag:201];
     ms.frame=CGRectMake((w-100*s)/2,75*s,100*s,28*s);
+    ms.titleLabel.font=
+        [UIFont systemFontOfSize:14*s];
 
     UIButton *buy=[self.msPage viewWithTag:202];
     UIButton *web=[self.msPage viewWithTag:203];
     buy.frame=CGRectMake(22*s,133*s,100*s,24*s);
     web.frame=CGRectMake(w-122*s,133*s,100*s,24*s);
 
+    buy.titleLabel.font=[UIFont systemFontOfSize:13*s];
+    web.titleLabel.font=[UIFont systemFontOfSize:13*s];
+
     UIButton *msBack=[self.msPage viewWithTag:204];
     msBack.frame=CGRectMake((w-70*s)/2,183*s,70*s,24*s);
+    msBack.titleLabel.font=
+        [UIFont systemFontOfSize:13*s];
 
     UILabel *name=[self.offlinePage viewWithTag:300];
-    name.frame=CGRectMake(0,8*s,50*s,28*s);
-    self.offlineName.frame=CGRectMake(50*s,8*s,w-50*s,28*s);
+    name.font=[UIFont systemFontOfSize:13*s];
+    self.offlineName.font=[UIFont systemFontOfSize:13*s];
+    self.offlineUuidTitle.font=[UIFont systemFontOfSize:13*s];
+    self.offlineUuid.font=[UIFont systemFontOfSize:13*s];
+    name.frame=CGRectMake(0,0,50*s,28*s);
+    self.offlineName.frame=CGRectMake(50*s,0,w-50*s,28*s);
 
     UILabel *uuid=[self.offlinePage viewWithTag:301];
-    uuid.frame=CGRectMake(5*s,54*s,w-50*s,22*s);
+    uuid.frame=CGRectMake(5*s,38*s,w-50*s,22*s);
+
+    uuid.font=[UIFont systemFontOfSize:13*s
+                                weight:UIFontWeightSemibold];
 
     CGFloat bw=(w-10*s)/3;
     for (NSInteger i=0;i<3;i++) {
         UIButton *b=[self.offlinePage viewWithTag:302+i];
-        b.frame=CGRectMake((5+i*bw)*s,80*s,bw,22*s);
+        b.frame=CGRectMake(5*s+i*bw,58*s,bw,22*s);
         UIView *ring=[b viewWithTag:9301];
-        ring.frame=CGRectMake(4*s,6*s,10*s,10*s);
-        [ring viewWithTag:9302].frame=CGRectMake(2.5*s,2.5*s,5*s,5*s);
-        b.titleEdgeInsets=UIEdgeInsetsMake(0,18*s,0,0);
+        ring.frame=CGRectMake(1*s,2*s,18*s,18*s);
+        ring.layer.cornerRadius=9*s;
+        ring.layer.borderWidth=1.1*s;
+        UIView *dot=[ring viewWithTag:9302];
+        dot.frame=CGRectMake(4.5*s,4.5*s,9*s,9*s);
+        dot.layer.cornerRadius=4.5*s;
+        b.titleLabel.font=[UIFont systemFontOfSize:13*s];
+        b.titleEdgeInsets=UIEdgeInsetsMake(0,26*s,0,0);
     }
 
     self.offlineUuidTitle.frame=
-        CGRectMake(0,118*s,50*s,28*s);
+        CGRectMake(0,94*s,50*s,28*s);
     self.offlineUuid.frame=
-        CGRectMake(50*s,118*s,w-50*s,28*s);
+        CGRectMake(50*s,94*s,w-50*s,28*s);
 
     UIButton *ob=[self.offlinePage viewWithTag:305];
     UIButton *oc=[self.offlinePage viewWithTag:306];
-    ob.frame=CGRectMake(80*s,168*s,50*s,28*s);
-    oc.frame=CGRectMake(140*s,168*s,50*s,28*s);
+    ob.titleLabel.font=[UIFont systemFontOfSize:13*s];
+    oc.titleLabel.font=[UIFont systemFontOfSize:13*s];
+    CGFloat offlineButtonY=
+        (self.uuidMode==2 ? 132.0 : 104.0)*s;
+    ob.frame=CGRectMake(80*s,offlineButtonY,50*s,28*s);
+    oc.frame=CGRectMake(140*s,offlineButtonY,50*s,28*s);
 
-    self.authServer.frame=CGRectMake(50*s,10*s,w-50*s,28*s);
+    self.authServer.frame=CGRectMake(50*s,26*s,w-50*s,28*s);
 
-    self.authEmail.frame=CGRectMake(50*s,48*s,w-50*s,28*s);
-    self.authPassword.frame=CGRectMake(50*s,86*s,w-50*s,28*s);
+    self.authEmail.frame=CGRectMake(50*s,64*s,w-50*s,28*s);
+    self.authPassword.frame=CGRectMake(50*s,102*s,w-50*s,28*s);
+
+    self.authServer.font=[UIFont systemFontOfSize:13*s];
+    self.authEmail.font=[UIFont systemFontOfSize:13*s];
+    self.authPassword.font=[UIFont systemFontOfSize:13*s];
 
     for (NSInteger i=0;i<3;i++) {
         UILabel *label=[self.authPage viewWithTag:410+i];
         label.font=[UIFont systemFontOfSize:13*s];
-        label.frame=CGRectMake(0,(10+38*i)*s,50*s,28*s);
+        label.frame=CGRectMake(0,(26+38*i)*s,50*s,28*s);
     }
 
     UIButton *reg=[self.authPage viewWithTag:403];
@@ -376,8 +415,10 @@ static UIColor *PCLLoginColor(NSUInteger rgb) {
 
     UIButton *ab=[self.authPage viewWithTag:404];
     UIButton *al=[self.authPage viewWithTag:405];
-    ab.frame=CGRectMake(80*s,166*s,50*s,28*s);
-    al.frame=CGRectMake(140*s,166*s,50*s,28*s);
+    ab.titleLabel.font=[UIFont systemFontOfSize:13*s];
+    al.titleLabel.font=[UIFont systemFontOfSize:13*s];
+    ab.frame=CGRectMake(80*s,150*s,50*s,28*s);
+    al.frame=CGRectMake(140*s,150*s,50*s,28*s);
 
     self.statusLabel.font=[UIFont systemFontOfSize:11*s];
     self.statusLabel.frame=CGRectMake(0,215*s,w,18*s);
