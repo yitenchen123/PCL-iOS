@@ -175,7 +175,6 @@ static UIColor *PCLLoginColor(NSUInteger rgb) {
     UIButton *reg=[self button:@"注册账号"];
     reg.tag=403;
     reg.layer.borderWidth=0;
-    reg.layer.borderWidth=0;
     [self.authPage addSubview:reg];
 
     UIButton *back=[self button:@"返回"];

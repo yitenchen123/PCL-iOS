@@ -2,7 +2,6 @@
 #import "PCLCEPageAnimator.h"
 #import "PCLLoginPanelView.h"
 #import "PCLCEProfileTypeDialog.h"
-#import "PCLCEProfileTypeDialog.h"
 #import <QuartzCore/QuartzCore.h>
 
 static UIColor *PCLColor(NSUInteger rgb) {
@@ -180,7 +179,6 @@ static UIColor *PCLColor(NSUInteger rgb) {
 
 @property (nonatomic, strong) UIButton *createProfileButton;
 @property (nonatomic, strong) PCLLoginPanelView *loginPanel;
-@property (nonatomic, strong) PCLCEProfileTypeDialog *profileDialog;
 @property (nonatomic, strong) PCLCEProfileTypeDialog *profileDialog;
 
 @end
