@@ -8,4 +8,5 @@
 - (void)showMicrosoft;
 - (void)showOffline;
 - (void)showThirdParty;
+- (void)editOfflineProfile:(NSDictionary *)profile;
 @end

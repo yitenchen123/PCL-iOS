@@ -119,4 +119,79 @@ static NSString *const PCLSelectedKey=@"PCLSelectedProfileID";
     }
 }
 
++ (void)replaceProfileWithIdentifier:(NSString *)identifier
+
+                              profile:(NSDictionary *)profile
+
+                               select:(BOOL)select {
+
+    NSMutableArray *list=[self mutableProfiles];
+
+    NSInteger index=NSNotFound;
+
+    for (NSInteger i=0;i<list.count;i++)
+
+        if ([list[i][@"identifier"] isEqual:identifier])
+
+            index=i;
+
+    if (index==NSNotFound) return;
+
+
+    NSMutableDictionary *copy=profile.mutableCopy;
+    NSString *newID=[self identifierForProfile:copy];
+    copy[@"identifier"]=newID;
+    list[index]=copy;
+
+    NSUserDefaults *d=
+        NSUserDefaults.standardUserDefaults;
+    [d setObject:list forKey:PCLProfilesKey];
+
+    NSString *current=
+        [d stringForKey:PCLSelectedKey];
+
+    if (select || [current isEqual:identifier]) {
+        [d setObject:newID forKey:PCLSelectedKey];
+        [self syncLegacy:copy];
+    }
+}
+
++ (void)removeProfileWithIdentifier:(NSString *)identifier {
+    NSMutableArray *list=[self mutableProfiles];
+    NSInteger index=NSNotFound;
+
+    for (NSInteger i=0;i<list.count;i++)
+        if ([list[i][@"identifier"] isEqual:identifier])
+            index=i;
+
+    if (index==NSNotFound) return;
+
+    NSUserDefaults *d=
+        NSUserDefaults.standardUserDefaults;
+
+    BOOL selected=[[d stringForKey:PCLSelectedKey]
+        isEqual:identifier];
+
+    [list removeObjectAtIndex:index];
+    [d setObject:list forKey:PCLProfilesKey];
+
+    if (!selected) return;
+
+    NSDictionary *next=list.firstObject;
+    if (next) {
+        [d setObject:next[@"identifier"]
+              forKey:PCLSelectedKey];
+        [self syncLegacy:next];
+        return;
+    }
+
+    [d removeObjectForKey:PCLSelectedKey];
+
+    for (NSString *key in @[
+        @"PCLProfileUsername",@"PCLProfileUUID",
+        @"PCLProfileType",@"PCLProfileServer",
+        @"PCLCredentialPrefix"])
+        [d removeObjectForKey:key];
+}
+
 @end

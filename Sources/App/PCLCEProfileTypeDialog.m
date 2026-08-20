@@ -139,7 +139,7 @@ static UIImage *PCLAuthIcon(
     UIButton *auth=[self row:@"第三方验证"
         type:PCLProfileAuthThirdParty];
 
-    self.rows=@[ms,off,auth];
+    self.rows=@[ms,auth,off];
     for (UIButton *b in self.rows) [self.card addSubview:b];
 
     self.continueButton=[self ceButton:@"继续"];

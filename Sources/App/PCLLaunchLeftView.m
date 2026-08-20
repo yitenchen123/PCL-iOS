@@ -3,6 +3,7 @@
 #import "PCLLoginPanelView.h"
 #import "PCLCEProfileTypeDialog.h"
 #import "PCLProfileStore.h"
+#import "PCLAccountAuthenticator.h"
 #import <QuartzCore/QuartzCore.h>
 
 static UIColor *PCLColor(NSUInteger rgb) {
@@ -146,6 +147,12 @@ static UIImage *PCLHeadFromSkin(UIImage *skin) {
              token:(NSString *)token {
 
     if (!text.length) return;
+
+    if ([text hasPrefix:
+        @"http://textures.minecraft.net/"]) {
+        text=[@"https://" stringByAppendingString:
+            [text substringFromIndex:7]];
+    }
     NSString *key=[NSString stringWithFormat:
         @"%@|%@",crop?@"skin":@"head",text];
 
@@ -197,6 +204,60 @@ static UIImage *PCLHeadFromSkin(UIImage *skin) {
 
 - (void)pclLoadMicrosoft:(NSDictionary *)profile
                     token:(NSString *)token {
+    NSString *saved=profile[@"skinURL"];
+    if (saved.length)
+        [self pclLoadURL:saved crop:YES token:token];
+
+    NSString *prefix=profile[@"credentialPrefix"];
+    NSString *key=prefix.length
+        ? [prefix stringByAppendingString:@".access"] : nil;
+
+    NSString *access=key.length
+        ? [PCLAccountAuthenticator secretForKey:key] : nil;
+
+    if (!access.length) {
+        [self pclLoadMicrosoftPublic:profile token:token];
+        return;
+    }
+
+    NSURL *url=[NSURL URLWithString:
+        @"https://api.minecraftservices.com/minecraft/profile"];
+
+    NSMutableURLRequest *r=
+        [NSMutableURLRequest requestWithURL:url];
+
+    [r setValue:
+        [@"Bearer " stringByAppendingString:access]
+        forHTTPHeaderField:@"Authorization"];
+
+    __weak typeof(self) weakSelf=self;
+
+    [[[NSURLSession sharedSession] dataTaskWithRequest:r
+        completionHandler:^(NSData *data,
+                            NSURLResponse *response,
+                            NSError *error) {
+        NSDictionary *json=data.length
+            ? [NSJSONSerialization JSONObjectWithData:data
+                options:0 error:nil] : nil;
+
+        NSArray *skins=json[@"skins"];
+        NSString *skinURL=skins.count
+            ? skins[0][@"url"] : nil;
+
+        dispatch_async(dispatch_get_main_queue(), ^{
+            if (skinURL.length)
+                [weakSelf pclLoadURL:skinURL
+                                crop:YES
+                               token:token];
+            else
+                [weakSelf pclLoadMicrosoftPublic:profile
+                                            token:token];
+        });
+    }] resume];
+}
+
+- (void)pclLoadMicrosoftPublic:(NSDictionary *)profile
+                          token:(NSString *)token {
     NSString *uuid=[profile[@"uuid"]
         stringByReplacingOccurrencesOfString:@"-" withString:@""];
     if (!uuid.length) return;
@@ -386,6 +447,8 @@ static UIImage *PCLHeadFromSkin(UIImage *skin) {
 @property (nonatomic, strong) UILabel *typeLabel;
 
 @property (nonatomic, strong) UIView *profileButtonsCard;
+@property(nonatomic,strong) UIView *profileOptionMenu;
+@property(nonatomic) NSInteger profileOptionMode;
 @property (nonatomic, strong) UIButton *skinButton;
 @property (nonatomic, strong) UIButton *editButton;
 @property (nonatomic, strong) UIButton *switchButton;
@@ -393,6 +456,11 @@ static UIImage *PCLHeadFromSkin(UIImage *skin) {
 @property (nonatomic, strong) UIButton *createProfileButton;
 @property (nonatomic, strong) UIScrollView *profileScrollView;
 @property (nonatomic, strong) NSMutableArray<UIButton *> *profileRows;
+@property(nonatomic,copy)
+    NSString *expandedProfileIdentifier;
+@property(nonatomic,copy)
+    NSString *pendingDeleteIdentifier;
+
 @property (nonatomic, strong) PCLLoginPanelView *loginPanel;
 @property (nonatomic, strong) PCLCEProfileTypeDialog *profileDialog;
 
@@ -615,6 +683,47 @@ static UIImage *PCLHeadFromSkin(UIImage *skin) {
         info.font=[UIFont systemFontOfSize:11];
         [row addSubview:info];
 
+        UIView *actions=[[UIView alloc] init];
+        actions.tag=9303;
+        actions.hidden=YES;
+        actions.alpha=0;
+        actions.userInteractionEnabled=YES;
+
+        UIButton *aux=
+            [UIButton buttonWithType:UIButtonTypeCustom];
+        aux.tag=9310;
+        aux.accessibilityIdentifier=
+            profile[@"identifier"];
+
+        BOOL offline=
+            [profile[@"type"] isEqual:@"offline"];
+
+        NSString *symbol=
+            offline ? @"pencil" : @"doc.on.doc";
+
+        [aux setImage:[UIImage systemImageNamed:symbol]
+             forState:UIControlStateNormal];
+        aux.tintColor=PCLColor(0x343D4A);
+
+        UIButton *del=
+            [UIButton buttonWithType:UIButtonTypeCustom];
+        del.tag=9311;
+        del.accessibilityIdentifier=
+            profile[@"identifier"];
+        [del setImage:[UIImage systemImageNamed:@"trash"]
+             forState:UIControlStateNormal];
+        del.tintColor=PCLColor(0x343D4A);
+
+        [aux addTarget:self action:@selector(profileAuxPressed:)
+       forControlEvents:UIControlEventTouchUpInside];
+
+        [del addTarget:self action:@selector(profileDeletePressed:)
+       forControlEvents:UIControlEventTouchUpInside];
+
+        [actions addSubview:aux];
+        [actions addSubview:del];
+        [row addSubview:actions];
+
         [row addTarget:self
                 action:@selector(profileRowPressed:)
       forControlEvents:UIControlEventTouchUpInside];
@@ -723,6 +832,20 @@ static UIImage *PCLHeadFromSkin(UIImage *skin) {
 
     [self.profileSkinView
         addSubview:self.profileButtonsCard];
+
+    self.profileOptionMenu=[[UIView alloc] init];
+    self.profileOptionMenu.hidden=YES;
+    self.profileOptionMenu.alpha=0;
+    self.profileOptionMenu.backgroundColor=
+        [UIColor colorWithWhite:.995 alpha:.96];
+    self.profileOptionMenu.layer.cornerRadius=5;
+    self.profileOptionMenu.layer.shadowColor=
+        UIColor.blackColor.CGColor;
+    self.profileOptionMenu.layer.shadowOpacity=.12;
+    self.profileOptionMenu.layer.shadowRadius=5;
+
+    [self.profileSkinView
+        addSubview:self.profileOptionMenu];
 
     self.skinButton =
         [UIButton buttonWithType:UIButtonTypeCustom];
@@ -936,13 +1059,140 @@ static UIImage *PCLHeadFromSkin(UIImage *skin) {
 
 
 
-- (void)profileRowPressed:(UIButton *)sender {
-    [PCLProfileStore
-        selectProfileWithIdentifier:sender.accessibilityIdentifier];
+- (NSDictionary *)profileForIdentifier:(NSString *)identifier {
 
-    [self pclLoginTransition:^{
-        [self reloadState];
-    }];
+    for (NSDictionary *p in [PCLProfileStore profiles])
+
+        if ([p[@"identifier"] isEqual:identifier])
+
+            return p;
+
+    return nil;
+
+}
+
+- (void)profileRowPressed:(UIButton *)sender {
+    NSString *pid=sender.accessibilityIdentifier;
+
+    if ([self.expandedProfileIdentifier isEqual:pid]) {
+        self.expandedProfileIdentifier=nil;
+        [PCLProfileStore selectProfileWithIdentifier:pid];
+
+        [self pclLoginTransition:^{
+            [self reloadState];
+        }];
+        return;
+    }
+
+    self.expandedProfileIdentifier=pid;
+    self.pendingDeleteIdentifier=nil;
+
+    for (UIButton *row in self.profileRows) {
+        BOOL open=[row.accessibilityIdentifier isEqual:pid];
+        UIView *actions=[row viewWithTag:9303];
+
+        if (open) {
+            actions.hidden=NO;
+            actions.alpha=0;
+        }
+
+        NSDictionary *p=
+            [self profileForIdentifier:
+                row.accessibilityIdentifier];
+
+        UILabel *info=[row viewWithTag:9302];
+        info.text=[self profileInfo:p];
+
+        [UIView animateWithDuration:.12 animations:^{
+            actions.alpha=open ? 1 : 0;
+        } completion:^(BOOL done) {
+            actions.hidden=!open;
+        }];
+    }
+
+    [self setNeedsLayout];
+}
+
+- (void)profileAuxPressed:(UIButton *)sender {
+    NSDictionary *profile=
+        [self profileForIdentifier:
+            sender.accessibilityIdentifier];
+    if (!profile) return;
+
+    if ([profile[@"type"] isEqual:@"offline"]) {
+        [self pclLoginTransition:^{
+            self.profileSelectView.hidden=YES;
+            self.profileSkinView.hidden=YES;
+            self.loginPanel.hidden=NO;
+            [self.loginPanel editOfflineProfile:profile];
+            [self setNeedsLayout];
+        }];
+        return;
+    }
+
+
+    UIPasteboard.generalPasteboard.string=
+
+        profile[@"uuid"] ?: @"";
+
+    UIButton *row=(UIButton *)sender.superview.superview;
+
+    UILabel *info=[row viewWithTag:9302];
+
+    info.text=@"UUID 已复制";
+
+    dispatch_after(
+
+        dispatch_time(DISPATCH_TIME_NOW,
+
+            (int64_t)(1.1*NSEC_PER_SEC)),
+
+        dispatch_get_main_queue(), ^{
+
+            NSDictionary *p=
+
+                [self profileForIdentifier:
+
+                    row.accessibilityIdentifier];
+
+            if (p) info.text=[self profileInfo:p];
+
+        });
+
+}
+
+- (void)profileDeletePressed:(UIButton *)sender {
+    NSString *pid=sender.accessibilityIdentifier;
+
+    if ([self.pendingDeleteIdentifier isEqual:pid]) {
+        self.pendingDeleteIdentifier=nil;
+        self.expandedProfileIdentifier=nil;
+        [PCLProfileStore removeProfileWithIdentifier:pid];
+        [self reloadProfileList];
+        return;
+    }
+
+    self.pendingDeleteIdentifier=pid;
+    sender.tintColor=PCLColor(0xD84A4A);
+
+    UIButton *row=(UIButton *)sender.superview.superview;
+    UILabel *info=[row viewWithTag:9302];
+    info.text=@"再次点击删除档案";
+
+    dispatch_after(
+        dispatch_time(DISPATCH_TIME_NOW,
+            (int64_t)(2*NSEC_PER_SEC)),
+        dispatch_get_main_queue(), ^{
+            if (![self.pendingDeleteIdentifier isEqual:pid])
+                return;
+
+            self.pendingDeleteIdentifier=nil;
+            sender.tintColor=PCLColor(0x343D4A);
+
+            NSDictionary *p=
+                [self profileForIdentifier:pid];
+            if (p) info.text=[self profileInfo:p];
+        });
 }
 
 - (void)switchPressed {
@@ -958,14 +1208,99 @@ static UIImage *PCLHeadFromSkin(UIImage *skin) {
 }
 
 
+- (void)showProfileOptionMenu:(NSInteger)mode {
+    self.profileOptionMode=mode;
+
+    for (UIView *v in self.profileOptionMenu.subviews)
+        [v removeFromSuperview];
+
+    NSArray *items=mode==1
+        ? @[@"修改皮肤",@"保存皮肤",@"刷新皮肤",@"修改披风"]
+        : @[@"修改密码",@"修改玩家 ID"];
+
+    for (NSInteger i=0;i<items.count;i++) {
+        UIButton *b=[UIButton buttonWithType:UIButtonTypeCustom];
+        b.tag=9500+i;
+        [b setTitle:items[i] forState:UIControlStateNormal];
+        [b setTitleColor:PCLColor(0x343D4A)
+                forState:UIControlStateNormal];
+        b.contentHorizontalAlignment=
+            UIControlContentHorizontalAlignmentLeft;
+        b.contentEdgeInsets=UIEdgeInsetsMake(0,10,0,0);
+        [b addTarget:self action:@selector(profileOptionPressed:)
+            forControlEvents:UIControlEventTouchUpInside];
+        [self.profileOptionMenu addSubview:b];
+    }
+
+    self.profileOptionMenu.hidden=NO;
+    self.profileOptionMenu.alpha=0;
+    self.profileOptionMenu.transform=
+        CGAffineTransformMakeTranslation(0,-4);
+
+    [self setNeedsLayout];
+    [self layoutIfNeeded];
+
+    [UIView animateWithDuration:.12 animations:^{
+        self.profileOptionMenu.alpha=1;
+        self.profileOptionMenu.transform=
+            CGAffineTransformIdentity;
+    }];
+}
+
+- (void)hideProfileOptionMenu {
+    [UIView animateWithDuration:.10 animations:^{
+        self.profileOptionMenu.alpha=0;
+    } completion:^(BOOL done) {
+        self.profileOptionMenu.hidden=YES;
+    }];
+}
+
+- (void)profileOptionPressed:(UIButton *)sender {
+
+    NSDictionary *profile=
+
+        [PCLProfileStore selectedProfile];
+
+    if (self.profileOptionMode==1 &&
+
+        sender.tag==9502) {
+
+        [self.skinView loadProfile:profile];
+
+    }
+
+    if (self.profileOptionMode==2 &&
+
+        sender.tag==9500) {
+
+        NSString *type=profile[@"type"];
+
+        NSString *url=nil;
+
+        if ([type isEqual:@"microsoft"])
+
+            url=@"https://account.live.com/password/Change";
+
+        if (url)
+
+            [UIApplication.sharedApplication
+
+                openURL:[NSURL URLWithString:url]
+
+                options:@{} completionHandler:nil];
+
+    }
+
+    [self hideProfileOptionMenu];
+
+}
+
 - (void)skinPressed {
-    if (self.onSkinOptions)
-        self.onSkinOptions();
+    [self showProfileOptionMenu:1];
 }
 
 - (void)editPressed {
-    if (self.onEditProfile)
-        self.onEditProfile();
+    [self showProfileOptionMenu:2];
 }
 
 - (void)profileTapped {
@@ -1034,7 +1369,7 @@ static UIImage *PCLHeadFromSkin(UIImage *skin) {
     self.panLogin.frame =
         CGRectMake(ox + 20.0 * scale,
                    loginY,
-                   260.0 * scale,
+                   250.0 * scale,
                    loginHeight);
 
     self.launchButton.frame =
@@ -1189,9 +1524,20 @@ static UIImage *PCLHeadFromSkin(UIImage *skin) {
         info.font=[UIFont systemFontOfSize:11*scale];
 
         title.frame=CGRectMake(44*scale,4*scale,
-            CGRectGetWidth(row.bounds)-45*scale,19*scale);
+            CGRectGetWidth(row.bounds)-112*scale,19*scale);
         info.frame=CGRectMake(44*scale,23*scale,
-            CGRectGetWidth(row.bounds)-45*scale,15*scale);
+            CGRectGetWidth(row.bounds)-112*scale,15*scale);
+
+        UIView *actions=[row viewWithTag:9303];
+        actions.frame=CGRectMake(
+            CGRectGetWidth(row.bounds)-62*scale,
+            0,62*scale,42*scale);
+
+        UIButton *aux=(UIButton *)
+            [actions viewWithTag:9310];
+        UIButton *del=(UIButton *)
+            [actions viewWithTag:9311];
+
 
         rowY+=44*scale;
     }
@@ -1237,7 +1583,7 @@ static UIImage *PCLHeadFromSkin(UIImage *skin) {
 
     self.usernameLabel.frame =
         CGRectMake(8.0 * scale,
-                   134.0 * scale,
+                   124.0 * scale,
                    profileWidth
                        - 16.0 * scale,
                    21.0 * scale);
@@ -1248,7 +1594,7 @@ static UIImage *PCLHeadFromSkin(UIImage *skin) {
 
     self.typeLabel.frame =
         CGRectMake(8.0 * scale,
-                   159.0 * scale,
+                   149.0 * scale,
                    profileWidth
                        - 16.0 * scale,
                    18.0 * scale);
@@ -1262,7 +1608,7 @@ static UIImage *PCLHeadFromSkin(UIImage *skin) {
     self.profileButtonsCard.frame =
         CGRectMake((profileWidth
                     - buttonsWidth) / 2.0,
-                   185.0 * scale,
+                   175.0 * scale,
                    buttonsWidth,
                    buttonsHeight);
 

@@ -25,6 +25,7 @@ static UIColor *PCLLoginColor(NSUInteger rgb) {
 @property(nonatomic,strong) UILabel *offlineUuidTitle;
 @property(nonatomic,strong) UITextField *offlineUuid;
 @property(nonatomic) NSInteger uuidMode;
+@property(nonatomic,copy) NSString *editingProfileIdentifier;
 @property(nonatomic,strong) UITextField *authServer;
 @property(nonatomic,strong) UITextField *authEmail;
 @property(nonatomic,strong) UITextField *authPassword;
@@ -386,6 +387,14 @@ static UIColor *PCLLoginColor(NSUInteger rgb) {
 
 - (void)showMicrosoft { [self showPage:self.msPage]; }
 - (void)showOffline {
+    self.editingProfileIdentifier=nil;
+    self.offlineName.enabled=YES;
+
+    UIButton *create=
+        [self.offlinePage viewWithTag:306];
+    [create setTitle:@"创建"
+            forState:UIControlStateNormal];
+
     self.offlineName.text=@"";
     self.offlineUuid.text=@"";
     self.statusLabel.text=@"";
@@ -393,6 +402,28 @@ static UIColor *PCLLoginColor(NSUInteger rgb) {
     [self uuidPressed:[self.offlinePage viewWithTag:302]];
     [self showPage:self.offlinePage];
 }
+- (void)editOfflineProfile:(NSDictionary *)profile {
+    self.editingProfileIdentifier=
+        profile[@"identifier"];
+
+    self.offlineName.text=profile[@"username"];
+    self.offlineName.enabled=NO;
+    self.offlineUuid.text=profile[@"uuid"];
+    self.statusLabel.text=@"";
+
+    self.uuidMode=2;
+
+    [self uuidPressed:
+        [self.offlinePage viewWithTag:304]];
+
+    UIButton *save=
+        [self.offlinePage viewWithTag:306];
+    [save setTitle:@"保存"
+          forState:UIControlStateNormal];
+
+    [self showPage:self.offlinePage];
+}
+
 - (void)showThirdParty {
     if (!self.authServer.text.length)
         self.authServer.text=
@@ -402,6 +433,11 @@ static UIColor *PCLLoginColor(NSUInteger rgb) {
     self.authPassword.text=@"";
     self.statusLabel.text=@"";
     [self authFieldsChanged];
+
+    UIButton *link=
+        [self.authPage viewWithTag:403];
+    link.hidden=NO;
+
     [self showPage:self.authPage];
 }
 
@@ -688,11 +724,34 @@ static UIColor *PCLLoginColor(NSUInteger rgb) {
         }
     }
 
+    if (self.editingProfileIdentifier.length) {
+        for (NSDictionary *old in
+            [PCLProfileStore profiles]) {
+            if (![old[@"identifier"]
+                isEqual:self.editingProfileIdentifier])
+                continue;
+
+            NSMutableDictionary *edit=old.mutableCopy;
+            edit[@"uuid"]=uuid;
+            [PCLProfileStore
+                replaceProfileWithIdentifier:
+                    self.editingProfileIdentifier
+                profile:edit select:YES];
+
+            self.editingProfileIdentifier=nil;
+
+            if (self.onProfileCreated)
+                self.onProfileCreated();
+            return;
+        }
+    }
+
     [self saveProfile:@{
         @"username":name,
         @"uuid":uuid,
         @"type":@"offline"
     }];
+
 
 }
 
