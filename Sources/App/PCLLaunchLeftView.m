@@ -782,9 +782,14 @@ static UIImage *PCLHeadFromSkin(UIImage *skin) {
     if (!self.profileOptionMenu.hidden)
         return;
 
-    [UIView animateWithDuration:.18 animations:^{
-        self.profileButtonsCard.alpha=0;
-    }];
+    [UIView animateWithDuration:.12
+        delay:0
+        options:UIViewAnimationOptionBeginFromCurrentState |
+                UIViewAnimationOptionCurveEaseOut
+        animations:^{
+            self.profileButtonsCard.alpha=0;
+        }
+        completion:nil];
 }
 
 - (void)cancelProfileControlsTimer {
@@ -1667,7 +1672,11 @@ static UIImage *PCLHeadFromSkin(UIImage *skin) {
 
     [self cancelProfileControlsTimer];
 
-    [UIView animateWithDuration:0.18 animations:^{
+    [UIView animateWithDuration:.12
+        delay:0
+        options:UIViewAnimationOptionBeginFromCurrentState |
+                UIViewAnimationOptionCurveEaseOut
+        animations:^{
         self.profileButtonsCard.alpha=target;
     } completion:^(BOOL finished) {
         if (target>0.5)
