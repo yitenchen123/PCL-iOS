@@ -100,11 +100,17 @@ static UIColor *PCLLoginColor(NSUInteger rgb) {
     web.layer.borderWidth=0;
     buy.alpha=.35;
     web.alpha=.35;
+    buy.layer.borderWidth=0;
+    web.layer.borderWidth=0;
+    buy.alpha=.35;
+    web.alpha=.35;
     [self.msPage addSubview:buy];
     [self.msPage addSubview:web];
 
     UIButton *back=[self button:@"«  返回"];
     back.tag=204;
+    back.layer.borderWidth=0;
+    back.alpha=.35;
     back.layer.borderWidth=0;
     back.alpha=.35;
     [back addTarget:self action:@selector(closePressed)
@@ -168,6 +174,7 @@ static UIColor *PCLLoginColor(NSUInteger rgb) {
 
     UIButton *reg=[self button:@"注册账号"];
     reg.tag=403;
+    reg.layer.borderWidth=0;
     reg.layer.borderWidth=0;
     [self.authPage addSubview:reg];
 
