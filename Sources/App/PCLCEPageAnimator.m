@@ -83,33 +83,37 @@ static CGFloat PCLLayerScale(CALayer *layer) {
 
 + (void)hideSimpleLeftPage:(UIView *)view {
 
-    CALayer *presentation=
+    CALayer *layer=view.layer;
 
-        (CALayer *)view.layer.presentationLayer;
+    CALayer *shown=
+
+        (CALayer *)layer.presentationLayer;
 
     CGFloat fromScale=
 
-        PCLLayerScale(presentation ?: view.layer);
+        PCLLayerScale(shown ?: layer);
+
+    fromScale=MIN(1.0,MAX(.95,fromScale));
 
     CGFloat fromOpacity=
 
-        presentation
+        shown ? shown.opacity : layer.opacity;
 
-        ? presentation.opacity
+    fromOpacity=
 
-        : view.layer.opacity;
+        MIN(1.0,MAX(0.0,fromOpacity));
 
-    [view.layer removeAllAnimations];
+    [layer removeAllAnimations];
 
     [CATransaction begin];
 
     [CATransaction setDisableActions:YES];
 
-    view.layer.transform=
+    layer.transform=
 
         CATransform3DMakeScale(.95,.95,1);
 
-    view.layer.opacity=0;
+    layer.opacity=0;
 
     [CATransaction commit];
     NSMutableArray *values=
@@ -120,17 +124,21 @@ static CGFloat PCLLayerScale(CALayer *layer) {
 
         CGFloat t=i/60.0;
 
-        CGFloat p=PCLInFluent(t,2.0);
+        CGFloat eased=PCLInFluent(t,2.0);
 
-        [values addObject:
+        CGFloat scale=
 
-            @(fromScale+(.95-fromScale)*p)];
+            fromScale+
+
+            (.95-fromScale)*eased;
+
+        [values addObject:@(scale)];
 
     }
 
     PCLAnimateLayer(
 
-        view.layer,
+        layer,
 
         @"transform.scale",
 
@@ -142,7 +150,7 @@ static CGFloat PCLLayerScale(CALayer *layer) {
 
     PCLAnimateLayer(
 
-        view.layer,
+        layer,
 
         @"opacity",
 

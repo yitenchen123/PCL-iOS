@@ -450,6 +450,7 @@ static UIImage *PCLHeadFromSkin(UIImage *skin) {
 @interface PCLLaunchLeftView ()
 <UIGestureRecognizerDelegate, UIDocumentPickerDelegate>
 
+@property (nonatomic, strong) UIView *transitionContentView;
 @property (nonatomic, strong) UIView *panLogin;
 
 @property (nonatomic, strong) PCLCEButton *launchButton;
@@ -499,7 +500,14 @@ static UIImage *PCLHeadFromSkin(UIImage *skin) {
     self = [super initWithFrame:frame];
     if (!self) return nil;
 
-    self.backgroundColor = [UIColor colorWithWhite:0.995 alpha:0.824];
+    self.backgroundColor =
+        [UIColor colorWithWhite:0.995 alpha:0.824];
+
+    self.transitionContentView=[[UIView alloc] init];
+    self.transitionContentView.backgroundColor=
+        UIColor.clearColor;
+
+    [self addSubview:self.transitionContentView];
 
     [self buildMainUI];
     [self buildProfileSelectUI];
@@ -534,7 +542,7 @@ static UIImage *PCLHeadFromSkin(UIImage *skin) {
 
 - (void)buildMainUI {
     self.panLogin = [[UIView alloc] init];
-    [self addSubview:self.panLogin];
+    [self.transitionContentView addSubview:self.panLogin];
 
     self.launchButton =
         [self pclButton:@"" highlight:YES];
@@ -543,7 +551,7 @@ static UIImage *PCLHeadFromSkin(UIImage *skin) {
                           action:@selector(launchPressed)
                 forControlEvents:UIControlEventTouchUpInside];
 
-    [self addSubview:self.launchButton];
+    [self.transitionContentView addSubview:self.launchButton];
 
     self.launchContentView = [[UIView alloc] init];
     self.launchContentView.userInteractionEnabled = NO;
@@ -567,7 +575,7 @@ static UIImage *PCLHeadFromSkin(UIImage *skin) {
                             action:@selector(instancePressed)
                   forControlEvents:UIControlEventTouchUpInside];
 
-    [self addSubview:self.instanceButton];
+    [self.transitionContentView addSubview:self.instanceButton];
 
     self.moreButton =
         [self pclButton:@"实例设置" highlight:NO];
@@ -576,7 +584,7 @@ static UIImage *PCLHeadFromSkin(UIImage *skin) {
                         action:@selector(morePressed)
               forControlEvents:UIControlEventTouchUpInside];
 
-    [self addSubview:self.moreButton];
+    [self.transitionContentView addSubview:self.moreButton];
 }
 
 - (void)buildProfileSelectUI {
@@ -1693,6 +1701,8 @@ static UIImage *PCLHeadFromSkin(UIImage *skin) {
     CGFloat height =
         CGRectGetHeight(self.bounds);
 
+    self.transitionContentView.frame=self.bounds;
+
     CGFloat scale =
         self.designScale > 0.0
         ? self.designScale
@@ -2100,27 +2110,29 @@ static UIImage *PCLHeadFromSkin(UIImage *skin) {
 
 
 - (void)prepareCEEnterAnimation {
-    [self.layer removeAllAnimations];
+    CALayer *layer=self.transitionContentView.layer;
+
+    [layer removeAllAnimations];
 
     [CATransaction begin];
     [CATransaction setDisableActions:YES];
 
-    self.layer.transform=
+    layer.transform=
         CATransform3DMakeScale(.96,.96,1.0);
-    self.layer.opacity=0.0;
+    layer.opacity=0.0;
 
     [CATransaction commit];
 }
 
 - (void)playCEEnterAnimation {
     [PCLCEPageAnimator
-        showSimpleLeftPage:self];
+        showSimpleLeftPage:self.transitionContentView];
 }
 
 - (void)playCEExitAnimation {
     [self dismissTransientUI];
     [PCLCEPageAnimator
-        hideSimpleLeftPage:self];
+        hideSimpleLeftPage:self.transitionContentView];
 }
 
 
