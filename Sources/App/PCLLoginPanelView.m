@@ -95,7 +95,8 @@ static UIColor *PCLLoginColor(NSUInteger rgb) {
     self.currentPage=page;
 
     if (!old || self.hidden || self.superview.alpha<0.05) {
-        for (UIView *p in @[self.msPage,self.offlinePage,self.authPage])
+        for (UIView *p in @[
+            self.msPage,self.offlinePage,self.authPage])
             p.hidden=p!=page;
         page.alpha=1;
         return;
@@ -110,6 +111,14 @@ static UIColor *PCLLoginColor(NSUInteger rgb) {
         old.alpha=1;
         page.hidden=NO;
         page.alpha=0;
+
+        [UIView animateWithDuration:.10 animations:^{
+            page.alpha=1;
+        } completion:^(BOOL done) {
+            self.userInteractionEnabled=YES;
+        }];
+    }];
+}
 
 - (UIButton *)radio:(NSString *)text {
     UIButton *b=[UIButton buttonWithType:UIButtonTypeCustom];

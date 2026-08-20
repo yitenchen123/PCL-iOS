@@ -244,27 +244,34 @@ static UIImage *PCLAuthIcon(
     [self layoutIfNeeded];
 
     CGFloat r=-4.0*M_PI/180.0;
-    self.card.transform=
-        CGAffineTransformRotate(
-            CGAffineTransformMakeTranslation(0,40*self.scale),r);
+    self.card.transform=CGAffineTransformRotate(
+        CGAffineTransformMakeTranslation(0,40*self.scale),r);
     self.card.alpha=0;
 
     [UIView animateWithDuration:.20 animations:^{
-        self.backgroundColor=[UIColor colorWithWhite:0 alpha:90.0/255.0];
+        self.backgroundColor=
+            [UIColor colorWithWhite:0 alpha:90.0/255.0];
     }];
 
     [UIView animateWithDuration:.12 delay:.06
-        options:UIViewAnimationOptionCurveEaseOut animations:^{
-        self.card.alpha=1;
-    } completion:nil];
+        options:UIViewAnimationOptionCurveEaseOut
+        animations:^{ self.card.alpha=1; } completion:nil];
 
     [UIView animateKeyframesWithDuration:.30 delay:.06
         options:UIViewKeyframeAnimationOptionCalculationModeCubic
         animations:^{
-        [UIView addKeyframeWithRelativeStartTime:0 duration:.78 animations:^{
+        [UIView addKeyframeWithRelativeStartTime:0 duration:.78
+            animations:^{
             self.card.transform=
                 CGAffineTransformMakeTranslation(0,-2*self.scale);
         }];
+
+        [UIView addKeyframeWithRelativeStartTime:.78 duration:.22
+            animations:^{
+            self.card.transform=CGAffineTransformIdentity;
+        }];
+    } completion:nil];
+}
 
 - (void)dismissWithType:(NSInteger)type {
     CGFloat r=6.0*M_PI/180.0;
