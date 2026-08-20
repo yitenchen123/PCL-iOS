@@ -82,15 +82,15 @@
 
     __weak typeof(self) weakSelf = self;
     self.launchVC.onOpenDownload = ^{
+        [weakSelf.topBar
+            selectPage:PCLPageTypeDownload
+              animated:YES];
+
         [weakSelf.launchVC
             playExitFadeWithCompletion:^{
-
-            [weakSelf.topBar
-                selectPage:PCLPageTypeDownload
-                  animated:YES];
-
-            [weakSelf showPage:PCLPageTypeDownload];
-        }];
+                [weakSelf showPage:
+                    PCLPageTypeDownload];
+            }];
     };
 
     [self addChildViewController:self.launchVC];

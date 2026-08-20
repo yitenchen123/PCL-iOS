@@ -9,6 +9,7 @@
 - (void)setHintHidden:(BOOL)hidden;
 - (void)playCEEnterAnimation;
 - (void)playCEExitAnimation;
+- (void)resetCEAnimationState;
 - (void)setDebugLog:(NSString *)text visible:(BOOL)visible;
 
 @end

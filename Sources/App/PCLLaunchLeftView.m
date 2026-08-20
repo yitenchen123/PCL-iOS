@@ -2110,4 +2110,10 @@ static UIImage *PCLHeadFromSkin(UIImage *skin) {
         hideSimpleLeftPage:self];
 }
 
+- (void)resetCEAnimationState {
+    [self.layer removeAllAnimations];
+    self.layer.transform=CATransform3DIdentity;
+    self.layer.opacity=1.0;
+}
+
 @end

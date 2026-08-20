@@ -178,39 +178,27 @@
 }
 
 - (void)playExitFadeWithCompletion:
-
         (dispatch_block_t)completion {
 
     [self dismissTransientUI];
-
     self.view.userInteractionEnabled=NO;
 
-    [UIView animateWithDuration:.14
+    [self.leftView playCEExitAnimation];
+    [self.rightView playCEExitAnimation];
 
-        delay:0
+    dispatch_after(
+        dispatch_time(DISPATCH_TIME_NOW,
+            (int64_t)(0.110*NSEC_PER_SEC)),
+        dispatch_get_main_queue(), ^{
 
-        options:UIViewAnimationOptionBeginFromCurrentState |
+        if (completion)
+            completion();
 
-                UIViewAnimationOptionCurveEaseIn
+        [self.leftView resetCEAnimationState];
+        [self.rightView resetCEAnimationState];
 
-        animations:^{
-
-            self.view.alpha=0;
-
-        }
-
-        completion:^(BOOL finished) {
-
-            if (completion)
-
-                completion();
-
-            self.view.alpha=1;
-
-            self.view.userInteractionEnabled=YES;
-
-        }];
-
+        self.view.userInteractionEnabled=YES;
+    });
 }
 
 - (void)launchMinecraft {
