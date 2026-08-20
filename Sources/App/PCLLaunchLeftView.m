@@ -117,6 +117,7 @@ static UIImage *PCLHeadFromSkin(UIImage *skin) {
 @interface PCLSkinHeadView ()
 @property(nonatomic,strong) UIImage *remoteHead;
 @property(nonatomic,copy) NSString *loadToken;
+@property(nonatomic,copy) NSString *sourceSkinURL;
 @end
 
 @implementation PCLSkinHeadView
@@ -153,6 +154,9 @@ static UIImage *PCLHeadFromSkin(UIImage *skin) {
         text=[@"https://" stringByAppendingString:
             [text substringFromIndex:7]];
     }
+    if (crop)
+        self.sourceSkinURL=text;
+
     NSString *key=[NSString stringWithFormat:
         @"%@|%@",crop?@"skin":@"head",text];
 
@@ -196,9 +200,9 @@ static UIImage *PCLHeadFromSkin(UIImage *skin) {
     NSString *name=(value&1) ? @"Alex" : @"Steve";
 
     NSString *url=[NSString stringWithFormat:
-        @"https://mc-heads.net/avatar/%@/64",name];
+        @"https://mc-heads.net/skin/%@",name];
 
-    [self pclLoadURL:url crop:NO token:token];
+    [self pclLoadURL:url crop:YES token:token];
 }
 
 
@@ -304,8 +308,8 @@ static UIImage *PCLHeadFromSkin(UIImage *skin) {
 
             NSString *who=profile[@"username"] ?: uuid;
             NSString *fallback=[NSString stringWithFormat:
-                @"https://mc-heads.net/avatar/%@/64",who];
-            [weakSelf pclLoadURL:fallback crop:NO token:token];
+                @"https://mc-heads.net/skin/%@",who];
+            [weakSelf pclLoadURL:fallback crop:YES token:token];
         });
     }] resume];
 }
@@ -369,6 +373,7 @@ static UIImage *PCLHeadFromSkin(UIImage *skin) {
     NSString *token=NSUUID.UUID.UUIDString;
     self.loadToken=token;
     self.remoteHead=nil;
+    self.sourceSkinURL=nil;
     self.layer.shadowOpacity=0;
     [self setNeedsDisplay];
 
@@ -449,6 +454,7 @@ static UIImage *PCLHeadFromSkin(UIImage *skin) {
 @property (nonatomic, strong) UIView *profileButtonsCard;
 @property(nonatomic,strong) UIView *profileOptionMenu;
 @property(nonatomic) NSInteger profileOptionMode;
+@property(nonatomic,weak) UIButton *profileOptionAnchor;
 @property (nonatomic, strong) UIButton *skinButton;
 @property (nonatomic, strong) UIButton *editButton;
 @property (nonatomic, strong) UIButton *switchButton;
@@ -734,7 +740,21 @@ static UIImage *PCLHeadFromSkin(UIImage *skin) {
     [self setNeedsLayout];
 }
 
+- (void)dismissTransientUI {
+    [self.profileOptionMenu.layer removeAllAnimations];
+
+    self.profileOptionMenu.alpha=0;
+    self.profileOptionMenu.hidden=YES;
+    self.profileOptionMenu.transform=
+        CGAffineTransformIdentity;
+
+    [self.loginPanel dismissTransientUI];
+}
+
 - (void)pclLoginTransition:(dispatch_block_t)changes {
+    [self dismissTransientUI];
+
+    [self dismissTransientUI];
     [self.panLogin.layer removeAllAnimations];
     self.userInteractionEnabled=NO;
 
@@ -838,12 +858,17 @@ static UIImage *PCLHeadFromSkin(UIImage *skin) {
     self.profileOptionMenu.hidden=YES;
     self.profileOptionMenu.alpha=0;
     self.profileOptionMenu.backgroundColor=
-        [UIColor colorWithWhite:.995 alpha:.96];
-    self.profileOptionMenu.layer.cornerRadius=5;
+        PCLColor(0xFBFBFB);
+    self.profileOptionMenu.layer.cornerRadius=4;
+    self.profileOptionMenu.layer.borderWidth=1;
+    self.profileOptionMenu.layer.borderColor=
+        PCLColor(0xEBEBEB).CGColor;
     self.profileOptionMenu.layer.shadowColor=
         UIColor.blackColor.CGColor;
-    self.profileOptionMenu.layer.shadowOpacity=.12;
-    self.profileOptionMenu.layer.shadowRadius=5;
+    self.profileOptionMenu.layer.shadowOpacity=.14;
+    self.profileOptionMenu.layer.shadowRadius=6;
+    self.profileOptionMenu.layer.shadowOffset=
+        CGSizeMake(0,2);
 
     [self addSubview:self.profileOptionMenu];
 
@@ -1039,6 +1064,7 @@ static UIImage *PCLHeadFromSkin(UIImage *skin) {
 
 
 - (void)newProfilePressed {
+    [self dismissTransientUI];
     if (!self.window) return;
 
     PCLCEProfileTypeDialog *dialog=
@@ -1110,7 +1136,7 @@ static UIImage *PCLHeadFromSkin(UIImage *skin) {
         UILabel *info=[row viewWithTag:9302];
         info.text=[self profileInfo:p];
 
-        [UIView animateWithDuration:.12 animations:^{
+        [UIView animateWithDuration:.10 animations:^{
             actions.alpha=open ? 1 : 0;
         } completion:^(BOOL done) {
             actions.hidden=!open;
@@ -1228,6 +1254,56 @@ static UIImage *PCLHeadFromSkin(UIImage *skin) {
 }
 
 
+- (void)openProfileURL:(NSString *)text {
+    NSURL *url=[NSURL URLWithString:text];
+    if (!url) return;
+
+    [UIApplication.sharedApplication
+        openURL:url options:@{} completionHandler:nil];
+}
+
+- (NSString *)authWebRoot:(NSDictionary *)profile {
+    NSString *root=profile[@"server"] ?: @"";
+
+    NSRange api=[root rangeOfString:@"/api/yggdrasil"];
+    if (api.location!=NSNotFound)
+        root=[root substringToIndex:api.location];
+
+    while ([root hasSuffix:@"/"])
+        root=[root substringToIndex:root.length-1];
+
+    return root;
+}
+
+- (void)profileMessage:(NSString *)message {
+    NSDictionary *profile=[PCLProfileStore selectedProfile];
+    NSString *pid=profile[@"identifier"];
+
+    self.typeLabel.text=message;
+
+    dispatch_after(
+        dispatch_time(DISPATCH_TIME_NOW,
+            (int64_t)(1.6*NSEC_PER_SEC)),
+        dispatch_get_main_queue(), ^{
+            NSDictionary *now=[PCLProfileStore selectedProfile];
+            if ([now[@"identifier"] isEqual:pid])
+                self.typeLabel.text=[self profileInfo:now];
+        });
+}
+
+- (NSString *)profileAuthWebRoot:(NSDictionary *)profile {
+    NSString *root=profile[@"server"] ?: @"";
+
+    NSRange r=[root rangeOfString:@"/api/yggdrasil"];
+    if (r.location!=NSNotFound)
+        root=[root substringToIndex:r.location];
+
+    while ([root hasSuffix:@"/"])
+        root=[root substringToIndex:root.length-1];
+
+    return root;
+}
+
 - (void)showProfileOptionMenu:(NSInteger)mode {
     self.profileOptionMode=mode;
 
@@ -1257,7 +1333,7 @@ static UIImage *PCLHeadFromSkin(UIImage *skin) {
     self.profileOptionMenu.hidden=NO;
     self.profileOptionMenu.alpha=0;
     self.profileOptionMenu.transform=
-        CGAffineTransformMakeTranslation(0,-4);
+        CGAffineTransformIdentity;
 
     [self setNeedsLayout];
     [self layoutIfNeeded];
@@ -1277,51 +1353,213 @@ static UIImage *PCLHeadFromSkin(UIImage *skin) {
     }];
 }
 
+- (void)saveCurrentSkin {
+    NSString *text=self.skinView.sourceSkinURL;
+
+    if (!text.length) {
+        [self.skinView loadProfile:
+            [PCLProfileStore selectedProfile]];
+        [self profileMessage:@"正在获取皮肤，请稍后再试"];
+        return;
+    }
+
+    NSURL *url=[NSURL URLWithString:text];
+
+    __weak typeof(self) weakSelf=self;
+    [[[NSURLSession sharedSession] dataTaskWithURL:url
+        completionHandler:^(NSData *data,
+                            NSURLResponse *response,
+                            NSError *error) {
+        if (!data.length) {
+            dispatch_async(dispatch_get_main_queue(), ^{
+                [weakSelf profileMessage:@"皮肤保存失败"];
+            });
+            return;
+        }
+
+        NSURL *documents=[NSFileManager.defaultManager
+            URLsForDirectory:NSDocumentDirectory
+            inDomains:NSUserDomainMask].firstObject;
+
+        NSURL *dir=[[documents
+            URLByAppendingPathComponent:@"PCL-iOS"]
+            URLByAppendingPathComponent:@"Skins"];
+
+        [NSFileManager.defaultManager
+            createDirectoryAtURL:dir
+            withIntermediateDirectories:YES
+            attributes:nil error:nil];
+
+        NSDictionary *profile=
+            [PCLProfileStore selectedProfile];
+
+        NSString *name=profile[@"username"] ?: @"skin";
+        NSCharacterSet *bad=
+            NSCharacterSet.alphanumericCharacterSet.invertedSet;
+
+        name=[[name componentsSeparatedByCharactersInSet:bad]
+            componentsJoinedByString:@"_"];
+
+        NSURL *file=[dir URLByAppendingPathComponent:
+            [name stringByAppendingString:@".png"]];
+
+        BOOL ok=[data writeToURL:file atomically:YES];
+
+        dispatch_async(dispatch_get_main_queue(), ^{
+            [weakSelf profileMessage:
+                ok ? @"皮肤已保存到 PCL-iOS/Skins"
+                   : @"皮肤保存失败"];
+        });
+    }] resume];
+}
+
+- (void)exportCurrentSkin {
+    NSString *text=self.skinView.sourceSkinURL;
+
+    if (!text.length) {
+        [self profileHint:@"皮肤尚未加载完成"];
+        return;
+    }
+
+    NSURL *url=[NSURL URLWithString:text];
+    __weak typeof(self) weakSelf=self;
+
+    [[[NSURLSession sharedSession] dataTaskWithURL:url
+        completionHandler:^(NSData *data,
+                            NSURLResponse *response,
+                            NSError *error) {
+
+        UIImage *image=data.length
+            ? [UIImage imageWithData:data] : nil;
+
+        if (!image) {
+            dispatch_async(dispatch_get_main_queue(), ^{
+                [weakSelf profileHint:@"皮肤保存失败"];
+            });
+            return;
+        }
+
+        NSDictionary *profile=
+            [PCLProfileStore selectedProfile];
+
+        NSString *name=
+            profile[@"username"] ?: @"skin";
+
+        NSString *fileName=
+            [name stringByAppendingString:@".png"];
+
+        NSURL *file=[NSURL fileURLWithPath:
+            [NSTemporaryDirectory()
+                stringByAppendingPathComponent:fileName]];
+
+        [data writeToURL:file atomically:YES];
+
+        dispatch_async(dispatch_get_main_queue(), ^{
+            UIViewController *host=
+                [weakSelf profileHostController];
+
+            if (!host) return;
+
+            UIDocumentPickerViewController *picker=
+                [[UIDocumentPickerViewController alloc]
+                    initForExportingURLs:@[file]
+                    asCopy:YES];
+
+            [host presentViewController:picker
+                animated:YES completion:nil];
+        });
+    }] resume];
+}
+
 - (void)profileOptionPressed:(UIButton *)sender {
-
     NSDictionary *profile=
-
         [PCLProfileStore selectedProfile];
 
-    if (self.profileOptionMode==1 &&
-
-        sender.tag==9502) {
-
-        [self.skinView loadProfile:profile];
-
-    }
-
-    if (self.profileOptionMode==2 &&
-
-        sender.tag==9500) {
-
-        NSString *type=profile[@"type"];
-
-        NSString *url=nil;
-
-        if ([type isEqual:@"microsoft"])
-
-            url=@"https://account.live.com/password/Change";
-
-        if (url)
-
-            [UIApplication.sharedApplication
-
-                openURL:[NSURL URLWithString:url]
-
-                options:@{} completionHandler:nil];
-
-    }
+    NSString *type=profile[@"type"];
+    NSInteger mode=self.profileOptionMode;
+    NSInteger tag=sender.tag;
 
     [self hideProfileOptionMenu];
 
-}
+    if (mode==1 && tag==9500) {
 
+        if ([type isEqual:@"microsoft"]) {
+            [self openProfileURL:
+                @"https://www.minecraft.net/msaprofile/mygames/editprofile"];
+        } else if ([type isEqual:@"authlib"]) {
+            NSString *root=[self profileAuthWebRoot:profile];
+            [self openProfileURL:
+                [root stringByAppendingString:@"/user/closet"]];
+        } else {
+            [self profileHint:@"离线档案不支持修改皮肤"];
+        }
+        return;
+    }
+
+    if (mode==1 && tag==9501) {
+        [self exportCurrentSkin];
+        return;
+    }
+
+    if (mode==1 && tag==9502) {
+        [PCLHeadCache() removeAllObjects];
+        [self.skinView loadProfile:profile];
+        [self profileHint:@"正在刷新皮肤"];
+        return;
+    }
+
+    if (mode==1 && tag==9503) {
+        if ([type isEqual:@"microsoft"]) {
+            [self openProfileURL:
+                @"https://www.minecraft.net/msaprofile/mygames/editprofile"];
+        } else if ([type isEqual:@"authlib"]) {
+            NSString *root=[self profileAuthWebRoot:profile];
+            [self openProfileURL:
+                [root stringByAppendingString:@"/user/closet"]];
+        } else {
+            [self profileHint:@"离线档案不支持披风"];
+        }
+        return;
+    }
+
+    if (mode==2 && tag==9500) {
+        if ([type isEqual:@"microsoft"]) {
+            [self openProfileURL:
+                @"https://account.live.com/password/Change"];
+        } else if ([type isEqual:@"authlib"]) {
+            NSString *root=[self profileAuthWebRoot:profile];
+            [self openProfileURL:
+                [root stringByAppendingString:@"/user/profile"]];
+        }
+        return;
+    }
+
+    if (mode==2 && tag==9500) {
+        if ([type isEqual:@"microsoft"]) {
+            [self openProfileURL:
+                @"https://account.live.com/password/Change"];
+        } else if ([type isEqual:@"authlib"]) {
+            NSString *root=[self profileAuthWebRoot:profile];
+            [self openProfileURL:
+                [root stringByAppendingString:@"/user/profile"]];
+        }
+        return;
+    }
 - (void)skinPressed {
+    if (!self.profileOptionMenu.hidden &&
+        self.profileOptionMode==1) {
+        [self hideProfileOptionMenu];
+        return;
+    }
     [self showProfileOptionMenu:1];
 }
 
 - (void)editPressed {
+    if (!self.profileOptionMenu.hidden &&
+        self.profileOptionMode==2) {
+        [self hideProfileOptionMenu];
+        return;
+    }
     [self showProfileOptionMenu:2];
 }
 
@@ -1680,35 +1918,58 @@ static UIImage *PCLHeadFromSkin(UIImage *skin) {
                    175.0 * scale,
                    buttonsWidth,
                    buttonsHeight);
+    CGFloat menuFont=13.0*scale;
+    CGFloat menuW=96.0*scale;
+    CGFloat rowH=28.0*scale;
 
+    for (UIButton *b in self.profileOptionMenu.subviews) {
+        b.titleLabel.font=
+            [UIFont systemFontOfSize:menuFont];
 
-    NSInteger menuRows=
-        self.profileOptionMode==1 ? 4 : 2;
-    CGFloat menuW=128*scale;
-    CGFloat menuH=(6+28*menuRows)*scale;
+        CGSize size=[b.currentTitle sizeWithAttributes:@{
+            NSFontAttributeName:b.titleLabel.font
+        }];
 
-    CGRect cardRect=
-        [self.profileButtonsCard
-            convertRect:self.profileButtonsCard.bounds
-            toView:self];
+        menuW=MAX(menuW,size.width+24.0*scale);
+    }
 
-    self.profileOptionMenu.frame=CGRectMake(
-        CGRectGetMidX(cardRect)-menuW/2.0,
-        CGRectGetMaxY(cardRect)+6*scale,
-        menuW,menuH);
+    menuW=MIN(menuW,150.0*scale);
 
-    for (NSInteger i=0;
-         i<self.profileOptionMenu.subviews.count;i++) {
+    NSInteger rows=self.profileOptionMenu.subviews.count;
+    CGFloat menuH=8.0*scale+rows*rowH;
+
+    UIButton *anchor=
+        self.profileOptionAnchor ?: self.skinButton;
+
+    CGRect anchorRect=
+        [anchor convertRect:anchor.bounds toView:self];
+
+    CGFloat menuX=
+        CGRectGetMinX(anchorRect)+10.0*scale;
+    CGFloat menuY=
+        CGRectGetMaxY(anchorRect)+18.0*scale;
+
+    menuX=MAX(6.0*scale,menuX);
+    menuX=MIN(menuX,width-menuW-6.0*scale);
+
+    self.profileOptionMenu.frame=
+        CGRectMake(menuX,menuY,menuW,menuH);
+
+    for (NSInteger i=0;i<rows;i++) {
         UIButton *b=
             (UIButton *)self.profileOptionMenu.subviews[i];
 
         b.frame=CGRectMake(
-            3*scale,(3+28*i)*scale,
-            menuW-6*scale,28*scale);
+            4.0*scale,
+            (4.0+i*28.0)*scale,
+            menuW-8.0*scale,
+            rowH);
 
-        b.titleLabel.font=
-            [UIFont systemFontOfSize:12.5*scale];
+        b.layer.cornerRadius=3.0*scale;
     }
+
+
+
 
     self.skinButton.frame =
         CGRectMake(10.0 * scale,
@@ -1752,6 +2013,7 @@ static UIImage *PCLHeadFromSkin(UIImage *skin) {
 }
 
 - (void)playCEExitAnimation {
+    [self dismissTransientUI];
     [PCLCEPageAnimator
         hideSimpleLeftPage:self];
 }

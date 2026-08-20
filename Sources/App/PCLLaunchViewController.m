@@ -173,6 +173,10 @@
             name]];
 }
 
+- (void)dismissTransientUI {
+    [self.leftView dismissTransientUI];
+}
+
 - (void)launchMinecraft {
     NSString *profile =
         [NSUserDefaults.standardUserDefaults

@@ -17,4 +17,5 @@
 - (void)playCEEnterAnimation;
 - (void)playCEExitAnimation;
 
+- (void)dismissTransientUI;
 @end

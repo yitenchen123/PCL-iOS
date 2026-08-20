@@ -427,6 +427,14 @@ static UIColor *PCLLoginColor(NSUInteger rgb) {
     [self showPage:self.authPage];
 }
 
+- (void)dismissTransientUI {
+    [self endEditing:YES];
+
+    [self.authServerMenu.layer removeAllAnimations];
+    self.authServerMenu.alpha=0;
+    self.authServerMenu.hidden=YES;
+}
+
 - (void)closePressed {
     if (self.onClose) self.onClose();
 }

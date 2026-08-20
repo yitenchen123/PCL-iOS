@@ -119,6 +119,8 @@
     [self showPage:page];
 }
 - (void)showPage:(PCLPageType)page {
+    [self.launchVC dismissTransientUI];
+
     switch (page) {
         case PCLPageTypeLaunch:
             self.launchVC.view.hidden = NO;

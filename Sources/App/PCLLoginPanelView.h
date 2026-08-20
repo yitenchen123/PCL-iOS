@@ -9,4 +9,5 @@
 - (void)showOffline;
 - (void)showThirdParty;
 - (void)editOfflineProfile:(NSDictionary *)profile;
+- (void)dismissTransientUI;
 @end
