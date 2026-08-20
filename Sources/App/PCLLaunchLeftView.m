@@ -507,6 +507,9 @@ static UIImage *PCLHeadFromSkin(UIImage *skin) {
     self.transitionContentView.backgroundColor=
         UIColor.clearColor;
 
+    self.transitionContentView.layer.anchorPoint=
+        CGPointMake(.5,.5);
+
     [self addSubview:self.transitionContentView];
 
     [self buildMainUI];
@@ -1701,7 +1704,19 @@ static UIImage *PCLHeadFromSkin(UIImage *skin) {
     CGFloat height =
         CGRectGetHeight(self.bounds);
 
-    self.transitionContentView.frame=self.bounds;
+    CGRect contentBounds=
+        CGRectMake(0,0,width,height);
+
+    CGPoint contentCenter=
+        CGPointMake(width*0.5,height*0.5);
+
+    [UIView performWithoutAnimation:^{
+        self.transitionContentView.bounds=
+            contentBounds;
+
+        self.transitionContentView.center=
+            contentCenter;
+    }];
 
     CGFloat scale =
         self.designScale > 0.0
