@@ -569,7 +569,6 @@ static UIColor *PCLColor(NSUInteger rgb) {
 - (void)openAuthType:(PCLProfileAuthType)type {
     self.profileSelectView.hidden=YES;
     self.loginPanel.hidden=NO;
-
     if (type==PCLProfileAuthMicrosoft)
         [self.loginPanel showMicrosoft];
     else if (type==PCLProfileAuthOffline)
@@ -580,20 +579,7 @@ static UIColor *PCLColor(NSUInteger rgb) {
     [self setNeedsLayout];
 }
 
-    else if (type==PCLProfileAuthOffline)
-        [self.loginPanel showOffline];
-    else
-        [self.loginPanel showThirdParty];
 
-    [self setNeedsLayout];
-}
-
-- (void)openAuthType:(PCLProfileAuthType)type {
-    self.profileSelectView.hidden=YES;
-    self.loginPanel.hidden=NO;
-
-    if (type==PCLProfileAuthMicrosoft)
-        [self.loginPanel showMicrosoft];
 - (void)newProfilePressed {
     if (!self.window) return;
 

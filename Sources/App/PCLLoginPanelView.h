@@ -8,7 +8,4 @@
 - (void)showMicrosoft;
 - (void)showOffline;
 - (void)showThirdParty;
-- (void)showMicrosoft;
-- (void)showOffline;
-- (void)showThirdParty;
 @end
