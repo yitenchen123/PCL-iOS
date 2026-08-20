@@ -260,13 +260,13 @@ static UIImage *PCLAuthIcon(
     [UIView animateKeyframesWithDuration:.30 delay:.06
         options:UIViewKeyframeAnimationOptionCalculationModeCubic
         animations:^{
-        [UIView addKeyframeWithRelativeStartTime:0 duration:.78
+        [UIView addKeyframeWithRelativeStartTime:0 relativeDuration:.78
             animations:^{
             self.card.transform=
                 CGAffineTransformMakeTranslation(0,-2*self.scale);
         }];
 
-        [UIView addKeyframeWithRelativeStartTime:.78 duration:.22
+        [UIView addKeyframeWithRelativeStartTime:.78 relativeDuration:.22
             animations:^{
             self.card.transform=CGAffineTransformIdentity;
         }];
