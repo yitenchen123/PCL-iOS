@@ -67,18 +67,6 @@
     return NO;
 }
 
-- (BOOL)isOfflineUuidRadio:(UIButton *)button {
-    if (button.tag < 302 || button.tag > 304)
-        return NO;
-
-    for (UIView *v=button; v; v=v.superview)
-        if ([NSStringFromClass(v.class)
-            isEqualToString:@"PCLLoginPanelView"])
-            return YES;
-
-    return NO;
-}
-
 - (void)showHover:(UIButton *)button {
     self.button=button;
 
