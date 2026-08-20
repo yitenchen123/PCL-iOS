@@ -266,19 +266,6 @@ static UIImage *PCLAuthIcon(
                 CGAffineTransformMakeTranslation(0,-2*self.scale);
         }];
 
-        [UIView addKeyframeWithRelativeStartTime:.78 duration:.22 animations:^{
-            self.card.transform=CGAffineTransformIdentity;
-        }];
-    } completion:nil];
-}
-
-
-        [UIView addKeyframeWithRelativeStartTime:.78 duration:.22 animations:^{
-            self.card.transform=CGAffineTransformIdentity;
-        }];
-    } completion:nil];
-}
-
 - (void)dismissWithType:(NSInteger)type {
     CGFloat r=6.0*M_PI/180.0;
     CGAffineTransform out=

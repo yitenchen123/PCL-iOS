@@ -111,23 +111,6 @@ static UIColor *PCLLoginColor(NSUInteger rgb) {
         page.hidden=NO;
         page.alpha=0;
 
-        [UIView animateWithDuration:.10 animations:^{
-            page.alpha=1;
-        } completion:^(BOOL done) {
-            self.userInteractionEnabled=YES;
-        }];
-    }];
-}
-
-
-        [UIView animateWithDuration:.10 animations:^{
-            page.alpha=1;
-        } completion:^(BOOL done) {
-            self.userInteractionEnabled=YES;
-        }];
-    }];
-}
-
 - (UIButton *)radio:(NSString *)text {
     UIButton *b=[UIButton buttonWithType:UIButtonTypeCustom];
     [b setTitle:text forState:UIControlStateNormal];

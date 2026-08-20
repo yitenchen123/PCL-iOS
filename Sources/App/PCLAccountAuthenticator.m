@@ -149,6 +149,13 @@ static NSString *PCLServerError(NSDictionary *json, NSInteger code) {
 }
 
 
++ (void)resolveAuthlibServer:(NSString *)input
+    completion:(void (^)(NSString *,NSString *))completion {
+    __block NSString *root=[input stringByTrimmingCharactersInSet:
+        NSCharacterSet.whitespaceAndNewlineCharacterSet];
+    if (![root containsString:@"://"])
+        root=[@"https://" stringByAppendingString:root];
+
     NSURL *url=[NSURL URLWithString:root];
     if (!url.host.length) {
         completion(nil,@"验证服务器地址无效");
