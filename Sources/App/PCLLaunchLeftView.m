@@ -169,6 +169,19 @@ static UIImage *PCLHeadFromSkin(UIImage *skin) {
     NSURL *url=[NSURL URLWithString:text];
     if (!url) return;
 
+    if (url.isFileURL) {
+        UIImage *image=
+            [UIImage imageWithContentsOfFile:url.path];
+
+        if (crop && image)
+            image=PCLHeadFromSkin(image);
+
+        if (image)
+            [self pclUseImage:image token:token];
+
+        return;
+    }
+
     __weak typeof(self) weakSelf=self;
     [[[NSURLSession sharedSession] dataTaskWithURL:url
         completionHandler:^(NSData *data,
@@ -395,6 +408,11 @@ static UIImage *PCLHeadFromSkin(UIImage *skin) {
         return;
     }
 
+    if ([type isEqual:@"offline"] && skinURL.length) {
+        [self pclLoadURL:skinURL crop:YES token:token];
+        return;
+    }
+
     [self pclLoadDefault:profile token:token];
 }
 
@@ -429,7 +447,8 @@ static UIImage *PCLHeadFromSkin(UIImage *skin) {
 
 @end
 
-@interface PCLLaunchLeftView () <UIGestureRecognizerDelegate>
+@interface PCLLaunchLeftView ()
+<UIGestureRecognizerDelegate, UIDocumentPickerDelegate>
 
 @property (nonatomic, strong) UIView *panLogin;
 
@@ -454,6 +473,8 @@ static UIImage *PCLHeadFromSkin(UIImage *skin) {
 @property (nonatomic, strong) UIView *profileButtonsCard;
 @property(nonatomic,strong) UIView *profileOptionMenu;
 @property(nonatomic) NSInteger profileOptionMode;
+@property(nonatomic,strong) NSTimer *profileControlsTimer;
+@property(nonatomic,copy) NSString *skinImportProfileIdentifier;
 @property(nonatomic,weak) UIButton *profileOptionAnchor;
 @property (nonatomic, strong) UIButton *skinButton;
 @property (nonatomic, strong) UIButton *editButton;
@@ -740,7 +761,42 @@ static UIImage *PCLHeadFromSkin(UIImage *skin) {
     [self setNeedsLayout];
 }
 
+- (void)scheduleProfileControlsAutoHide {
+    [self cancelProfileControlsTimer];
+
+    if (self.profileButtonsCard.alpha<0.5 ||
+        !self.profileOptionMenu.hidden)
+        return;
+
+    self.profileControlsTimer=
+        [NSTimer scheduledTimerWithTimeInterval:4.0
+            target:self
+            selector:@selector(hideProfileControlsAutomatically)
+            userInfo:nil
+            repeats:NO];
+}
+
+- (void)hideProfileControlsAutomatically {
+    self.profileControlsTimer=nil;
+
+    if (!self.profileOptionMenu.hidden)
+        return;
+
+    [UIView animateWithDuration:.18 animations:^{
+        self.profileButtonsCard.alpha=0;
+    }];
+}
+
+- (void)cancelProfileControlsTimer {
+    [self.profileControlsTimer invalidate];
+    self.profileControlsTimer=nil;
+}
+
 - (void)dismissTransientUI {
+    [self cancelProfileControlsTimer];
+
+    self.profileButtonsCard.alpha=0;
+
     [self.profileOptionMenu.layer removeAllAnimations];
 
     self.profileOptionMenu.alpha=0;
@@ -1290,6 +1346,8 @@ static UIImage *PCLHeadFromSkin(UIImage *skin) {
 }
 
 - (void)showProfileOptionMenu:(NSInteger)mode {
+    [self cancelProfileControlsTimer];
+
     self.profileOptionMode=mode;
     self.profileOptionAnchor=
         mode==1 ? self.skinButton : self.editButton;
@@ -1337,6 +1395,9 @@ static UIImage *PCLHeadFromSkin(UIImage *skin) {
         self.profileOptionMenu.alpha=0;
     } completion:^(BOOL done) {
         self.profileOptionMenu.hidden=YES;
+
+        if (self.profileButtonsCard.alpha>0.5)
+            [self scheduleProfileControlsAutoHide];
     }];
 }
 
@@ -1350,6 +1411,94 @@ static UIImage *PCLHeadFromSkin(UIImage *skin) {
     }
 
     return nil;
+}
+
+- (void)documentPicker:(UIDocumentPickerViewController *)controller
+        didPickDocumentsAtURLs:(NSArray<NSURL *> *)urls {
+
+    NSURL *source=urls.firstObject;
+    if (!source) return;
+
+    NSData *data=[NSData dataWithContentsOfURL:source];
+    UIImage *image=data.length
+        ? [UIImage imageWithData:data] : nil;
+
+    if (!image) {
+        [self profileMessage:@"无法读取皮肤图片"];
+        return;
+    }
+
+    CGFloat w=CGImageGetWidth(image.CGImage);
+    CGFloat h=CGImageGetHeight(image.CGImage);
+
+    BOOL valid=
+        (w==64 && h==64) ||
+        (w==64 && h==32);
+
+    if (!valid) {
+        [self profileMessage:@"皮肤必须为 64×64 或 64×32 PNG"];
+        return;
+    }
+
+    NSURL *documents=[NSFileManager.defaultManager
+        URLsForDirectory:NSDocumentDirectory
+        inDomains:NSUserDomainMask].firstObject;
+
+    NSURL *dir=[[documents
+        URLByAppendingPathComponent:@"PCL-iOS"]
+        URLByAppendingPathComponent:@"Skins"];
+
+    [NSFileManager.defaultManager
+        createDirectoryAtURL:dir
+        withIntermediateDirectories:YES
+        attributes:nil error:nil];
+
+    NSDictionary *profile=[self profileForIdentifier:
+        self.skinImportProfileIdentifier];
+
+    if (!profile) return;
+
+    NSString *uuid=profile[@"uuid"] ?: NSUUID.UUID.UUIDString;
+
+    NSURL *file=[dir URLByAppendingPathComponent:
+        [uuid stringByAppendingString:@".png"]];
+
+    if (![data writeToURL:file atomically:YES]) {
+        [self profileMessage:@"皮肤导入失败"];
+        return;
+    }
+
+    NSMutableDictionary *updated=profile.mutableCopy;
+    updated[@"skinURL"]=file.absoluteString;
+
+    [PCLProfileStore
+        replaceProfileWithIdentifier:
+            self.skinImportProfileIdentifier
+        profile:updated
+        select:YES];
+
+    self.skinImportProfileIdentifier=nil;
+
+    [self reloadState];
+    [self profileMessage:@"离线皮肤已更新"];
+}
+
+- (void)importOfflineSkin:(NSDictionary *)profile {
+    self.skinImportProfileIdentifier=
+        profile[@"identifier"];
+
+    UIDocumentPickerViewController *picker=
+        [[UIDocumentPickerViewController alloc]
+            initWithDocumentTypes:@[@"public.png"]
+            inMode:UIDocumentPickerModeImport];
+
+    picker.delegate=self;
+
+    UIViewController *host=
+        [self profileHostController];
+
+    [host presentViewController:picker
+        animated:YES completion:nil];
 }
 
 - (void)exportCurrentSkin {
@@ -1441,9 +1590,10 @@ static UIImage *PCLHeadFromSkin(UIImage *skin) {
             [self openProfileURL:
                 [root stringByAppendingString:@"/user/closet"]];
         } else {
-            [self profileMessage:
-                tag==9500 ? @"离线档案不支持修改皮肤"
-                          : @"离线档案不支持披风"];
+            if (tag==9500)
+                [self importOfflineSkin:profile];
+            else
+                [self profileMessage:@"离线披风等待游戏运行层接入"];
         }
         return;
     }
@@ -1515,8 +1665,13 @@ static UIImage *PCLHeadFromSkin(UIImage *skin) {
         ? 0.0
         : 1.0;
 
+    [self cancelProfileControlsTimer];
+
     [UIView animateWithDuration:0.18 animations:^{
-        self.profileButtonsCard.alpha = target;
+        self.profileButtonsCard.alpha=target;
+    } completion:^(BOOL finished) {
+        if (target>0.5)
+            [self scheduleProfileControlsAutoHide];
     }];
 }
 
