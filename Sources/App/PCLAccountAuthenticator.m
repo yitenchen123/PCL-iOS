@@ -483,6 +483,13 @@ static NSString *PCLServerError(NSDictionary *json, NSInteger code) {
         NSString *uuid=json[@"id"];
         NSString *name=json[@"name"];
 
+        NSArray *skins=
+            [json[@"skins"] isKindOfClass:NSArray.class]
+            ? json[@"skins"] : nil;
+
+        NSString *skinURL=skins.count
+            ? skins[0][@"url"] : nil;
+
         if (error || !uuid.length || !name.length) {
             [self failMicrosoft:error.localizedDescription ?:
                 @"该账户没有可用的 Minecraft Java 档案"];
@@ -499,12 +506,15 @@ static NSString *PCLServerError(NSDictionary *json, NSInteger code) {
             [PCLAccountAuthenticator setSecret:self.msaRefreshToken
                 key:[prefix stringByAppendingString:@".refresh"]];
 
-        PCLResult(self.resultBlock,@{
+        NSMutableDictionary *result=[@{
             @"username":name,
             @"uuid":uuid,
             @"type":@"microsoft",
             @"credentialPrefix":prefix
-        },nil);
+        } mutableCopy];
+
+        if (skinURL.length) result[@"skinURL"]=skinURL;
+        PCLResult(self.resultBlock,result,nil);
     });
 }
 

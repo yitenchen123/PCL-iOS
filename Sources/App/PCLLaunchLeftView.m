@@ -12,6 +12,45 @@ static UIColor *PCLColor(NSUInteger rgb) {
                            alpha:1.0];
 }
 
+static NSCache *PCLHeadCache(void) {
+    static NSCache *cache;
+    static dispatch_once_t once;
+    dispatch_once(&once, ^{ cache=[NSCache new]; });
+    return cache;
+}
+
+static UIImage *PCLHeadFromSkin(UIImage *skin) {
+    CGImageRef cg=skin.CGImage;
+    if (!cg) return nil;
+    CGFloat u=(CGFloat)CGImageGetWidth(cg)/64.0;
+
+    CGImageRef base=CGImageCreateWithImageInRect(
+        cg,CGRectMake(8*u,8*u,8*u,8*u));
+    CGImageRef hat=CGImageCreateWithImageInRect(
+        cg,CGRectMake(40*u,8*u,8*u,8*u));
+    if (!base) return nil;
+
+    UIGraphicsBeginImageContextWithOptions(
+        CGSizeMake(64,64),NO,0);
+
+    CGContextRef ctx=UIGraphicsGetCurrentContext();
+    CGContextSetInterpolationQuality(ctx,kCGInterpolationNone);
+
+    [[UIImage imageWithCGImage:base]
+        drawInRect:CGRectMake(0,0,64,64)];
+
+    if (hat)
+        [[UIImage imageWithCGImage:hat]
+            drawInRect:CGRectMake(0,0,64,64)];
+
+    UIImage *out=UIGraphicsGetImageFromCurrentImageContext();
+    UIGraphicsEndImageContext();
+
+    CGImageRelease(base);
+    if (hat) CGImageRelease(hat);
+    return out;
+}
+
 @interface PCLCEButton : UIButton
 @end
 
@@ -71,12 +110,12 @@ static UIColor *PCLColor(NSUInteger rgb) {
 @end
 
 @interface PCLSkinHeadView : UIView
-- (void)loadMicrosoftUUID:(NSString *)uuid;
+- (void)loadProfile:(NSDictionary *)profile;
 @end
 
 @interface PCLSkinHeadView ()
 @property(nonatomic,strong) UIImage *remoteHead;
-@property(nonatomic,copy) NSString *requestedUUID;
+@property(nonatomic,copy) NSString *loadToken;
 @end
 
 @implementation PCLSkinHeadView
@@ -94,20 +133,30 @@ static UIColor *PCLColor(NSUInteger rgb) {
     return self;
 }
 
-- (void)loadMicrosoftUUID:(NSString *)uuid {
-    NSString *clean=
-        [uuid stringByReplacingOccurrencesOfString:@"-" withString:@""];
-
-    self.requestedUUID=clean;
-    self.remoteHead=nil;
-    self.layer.shadowOpacity=clean.length ? 0.20 : 0.0;
+- (void)pclUseImage:(UIImage *)image
+                  token:(NSString *)token {
+    if (!image || ![self.loadToken isEqual:token]) return;
+    self.remoteHead=image;
+    self.layer.shadowOpacity=.16;
     [self setNeedsDisplay];
+}
 
-    if (!clean.length) return;
+- (void)pclLoadURL:(NSString *)text
+              crop:(BOOL)crop
+             token:(NSString *)token {
 
-    NSString *text=[NSString stringWithFormat:
-        @"https://mc-heads.net/avatar/%@/64",clean];
+    if (!text.length) return;
+    NSString *key=[NSString stringWithFormat:
+        @"%@|%@",crop?@"skin":@"head",text];
+
+    UIImage *cached=[PCLHeadCache() objectForKey:key];
+    if (cached) {
+        [self pclUseImage:cached token:token];
+        return;
+    }
+
     NSURL *url=[NSURL URLWithString:text];
+    if (!url) return;
 
     __weak typeof(self) weakSelf=self;
     [[[NSURLSession sharedSession] dataTaskWithURL:url
@@ -116,14 +165,124 @@ static UIColor *PCLColor(NSUInteger rgb) {
                             NSError *error) {
         UIImage *image=data.length
             ? [UIImage imageWithData:data] : nil;
+
+        if (crop && image)
+            image=PCLHeadFromSkin(image);
         if (!image) return;
 
+        [PCLHeadCache() setObject:image forKey:key];
+
         dispatch_async(dispatch_get_main_queue(), ^{
-            if (![weakSelf.requestedUUID isEqual:clean]) return;
-            weakSelf.remoteHead=image;
-            [weakSelf setNeedsDisplay];
+            [weakSelf pclUseImage:image token:token];
         });
     }] resume];
+}
+
+- (void)pclLoadDefault:(NSDictionary *)profile
+                 token:(NSString *)token {
+    NSString *uuid=profile[@"uuid"] ?: @"0";
+    NSString *last=uuid.length
+        ? [uuid substringFromIndex:uuid.length-1] : @"0";
+
+    unsigned value=0;
+    [[NSScanner scannerWithString:last] scanHexInt:&value];
+    NSString *name=(value&1) ? @"Alex" : @"Steve";
+
+    NSString *url=[NSString stringWithFormat:
+        @"https://mc-heads.net/avatar/%@/64",name];
+
+    [self pclLoadURL:url crop:NO token:token];
+}
+
+
+- (void)pclLoadAuth:(NSDictionary *)profile
+              token:(NSString *)token {
+    NSString *root=profile[@"server"];
+    NSString *uuid=profile[@"uuid"];
+
+    if (!root.length || !uuid.length) {
+        [self pclLoadDefault:profile token:token];
+        return;
+    }
+
+    while ([root hasSuffix:@"/"])
+        root=[root substringToIndex:root.length-1];
+
+    if ([root hasSuffix:@"/authserver"])
+        root=[root substringToIndex:
+            root.length-@"/authserver".length];
+
+    NSString *text=[NSString stringWithFormat:
+        @"%@/sessionserver/session/minecraft/profile/%@?unsigned=false",
+        root,uuid];
+
+    __weak typeof(self) weakSelf=self;
+    [[[NSURLSession sharedSession]
+        dataTaskWithURL:[NSURL URLWithString:text]
+        completionHandler:^(NSData *data,
+                            NSURLResponse *response,
+                            NSError *error) {
+        NSDictionary *json=data.length
+            ? [NSJSONSerialization JSONObjectWithData:data
+                options:0 error:nil] : nil;
+        NSString *skinURL=nil;
+
+        for (NSDictionary *property in json[@"properties"]) {
+            if (![property[@"name"] isEqual:@"textures"]) continue;
+
+            NSData *decoded=[[NSData alloc]
+                initWithBase64EncodedString:property[@"value"]
+                options:0];
+
+            NSDictionary *textures=decoded.length
+                ? [NSJSONSerialization JSONObjectWithData:decoded
+                    options:0 error:nil] : nil;
+            skinURL=textures[@"textures"][@"SKIN"][@"url"];
+        }
+
+        dispatch_async(dispatch_get_main_queue(), ^{
+            if (skinURL.length)
+                [weakSelf pclLoadURL:skinURL crop:YES token:token];
+            else
+                [weakSelf pclLoadDefault:profile token:token];
+        });
+    }] resume];
+}
+
+
+- (void)loadProfile:(NSDictionary *)profile {
+    NSString *token=NSUUID.UUID.UUIDString;
+    self.loadToken=token;
+    self.remoteHead=nil;
+    self.layer.shadowOpacity=0;
+    [self setNeedsDisplay];
+
+    if (!profile) return;
+
+    NSString *type=profile[@"type"];
+    NSString *skinURL=profile[@"skinURL"];
+
+    if ([type isEqual:@"microsoft"]) {
+        if (skinURL.length) {
+            [self pclLoadURL:skinURL crop:YES token:token];
+        } else {
+            NSString *url=[NSString stringWithFormat:
+                @"https://mc-heads.net/avatar/%@/64",
+                profile[@"uuid"]];
+            [self pclLoadURL:url crop:NO token:token];
+        }
+        return;
+    }
+
+    if ([type isEqual:@"authlib"]) {
+        if (skinURL.length)
+            [self pclLoadURL:skinURL crop:YES token:token];
+        else
+            [self pclLoadAuth:profile token:token];
+        return;
+    }
+
+    [self pclLoadDefault:profile token:token];
 }
 
 - (void)drawRect:(CGRect)rect {
@@ -388,10 +547,10 @@ static UIColor *PCLColor(NSUInteger rgb) {
         row.layer.cornerRadius=6;
         row.clipsToBounds=YES;
 
-        UIImageView *icon=[[UIImageView alloc]
-            initWithImage:[UIImage systemImageNamed:@"person"]];
+        PCLSkinHeadView *icon=[[PCLSkinHeadView alloc] init];
         icon.tag=9300;
-        icon.tintColor=PCLColor(0x343D4A);
+        icon.userInteractionEnabled=NO;
+        [icon loadProfile:profile];
         [row addSubview:icon];
 
         UILabel *title=[[UILabel alloc] init];
@@ -633,8 +792,8 @@ static UIColor *PCLColor(NSUInteger rgb) {
     self.editButton.hidden=
         [type isEqualToString:@"offline"];
 
-    [self.skinView loadMicrosoftUUID:
-        [type isEqual:@"microsoft"] ? profile[@"uuid"] : nil];
+    [self.skinView loadProfile:
+        hasProfile ? profile : nil];
 
     self.versionLabel.text =
         hasInstance
@@ -970,9 +1129,10 @@ static UIColor *PCLColor(NSUInteger rgb) {
         row.frame=CGRectMake(8*scale,rowY,
             loginWidth-18*scale,42*scale);
 
-        UIImageView *icon=[row viewWithTag:9300];
-        icon.frame=CGRectMake(8*scale,9*scale,
-                              24*scale,24*scale);
+        PCLSkinHeadView *icon=
+            (PCLSkinHeadView *)[row viewWithTag:9300];
+        icon.frame=CGRectMake(4*scale,5*scale,
+                              32*scale,32*scale);
 
 
         UILabel *title=[row viewWithTag:9301];
@@ -981,9 +1141,9 @@ static UIColor *PCLColor(NSUInteger rgb) {
         title.font=[UIFont systemFontOfSize:14*scale];
         info.font=[UIFont systemFontOfSize:11*scale];
 
-        title.frame=CGRectMake(40*scale,4*scale,
+        title.frame=CGRectMake(44*scale,4*scale,
             CGRectGetWidth(row.bounds)-45*scale,19*scale);
-        info.frame=CGRectMake(40*scale,23*scale,
+        info.frame=CGRectMake(44*scale,23*scale,
             CGRectGetWidth(row.bounds)-45*scale,15*scale);
 
         rowY+=44*scale;

@@ -64,10 +64,10 @@ static UIColor *PCLLoginColor(NSUInteger rgb) {
 - (UITextField *)field:(NSString *)placeholder {
     UITextField *f=[[UITextField alloc] init];
     f.font=[UIFont systemFontOfSize:13];
-    f.textColor=PCLLoginColor(0x343D4A);
+    f.textColor=PCLLoginColor(0x404040);
     f.tintColor=PCLLoginColor(0x1370F3);
     f.backgroundColor=
-        [UIColor colorWithWhite:1 alpha:0.42];
+        [UIColor colorWithWhite:1 alpha:0x55/255.0];
     f.keyboardAppearance=UIKeyboardAppearanceLight;
     if (placeholder.length) {
         f.attributedPlaceholder=
@@ -77,11 +77,34 @@ static UIColor *PCLLoginColor(NSUInteger rgb) {
     }
     f.borderStyle=UITextBorderStyleNone;
     f.layer.borderWidth=1;
-    f.layer.borderColor=PCLLoginColor(0xAAAAAA).CGColor;
+    f.layer.borderColor=PCLLoginColor(0x96C0F9).CGColor;
     f.layer.cornerRadius=3;
     f.leftView=[[UIView alloc] initWithFrame:CGRectMake(0,0,8,1)];
     f.leftViewMode=UITextFieldViewModeAlways;
+    [f addTarget:self action:@selector(fieldFocus:)
+        forControlEvents:UIControlEventEditingDidBegin];
+    [f addTarget:self action:@selector(fieldBlur:)
+        forControlEvents:UIControlEventEditingDidEnd];
     return f;
+}
+
+- (void)fieldFocus:(UITextField *)field {
+    [UIView animateWithDuration:.10 animations:^{
+        field.layer.borderColor=
+            PCLLoginColor(0x1370F3).CGColor;
+        field.backgroundColor=
+            PCLLoginColor(0xE0EAFD);
+    }];
+}
+
+
+- (void)fieldBlur:(UITextField *)field {
+    [UIView animateWithDuration:.10 animations:^{
+        field.layer.borderColor=
+            PCLLoginColor(0x96C0F9).CGColor;
+        field.backgroundColor=
+            [UIColor colorWithWhite:1 alpha:0x55/255.0];
+    }];
 }
 
 - (void)showPage:(UIView *)page {
@@ -139,7 +162,7 @@ static UIColor *PCLLoginColor(NSUInteger rgb) {
     ring.layer.borderWidth=1.3;
     ring.layer.cornerRadius=5;
     ring.backgroundColor=
-        [UIColor colorWithWhite:1 alpha:.45];
+        [UIColor colorWithWhite:1 alpha:0x55/255.0];
     [b addSubview:ring];
 
     UIView *dot=[[UIView alloc] init];
@@ -148,7 +171,7 @@ static UIColor *PCLLoginColor(NSUInteger rgb) {
 
     dot.layer.cornerRadius=2.5;
     dot.hidden=YES;
-    dot.backgroundColor=PCLLoginColor(0x1370F3);
+    dot.backgroundColor=PCLLoginColor(0x0B5BCB);
     [ring addSubview:dot];
     return b;
 }
@@ -217,7 +240,7 @@ static UIColor *PCLLoginColor(NSUInteger rgb) {
 
     [self.offlinePage addSubview:name];
 
-    self.offlineName=[self field:@"3 - 16 位玩家 ID"];
+    self.offlineName=[self field:nil];
     [self.offlinePage addSubview:self.offlineName];
 
     UILabel *uuid=[[UILabel alloc] init];
@@ -496,7 +519,7 @@ static UIColor *PCLLoginColor(NSUInteger rgb) {
 
 - (void)uuidPressed:(UIButton *)sender {
     self.uuidMode=sender.tag-302;
-    UIColor *blue=PCLLoginColor(0x1370F3);
+    UIColor *blue=PCLLoginColor(0x0B5BCB);
 
     for (NSInteger i=0;i<3;i++) {
         UIButton *b=[self.offlinePage viewWithTag:302+i];
@@ -505,7 +528,7 @@ static UIColor *PCLLoginColor(NSUInteger rgb) {
         UIView *ring=[b viewWithTag:9301];
         UIView *dot=[b viewWithTag:9302];
         ring.layer.borderColor=
-            (on ? blue : PCLLoginColor(0x777777)).CGColor;
+            (on ? blue : PCLLoginColor(0x343D4A)).CGColor;
         dot.hidden=!on;
     }
 
@@ -602,15 +625,16 @@ static UIColor *PCLLoginColor(NSUInteger rgb) {
     name.frame=CGRectMake(0,0,50*s,28*s);
     self.offlineName.frame=CGRectMake(50*s,0,w-50*s,28*s);
 
-    uuid.frame=CGRectMake(5*s,38*s,w-50*s,22*s);
+    uuid.frame=CGRectMake(5*s,38*s,w-5*s,22*s);
 
     uuid.font=[UIFont systemFontOfSize:13*s
                                 weight:UIFontWeightSemibold];
 
-    CGFloat bw=(w-10*s)/3;
+    CGFloat bw=85*s;
+    CGFloat radioX=(w-bw*3)/2.0;
     for (NSInteger i=0;i<3;i++) {
         UIButton *b=[self.offlinePage viewWithTag:302+i];
-        b.frame=CGRectMake(5*s+i*bw,47*s,bw,44*s);
+        b.frame=CGRectMake(radioX+i*bw,47*s,bw,44*s);
         UIView *ring=[b viewWithTag:9301];
         ring.frame=CGRectMake(1*s,13*s,18*s,18*s);
         ring.layer.cornerRadius=9*s;
@@ -636,10 +660,10 @@ static UIColor *PCLLoginColor(NSUInteger rgb) {
     ob.frame=CGRectMake(80*s,offlineButtonY,50*s,28*s);
     oc.frame=CGRectMake(140*s,offlineButtonY,50*s,28*s);
 
-    self.authServer.frame=CGRectMake(50*s,10*s,w-50*s,28*s);
+    self.authServer.frame=CGRectMake(50*s,26*s,w-50*s,28*s);
 
-    self.authEmail.frame=CGRectMake(50*s,48*s,w-50*s,28*s);
-    self.authPassword.frame=CGRectMake(50*s,86*s,w-50*s,28*s);
+    self.authEmail.frame=CGRectMake(50*s,64*s,w-50*s,28*s);
+    self.authPassword.frame=CGRectMake(50*s,102*s,w-50*s,28*s);
 
     self.authServer.font=[UIFont systemFontOfSize:13*s];
     self.authEmail.font=[UIFont systemFontOfSize:13*s];
@@ -649,18 +673,18 @@ static UIColor *PCLLoginColor(NSUInteger rgb) {
         UILabel *label=[self.authPage viewWithTag:410+i];
         label.font=[UIFont systemFontOfSize:13*s];
         label.textColor=PCLLoginColor(0x343D4A);
-        label.frame=CGRectMake(0,(10+38*i)*s,50*s,28*s);
+        label.frame=CGRectMake(0,(26+38*i)*s,50*s,28*s);
     }
 
     UIButton *reg=[self.authPage viewWithTag:403];
-    reg.frame=CGRectMake(w-90*s,126*s,90*s,24*s);
+    reg.frame=CGRectMake(w-90*s,136*s,90*s,24*s);
 
     UIButton *ab=[self.authPage viewWithTag:404];
     UIButton *al=[self.authPage viewWithTag:405];
     ab.titleLabel.font=[UIFont systemFontOfSize:13*s];
     al.titleLabel.font=[UIFont systemFontOfSize:13*s];
-    ab.frame=CGRectMake(80*s,150*s,50*s,28*s);
-    al.frame=CGRectMake(140*s,150*s,50*s,28*s);
+    ab.frame=CGRectMake(80*s,178*s,50*s,28*s);
+    al.frame=CGRectMake(140*s,178*s,50*s,28*s);
 
     self.statusLabel.font=[UIFont systemFontOfSize:11*s];
     self.statusLabel.frame=CGRectMake(0,215*s,w,18*s);

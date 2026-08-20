@@ -243,9 +243,8 @@ static UIImage *PCLAuthIcon(
     [view addSubview:self];
     [self layoutIfNeeded];
 
-    CGFloat r=-4.0*M_PI/180.0;
-    self.card.transform=CGAffineTransformRotate(
-        CGAffineTransformMakeTranslation(0,40*self.scale),r);
+    [self.card.layer removeAllAnimations];
+    self.card.transform=CGAffineTransformIdentity;
     self.card.alpha=0;
 
     [UIView animateWithDuration:.20 animations:^{
@@ -255,54 +254,78 @@ static UIImage *PCLAuthIcon(
 
     [UIView animateWithDuration:.12 delay:.06
         options:UIViewAnimationOptionCurveEaseOut
-        animations:^{ self.card.alpha=1; } completion:nil];
+        animations:^{ self.card.alpha=1; }
+        completion:nil];
 
-    [UIView animateKeyframesWithDuration:.30 delay:.06
-        options:UIViewKeyframeAnimationOptionCalculationModeCubic
-        animations:^{
-        [UIView addKeyframeWithRelativeStartTime:0 relativeDuration:.78
-            animations:^{
-            self.card.transform=
-                CGAffineTransformMakeTranslation(0,-2*self.scale);
-        }];
+    CFTimeInterval begin=CACurrentMediaTime()+.06;
 
-        [UIView addKeyframeWithRelativeStartTime:.78 relativeDuration:.22
-            animations:^{
-            self.card.transform=CGAffineTransformIdentity;
-        }];
-    } completion:nil];
+    CAKeyframeAnimation *move=
+        [CAKeyframeAnimation animationWithKeyPath:
+            @"transform.translation.y"];
+    move.values=@[@(40*self.scale),@(-2*self.scale),@0];
+    move.keyTimes=@[@0,@.78,@1];
+    move.duration=.30;
+    move.beginTime=begin;
+    move.fillMode=kCAFillModeBackwards;
+
+    CABasicAnimation *rotate=
+        [CABasicAnimation animationWithKeyPath:
+            @"transform.rotation.z"];
+    rotate.fromValue=@(-4.0*M_PI/180.0);
+    rotate.toValue=@0;
+    rotate.duration=.30;
+    rotate.beginTime=begin;
+    rotate.fillMode=kCAFillModeBackwards;
+
+    [self.card.layer addAnimation:move forKey:@"pcl.msg.move"];
+    [self.card.layer addAnimation:rotate forKey:@"pcl.msg.rotate"];
 }
 
 - (void)dismissWithType:(NSInteger)type {
+    if (type>=0) {
+        if (self.onSelect) self.onSelect(type);
+        self.onSelect=nil;
+    } else {
+        if (self.onCancel) self.onCancel();
+        self.onCancel=nil;
+    }
+
+    CALayer *shown=
+        (CALayer *)self.card.layer.presentationLayer;
+
+    if (shown) {
+        [CATransaction begin];
+        [CATransaction setDisableActions:YES];
+        self.card.layer.transform=shown.transform;
+        self.card.layer.opacity=shown.opacity;
+        [CATransaction commit];
+    }
+
+    [self.card.layer removeAllAnimations];
+
     CGFloat r=6.0*M_PI/180.0;
-    CGAffineTransform out=
-        CGAffineTransformRotate(
-            CGAffineTransformMakeTranslation(0,20*self.scale),r);
+    CGAffineTransform out=CGAffineTransformRotate(
+        CGAffineTransformMakeTranslation(0,20*self.scale),r);
 
-    UIViewAnimationOptions opt=
-        UIViewAnimationOptionBeginFromCurrentState |
-        UIViewAnimationOptionAllowUserInteraction |
-        UIViewAnimationOptionCurveEaseOut;
+    [UIView animateWithDuration:.15 delay:0
+        options:UIViewAnimationOptionBeginFromCurrentState |
+                UIViewAnimationOptionCurveEaseOut
+        animations:^{
+            self.card.transform=out;
+        } completion:nil];
 
-    [UIView animateWithDuration:.15 delay:0 options:opt animations:^{
-        self.card.transform=out;
-    } completion:nil];
+    [UIView animateWithDuration:.08 delay:.02
+        options:UIViewAnimationOptionBeginFromCurrentState
+        animations:^{ self.card.alpha=0; }
+        completion:nil];
 
-    [UIView animateWithDuration:.08 delay:.02 options:opt animations:^{
-        self.card.alpha=0;
-    } completion:nil];
-
-    [UIView animateWithDuration:.20 delay:.03 options:opt animations:^{
-        self.backgroundColor=UIColor.clearColor;
-    } completion:^(BOOL done) {
-        [self removeFromSuperview];
-
-        if (type>=0) {
-            if (self.onSelect) self.onSelect(type);
-        } else if (self.onCancel) {
-            self.onCancel();
-        }
-    }];
+    [UIView animateWithDuration:.20 delay:.03
+        options:UIViewAnimationOptionCurveEaseOut
+        animations:^{
+            self.backgroundColor=UIColor.clearColor;
+        } completion:^(BOOL done) {
+            [self removeFromSuperview];
+        }];
 }
 
 - (void)confirmPressed {
@@ -325,6 +348,7 @@ static UIImage *PCLAuthIcon(
     CGFloat cw=MIN(400*s,w-50*s);
     CGFloat ch=285*s;
 
+    self.card.layer.anchorPoint=CGPointMake(0.0,0.5);
     self.card.frame=CGRectMake((w-cw)/2,(h-ch)/2,cw,ch);
     self.card.layer.cornerRadius=7*s;
     self.card.layer.shadowRadius=20*s;
