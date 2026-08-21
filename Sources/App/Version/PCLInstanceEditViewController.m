@@ -37,7 +37,7 @@ static UIColor *PCLColor(NSUInteger rgb) {
 @property (nonatomic, strong) UILabel *versionIsolationDescLabel;
 
 @property (nonatomic, strong) NSArray<NSString *> *installedVersions;
-@property (nonatomic, strong> NSArray<NSString *> *javaVersions;
+@property (nonatomic, strong) NSArray<NSString *> *javaVersions;
 @property (nonatomic, assign) NSInteger selectedJavaIndex;
 
 @end
