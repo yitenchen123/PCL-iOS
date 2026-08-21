@@ -152,19 +152,23 @@ static NSString *const kSelectedRendererKey = @"PCLSelectedRenderer";
 
 + (NSString *)nameForRenderer:(PCLRenderRenderer)renderer {
     switch (renderer) {
+        case PCLRenderRendererNone: return @"默认";
         case PCLRenderRendererGL4ES: return @"GL4ES";
         case PCLRenderRendererMetalANGLE: return @"MetalANGLE";
         case PCLRenderRendererMobileGlues: return @"MobileGlues";
         case PCLRenderRendererZinkVK: return @"Zink + Vulkan";
+        default: return @"未知";
     }
 }
 
 + (NSString *)dylibNameForRenderer:(PCLRenderRenderer)renderer {
     switch (renderer) {
+        case PCLRenderRendererNone: return @"libgl4es.dylib";
         case PCLRenderRendererGL4ES: return @"libgl4es.dylib";
         case PCLRenderRendererMetalANGLE: return @"libEGL.dylib";
         case PCLRenderRendererMobileGlues: return @"libmobileglues.dylib";
         case PCLRenderRendererZinkVK: return @"libzvulkan.dylib";
+        default: return @"libgl4es.dylib";
     }
 }
 
