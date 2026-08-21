@@ -141,7 +141,7 @@
             [item.trailingAnchor constraintEqualToAnchor:self.trailingAnchor constant:-8],
             [item.heightAnchor constraintEqualToConstant:56],
             [item.widthAnchor constraintEqualToConstant:56]
-        }];
+        ]];
         
         if (previousView) {
             [item.topAnchor constraintEqualToAnchor:previousView.bottomAnchor constant:4].active = YES;
