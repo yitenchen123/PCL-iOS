@@ -8,6 +8,13 @@ typedef NS_ENUM(NSInteger, PCLDownloadState) {
     PCLDownloadStatePaused
 };
 
+typedef NS_ENUM(NSInteger, PCLDownloadSource) {
+    PCLDownloadSourceAuto = 0,
+    PCLDownloadSourceOfficial,
+    PCLDownloadSourceBMCL,
+    PCLDownloadSourceMCBBS
+};
+
 typedef NS_ENUM(NSInteger, PCLResourceType) {
     PCLResourceTypeClient = 0,
     PCLResourceTypeLibrary,
@@ -51,6 +58,7 @@ typedef NS_ENUM(NSInteger, PCLResourceType) {
 @property (nonatomic, weak) id<PCLDownloadManagerDelegate> delegate;
 @property (nonatomic, readonly) NSArray<PCLDownloadTask *> *allTasks;
 @property (nonatomic, readonly) NSArray<PCLDownloadTask *> *activeTasks;
+@property (nonatomic, assign) PCLDownloadSource downloadSource;
 
 + (instancetype)sharedManager;
 

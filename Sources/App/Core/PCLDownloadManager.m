@@ -11,6 +11,8 @@
 @property (nonatomic, assign) BOOL useBMCLAPI;
 @end
 
+static NSString *const kDownloadSource = @"downloadSource";
+
 @implementation PCLDownloadManager
 
 + (instancetype)sharedManager {
@@ -29,7 +31,10 @@
         _downloadQueue = [[NSOperationQueue alloc] init];
         _downloadQueue.maxConcurrentOperationCount = 4;
         _downloadQueue.name = @"com.pcl-ios.download";
-        _useBMCLAPI = YES;
+        
+        NSInteger source = [[NSUserDefaults standardUserDefaults] integerForKey:kDownloadSource];
+        _downloadSource = source;
+        _useBMCLAPI = (source != PCLDownloadSourceOfficial);
         
         NSURLSessionConfiguration *config = [NSURLSessionConfiguration defaultSessionConfiguration];
         config.HTTPMaximumConnectionsPerHost = 8;
@@ -37,6 +42,13 @@
         _session = [NSURLSession sessionWithConfiguration:config];
     }
     return self;
+}
+
+- (void)setDownloadSource:(PCLDownloadSource)downloadSource {
+    _downloadSource = downloadSource;
+    _useBMCLAPI = (downloadSource != PCLDownloadSourceOfficial);
+    [[NSUserDefaults standardUserDefaults] setInteger:downloadSource forKey:kDownloadSource];
+    [[NSUserDefaults standardUserDefaults] synchronize];
 }
 
 - (NSArray<PCLDownloadTask *> *)allTasks {

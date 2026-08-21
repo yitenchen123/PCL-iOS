@@ -2,6 +2,7 @@
 #import "PCLCEPageAnimator.h"
 #import "PCLPathUtils.h"
 #import "PCLInstanceManager.h"
+#import "PCLDownloadManager.h"
 #import <mach/mach.h>
 #import <QuartzCore/QuartzCore.h>
 
@@ -163,6 +164,25 @@ static NSString *const kGameDirectory = @"gameDirectory";
 
 - (void)buildLaunchSettings {
     NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
+    
+    // 下载源设置卡片
+    UIView *sourceCard = [self createCardWithTitle:@"下载源设置"];
+    
+    NSArray *sourceNames = @[@"自动选择", @"官方源", @"BMCL API", @"MCBBS API"];
+    UISegmentedControl *sourceSegment = [[UISegmentedControl alloc] initWithItems:sourceSegment];
+    sourceSegment = [[UISegmentedControl alloc] initWithItems:sourceNames];
+    sourceSegment.selectedSegmentIndex = [PCLDownloadManager sharedManager].downloadSource;
+    sourceSegment.translatesAutoresizingMaskIntoConstraints = NO;
+    sourceSegment.tintColor = PCLColor(0x1370F3);
+    [sourceSegment addTarget:self action:@selector(downloadSourceChanged:) forControlEvents:UIControlEventValueChanged];
+    [sourceCard addSubview:sourceSegment];
+    
+    [NSLayoutConstraint activateConstraints:@[
+        [sourceSegment.topAnchor constraintEqualToAnchor:sourceCard.topAnchor constant:36],
+        [sourceSegment.leadingAnchor constraintEqualToAnchor:sourceCard.leadingAnchor constant:12],
+        [sourceSegment.trailingAnchor constraintEqualToAnchor:sourceCard.trailingAnchor constant:-12],
+        [sourceSegment.bottomAnchor constraintEqualToAnchor:sourceCard.bottomAnchor constant:-12]
+    ]];
     
     // 内存设置卡片
     UIView *memCard = [self createCardWithTitle:@"内存分配"];
@@ -711,6 +731,10 @@ static NSString *const kGameDirectory = @"gameDirectory";
 }
 
 #pragma mark - Actions (持久化到NSUserDefaults)
+
+- (void)downloadSourceChanged:(UISegmentedControl *)sender {
+    [PCLDownloadManager sharedManager].downloadSource = sender.selectedSegmentIndex;
+}
 
 - (void)memoryMinChanged:(UISlider *)slider {
     NSInteger value = (NSInteger)(slider.value / 128) * 128;
