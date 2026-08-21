@@ -3,6 +3,7 @@
 #import "PCLNetworkUtils.h"
 #import "PCLDownloadManager.h"
 #import <QuartzCore/QuartzCore.h>
+#import <objc/runtime.h>
 
 static UIColor *PCLColor(NSUInteger rgb) {
     return [UIColor colorWithRed:((rgb >> 16) & 255) / 255.0
@@ -181,7 +182,7 @@ static NSString *PCLFormatDownloads(long long downloads) {
 
 - (void)setupUI {
     self.searchBar = [[UISearchBar alloc] init];
-    self.searchBar.placeholder = "搜索整合包...";
+    self.searchBar.placeholder = @"搜索整合包...";
     self.searchBar.delegate = self;
     self.searchBar.searchBarStyle = UISearchBarStyleMinimal;
     self.searchBar.backgroundColor = [UIColor whiteColor];
@@ -384,7 +385,7 @@ static NSString *PCLFormatDownloads(long long downloads) {
 - (void)startModpackInstall:(PCLModrinthProject *)modpack {
     [self showInstallProgress:modpack.title];
     
-    [[PCLModrinthAPI sharedAPI] versionsForProject:modpack.projectId
+    [[PCLModrinthAPI sharedAPI] versionsForProject:modpack.projectID
                                            facets:@{@"gameVersion": self.currentGameVersion ?: @""}
                                        completion:^(NSArray<PCLModrinthVersion *> *versions, NSError *error) {
         if (error || versions.count == 0) {
@@ -406,7 +407,7 @@ static NSString *PCLFormatDownloads(long long downloads) {
     
     NSFileManager *fm = [NSFileManager defaultManager];
     NSString *modpacksDir = [NSTemporaryDirectory() stringByAppendingPathComponent:@"modpacks"];
-    NSString *modpackDir = [modpacksDir stringByAppendingPathComponent:self.installingModpack.projectId];
+    NSString *modpackDir = [modpacksDir stringByAppendingPathComponent:self.installingModpack.projectID];
     [fm createDirectoryAtPath:modpackDir withIntermediateDirectories:YES attributes:nil error:nil];
     
     __weak typeof(self) weakSelf = self;

@@ -135,7 +135,7 @@ static UIColor *PCLColor(NSUInteger rgb) {
             item.name = [file stringByDeletingPathExtension];
             item.version = @"";
             item.modLoader = [self detectModLoader:file];
-            item.enabled = ![file.fileName.stringByDeletingPathExtension hasSuffix:@".disabled"];
+            item.enabled = ![file.stringByDeletingPathExtension hasSuffix:@".disabled"];
             item.filePath = [modsDir stringByAppendingPathComponent:file];
             [self.mods addObject:item];
         }
@@ -154,7 +154,7 @@ static UIColor *PCLColor(NSUInteger rgb) {
                     item.name = [file stringByDeletingPathExtension];
                     item.version = @"";
                     item.modLoader = [self detectModLoader:file];
-                    item.enabled = ![file.fileName.stringByDeletingPathExtension hasSuffix:@".disabled"];
+                    item.enabled = ![file.stringByDeletingPathExtension hasSuffix:@".disabled"];
                     item.filePath = [globalModsDir stringByAppendingPathComponent:file];
                     [self.mods addObject:item];
                 }
@@ -181,7 +181,7 @@ static UIColor *PCLColor(NSUInteger rgb) {
     if ([lower containsString:@"forge"]) return @"Forge";
     if ([lower containsString:@"neoforge"]) return @"NeoForge";
     if ([lower containsString:@"quilt"]) return @"Quilt";
-    if ([lower containsString:@"liteloader]) return @"LiteLoader";
+    if ([lower containsString:@"liteloader"]) return @"LiteLoader";
     return @"未知";
 }
 
