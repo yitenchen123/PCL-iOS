@@ -91,17 +91,21 @@ jobs:
             find build -name "*.app" -type d 2>/dev/null
             exit 1
           fi
-          # 内置JRE (参考Amethyst payload目标)
+          # 内置JRE (压缩为zip，运行时解压到Documents，避免ldid签名JRE二进制文件导致安装失败)
           if [ -d "depends/java-8-openjdk" ]; then
-            mkdir -p artifacts/Payload/PCL-iOS.app/java_runtimes
-            cp -r depends/java-*-openjdk artifacts/Payload/PCL-iOS.app/java_runtimes/ 2>/dev/null || true
+            echo "=== 打包JRE为zip压缩包 ==="
+            cd depends
+            zip -r -9 ../artifacts/Payload/PCL-iOS.app/java_runtimes.zip java-*-openjdk
+            cd ..
+            echo "JRE压缩包大小:"
+            ls -lh artifacts/Payload/PCL-iOS.app/java_runtimes.zip
           fi
           cd artifacts
           zip -r ../PCL-iOS.ipa Payload
           cd ..
           ls -lh PCL-iOS.ipa
           echo "=== IPA内容 ==="
-          unzip -l PCL-iOS.ipa | head -30
+          unzip -l PCL-iOS.ipa | head -40
       
       - name: Upload IPA
         uses: actions/upload-artifact@v4
