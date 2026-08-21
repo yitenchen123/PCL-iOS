@@ -539,7 +539,7 @@ static NSString *PCLFormatSize(NSInteger bytes) {
 - (void)viewDidLoad {
     [super viewDidLoad];
     
-    self.title = self.titleForType(self.currentTab);
+    self.title = [self titleForType:self.currentTab];
     self.view.backgroundColor = PCLColor(0xF5F7FA);
     
     self.resources = [NSMutableArray array];

@@ -30,7 +30,7 @@
 }
 
 - (void)setupUI {
-    self.tableView = [[UITableView alloc] initWithStyle:UITableViewStyleInsetGrouped];
+    self.tableView = [[UITableView alloc] initWithFrame:CGRectZero style:UITableViewStyleInsetGrouped];
     self.tableView.dataSource = self;
     self.tableView.delegate = self;
     self.tableView.translatesAutoresizingMaskIntoConstraints = NO;
