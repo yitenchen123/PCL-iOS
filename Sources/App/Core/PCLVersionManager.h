@@ -34,6 +34,7 @@
 - (void)fetchRemoteManifest:(void (^)(NSArray<NSDictionary *> *versions, NSError *error))completion;
 
 - (PCLVersionInfo *)versionInfoForId:(NSString *)versionId;
+- (PCLVersionInfo *)parseVersionJson:(NSDictionary *)dict;
 - (BOOL)isVersionInstalled:(NSString *)versionId;
 - (BOOL)createInstanceWithName:(NSString *)name baseVersion:(NSString *)versionId;
 - (NSArray<NSDictionary *> *)localInstances;
