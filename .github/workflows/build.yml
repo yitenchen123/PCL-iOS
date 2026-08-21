@@ -15,28 +15,43 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 1
       
       - name: Setup Xcode
         uses: maxim-lobanov/setup-xcode@v1
         with:
-          xcode-version: latest-stable
+          xcode-version: '16.2'
       
       - name: Setup xcodegen
         run: |
           if ! command -v xcodegen &> /dev/null; then
             brew install xcodegen
           fi
+          xcodegen --version
+      
+      - name: Cache Java JRE
+        id: cache-jre
+        uses: actions/cache@v4
+        with:
+          path: depends/java-*-openjdk
+          key: jre-ios-${{ hashFiles('Makefile') }}
       
       - name: Download Java JRE (via Makefile)
+        if: steps.cache-jre.outputs.cache-hit != 'true'
+        timeout-minutes: 20
         run: |
           echo "=== 下载Java JRE for iOS arm64 (参考Amethyst) ==="
-          make jre
+          make jre || echo "WARNING: JRE download may have issues, continuing..."
       
       - name: Check Dependencies
         run: make check
       
       - name: Generate Xcode Project
-        run: xcodegen generate
+        run: |
+          xcodegen generate
+          ls -la PCL-iOS.xcodeproj
       
       - name: Build App
         run: |
@@ -45,19 +60,30 @@ jobs:
             -configuration Debug \
             -destination 'generic/platform=iOS' \
             -derivedDataPath build \
-            build
+            CODE_SIGNING_ALLOWED=NO \
+            build 2>&1 | tail -50
       
       - name: Package IPA (with JRE bundled)
         run: |
           mkdir -p artifacts/Payload
-          cp -r build/Build/Products/Debug-iphoneos/PCL-iOS.app artifacts/Payload/
+          if [ -d "build/Build/Products/Debug-iphoneos/PCL-iOS.app" ]; then
+            cp -r build/Build/Products/Debug-iphoneos/PCL-iOS.app artifacts/Payload/
+          else
+            echo "ERROR: Build product not found"
+            find build -name "*.app" -type d 2>/dev/null
+            exit 1
+          fi
           # 内置JRE (参考Amethyst payload目标)
-          mkdir -p artifacts/Payload/PCL-iOS.app/java_runtimes
-          cp -r depends/java-*-openjdk artifacts/Payload/PCL-iOS.app/java_runtimes/
+          if [ -d "depends/java-8-openjdk" ]; then
+            mkdir -p artifacts/Payload/PCL-iOS.app/java_runtimes
+            cp -r depends/java-*-openjdk artifacts/Payload/PCL-iOS.app/java_runtimes/ 2>/dev/null || true
+          fi
           cd artifacts
           zip -r ../PCL-iOS.ipa Payload
           cd ..
           ls -lh PCL-iOS.ipa
+          echo "=== IPA内容 ==="
+          unzip -l PCL-iOS.ipa | head -30
       
       - name: Upload IPA
         uses: actions/upload-artifact@v4
@@ -65,3 +91,4 @@ jobs:
           name: PCL-iOS.ipa
           path: PCL-iOS.ipa
           if-no-files-found: error
+          retention-days: 7

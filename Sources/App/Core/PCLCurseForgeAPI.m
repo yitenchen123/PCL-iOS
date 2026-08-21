@@ -1,4 +1,5 @@
 #import "PCLCurseForgeAPI.h"
+#import "config.h"
 
 @implementation PCLCurseForgeFile
 @end
@@ -49,6 +50,7 @@
     NSMutableURLRequest *req = [NSMutableURLRequest requestWithURL:[NSURL URLWithString:urlString]];
     [req setValue:@"application/json" forHTTPHeaderField:@"Accept"];
     [req setValue:@"application/json" forHTTPHeaderField:@"Content-Type"];
+    [req setValue:CONFIG_CURSEFORGE_API_KEY forHTTPHeaderField:@"x-api-key"];
     return req;
 }
 

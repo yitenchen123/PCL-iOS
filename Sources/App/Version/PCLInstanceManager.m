@@ -253,4 +253,76 @@ NSString *const PCLCurrentInstanceNameKey = @"PCLCurrentInstanceName";
     return configDir;
 }
 
+// 获取实例saves目录 (存档)
+- (NSString *)savesDirectoryForInstance:(PCLInstance *)instance {
+    NSString *savesDir;
+    if (instance.versionIsolation) {
+        savesDir = [[self instanceDirectoryForName:instance.name] stringByAppendingPathComponent:@"saves"];
+    } else {
+        savesDir = [[self sharedGameDirectory] stringByAppendingPathComponent:@"saves"];
+    }
+    [self ensureDirectory:savesDir];
+    return savesDir;
+}
+
+// 获取实例screenshots目录 (截图)
+- (NSString *)screenshotsDirectoryForInstance:(PCLInstance *)instance {
+    NSString *dir;
+    if (instance.versionIsolation) {
+        dir = [[self instanceDirectoryForName:instance.name] stringByAppendingPathComponent:@"screenshots"];
+    } else {
+        dir = [[self sharedGameDirectory] stringByAppendingPathComponent:@"screenshots"];
+    }
+    [self ensureDirectory:dir];
+    return dir;
+}
+
+// 获取实例logs目录
+- (NSString *)logsDirectoryForInstance:(PCLInstance *)instance {
+    NSString *dir;
+    if (instance.versionIsolation) {
+        dir = [[self instanceDirectoryForName:instance.name] stringByAppendingPathComponent:@"logs"];
+    } else {
+        dir = [[self sharedGameDirectory] stringByAppendingPathComponent:@"logs"];
+    }
+    [self ensureDirectory:dir];
+    return dir;
+}
+
+// 获取实例resourcepacks目录 (资源包)
+- (NSString *)resourcePacksDirectoryForInstance:(PCLInstance *)instance {
+    NSString *dir;
+    if (instance.versionIsolation) {
+        dir = [[self instanceDirectoryForName:instance.name] stringByAppendingPathComponent:@"resourcepacks"];
+    } else {
+        dir = [[self sharedGameDirectory] stringByAppendingPathComponent:@"resourcepacks"];
+    }
+    [self ensureDirectory:dir];
+    return dir;
+}
+
+// 获取实例shaderpacks目录 (着色器)
+- (NSString *)shaderPacksDirectoryForInstance:(PCLInstance *)instance {
+    NSString *dir;
+    if (instance.versionIsolation) {
+        dir = [[self instanceDirectoryForName:instance.name] stringByAppendingPathComponent:@"shaderpacks"];
+    } else {
+        dir = [[self sharedGameDirectory] stringByAppendingPathComponent:@"shaderpacks"];
+    }
+    [self ensureDirectory:dir];
+    return dir;
+}
+
+// 获取实例natives目录 (本地库解压目录)
+- (NSString *)nativesDirectoryForInstance:(PCLInstance *)instance {
+    NSString *dir;
+    if (instance.versionIsolation) {
+        dir = [[self instanceDirectoryForName:instance.name] stringByAppendingPathComponent:@"natives"];
+    } else {
+        dir = [[self sharedGameDirectory] stringByAppendingPathComponent:@"natives"];
+    }
+    [self ensureDirectory:dir];
+    return dir;
+}
+
 @end

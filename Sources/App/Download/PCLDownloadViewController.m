@@ -1,16 +1,28 @@
 #import "PCLDownloadViewController.h"
-#import "PCLDownloadLeftView.h"
-#import "PCLDownloadRightView.h"
-#import "PCLCEPageAnimator.h"
+#import "PCLVanillaDownloadViewController.h"
+#import "PCLModBrowseViewController.h"
+#import "PCLModpackBrowseViewController.h"
 
-@interface PCLDownloadViewController ()
+static UIColor *PCLColor(NSUInteger rgb) {
+    return [UIColor colorWithRed:((rgb >> 16) & 255) / 255.0
+                           green:((rgb >> 8) & 255) / 255.0
+                            blue:(rgb & 255) / 255.0
+                           alpha:1.0];
+}
 
-@property (nonatomic, strong) PCLDownloadLeftView *leftView;
-@property (nonatomic, strong) PCLDownloadRightView *rightView;
-@property (nonatomic, strong) CAGradientLayer *backgroundGradient;
-@property (nonatomic, strong) UIView *leftShadowView;
-@property (nonatomic, strong) CAGradientLayer *leftShadowGradient;
-@property (nonatomic) PCLDownloadTab currentTab;
+@interface PCLDownloadViewController () <UIScrollViewDelegate>
+
+@property (nonatomic, strong) UIScrollView *tabScrollView;
+@property (nonatomic, strong) UIStackView *tabStackView;
+@property (nonatomic, strong) UIView *contentContainer;
+@property (nonatomic, strong) NSArray<NSString *> *tabTitles;
+@property (nonatomic, assign) NSInteger selectedTab;
+@property (nonatomic, strong) NSMutableArray<UIButton *> *tabButtons;
+
+// Child view controllers
+@property (nonatomic, strong) PCLVanillaDownloadViewController *vanillaVC;
+@property (nonatomic, strong) PCLModBrowseViewController *modVC;
+@property (nonatomic, strong) PCLModpackBrowseViewController *modpackVC;
 
 @end
 
@@ -19,138 +31,239 @@
 - (void)viewDidLoad {
     [super viewDidLoad];
     
-    self.view.backgroundColor = [UIColor colorWithRed:251.0/255.0 green:251.0/255.0 blue:251.0/255.0 alpha:1.0];
-    self.currentTab = PCLDownloadTabMinecraft;
+    self.view.backgroundColor = PCLColor(0xF5F7FA);
     
-    [self buildCEBackground];
-    [self buildUI];
-}
-
-- (void)buildCEBackground {
-    self.backgroundGradient = [CAGradientLayer layer];
-    self.backgroundGradient.colors = @[
-        (id)[UIColor colorWithRed:.68 green:.80 blue:.98 alpha:1].CGColor,
-        (id)[UIColor colorWithRed:.92 green:.96 blue:1 alpha:1].CGColor,
-        (id)[UIColor colorWithRed:.76 green:.84 blue:.99 alpha:1].CGColor
+    // 下载分类: 原版、模组、整合包、光影、资源包、数据包 (PCL CE风格)
+    self.tabTitles = @[
+        @"Minecraft", @"模组", @"整合包", @"光影",
+        @"资源包", @"数据包"
     ];
-    self.backgroundGradient.locations = @[@0, @.4, @1];
-    self.backgroundGradient.startPoint = CGPointMake(.9, 0);
-    self.backgroundGradient.endPoint = CGPointMake(.1, 1);
-    [self.view.layer insertSublayer:self.backgroundGradient atIndex:0];
+    self.tabButtons = [NSMutableArray array];
+    self.selectedTab = 0;
+    
+    [self setupUI];
+    [self setupChildViewControllers];
+    [self switchToTab:0];
 }
 
-- (void)buildUI {
-    self.leftView = [[PCLDownloadLeftView alloc] init];
-    self.rightView = [[PCLDownloadRightView alloc] init];
+- (void)setupUI {
+    // 顶部滚动标签栏
+    self.tabScrollView = [[UIScrollView alloc] init];
+    self.tabScrollView.translatesAutoresizingMaskIntoConstraints = NO;
+    self.tabScrollView.showsHorizontalScrollIndicator = NO;
+    self.tabScrollView.backgroundColor = [UIColor whiteColor];
+    self.tabScrollView.layer.shadowColor = [UIColor blackColor].CGColor;
+    self.tabScrollView.layer.shadowOpacity = 0.05;
+    self.tabScrollView.layer.shadowRadius = 4;
+    self.tabScrollView.layer.shadowOffset = CGSizeMake(0, 2);
+    [self.view addSubview:self.tabScrollView];
     
-    [self.view addSubview:self.leftView];
-    [self.view addSubview:self.rightView];
+    [NSLayoutConstraint activateConstraints:@[
+        [self.tabScrollView.topAnchor constraintEqualToAnchor:self.view.safeAreaLayoutGuide.topAnchor],
+        [self.tabScrollView.leadingAnchor constraintEqualToAnchor:self.view.leadingAnchor],
+        [self.tabScrollView.trailingAnchor constraintEqualToAnchor:self.view.trailingAnchor],
+        [self.tabScrollView.heightAnchor constraintEqualToConstant:50]
+    ]];
     
-    self.leftShadowView = [[UIView alloc] init];
-    self.leftShadowView.userInteractionEnabled = NO;
-    self.leftShadowGradient = [CAGradientLayer layer];
-    self.leftShadowGradient.colors = @[
-        (id)[UIColor colorWithWhite:0 alpha:.04].CGColor,
-        (id)[UIColor colorWithWhite:0 alpha:0].CGColor
-    ];
-    self.leftShadowGradient.startPoint = CGPointMake(0, .5);
-    self.leftShadowGradient.endPoint = CGPointMake(1, .5);
-    [self.leftShadowView.layer addSublayer:self.leftShadowGradient];
-    [self.view addSubview:self.leftShadowView];
+    // 标签按钮容器
+    self.tabStackView = [[UIStackView alloc] init];
+    self.tabStackView.translatesAutoresizingMaskIntoConstraints = NO;
+    self.tabStackView.axis = UILayoutConstraintAxisHorizontal;
+    self.tabStackView.spacing = 0;
+    self.tabStackView.alignment = UIStackViewAlignmentCenter;
+    self.tabStackView.distribution = UIStackViewDistributionFill;
+    [self.tabScrollView addSubview:self.tabStackView];
     
-    __weak typeof(self) weakSelf = self;
+    [NSLayoutConstraint activateConstraints:@[
+        [self.tabStackView.topAnchor constraintEqualToAnchor:self.tabScrollView.topAnchor],
+        [self.tabStackView.leadingAnchor constraintEqualToAnchor:self.tabScrollView.leadingAnchor constant:8],
+        [self.tabStackView.trailingAnchor constraintEqualToAnchor:self.tabScrollView.trailingAnchor constant:-8],
+        [self.tabStackView.bottomAnchor constraintEqualToAnchor:self.tabScrollView.bottomAnchor],
+        [self.tabStackView.heightAnchor constraintEqualToAnchor:self.tabScrollView.heightAnchor]
+    ]];
     
-    self.leftView.onSelectTab = ^(PCLDownloadTab tab) {
-        [weakSelf selectTab:tab];
-    };
+    // 创建标签按钮
+    for (NSInteger i = 0; i < self.tabTitles.count; i++) {
+        UIButton *btn = [UIButton buttonWithType:UIButtonTypeCustom];
+        btn.translatesAutoresizingMaskIntoConstraints = NO;
+        [btn setTitle:self.tabTitles[i] forState:UIControlStateNormal];
+        [btn setTitleColor:PCLColor(0x8C8C8C) forState:UIControlStateNormal];
+        [btn setTitleColor:PCLColor(0x1370F3) forState:UIControlStateSelected];
+        [btn setTitleColor:PCLColor(0x1370F3) forState:UIControlStateSelected | UIControlStateHighlighted];
+        btn.titleLabel.font = [UIFont systemFontOfSize:15 weight:UIFontWeightMedium];
+        btn.tag = i;
+        [btn addTarget:self action:@selector(tabTapped:) forControlEvents:UIControlEventTouchUpInside];
+        [self.tabStackView addArrangedSubview:btn];
+        [self.tabButtons addObject:btn];
+        
+        // 内边距
+        btn.contentEdgeInsets = UIEdgeInsetsMake(0, 16, 0, 16);
+        [btn.heightAnchor constraintEqualToConstant:50].active = YES;
+    }
     
-    self.rightView.onCreateProfile = ^{
-        if (weakSelf.onCreateProfile) weakSelf.onCreateProfile();
-    };
+    // 选中指示器
+    UIView *indicator = [[UIView alloc] init];
+    indicator.translatesAutoresizingMaskIntoConstraints = NO;
+    indicator.backgroundColor = PCLColor(0x1370F3);
+    indicator.tag = 100;
+    indicator.layer.cornerRadius = 2;
+    [self.tabScrollView addSubview:indicator];
     
-    self.rightView.onLaunch = ^{
-        if (weakSelf.onLaunch) weakSelf.onLaunch();
-    };
+    [NSLayoutConstraint activateConstraints:@[
+        [indicator.bottomAnchor constraintEqualToAnchor:self.tabScrollView.bottomAnchor],
+        [indicator.heightAnchor constraintEqualToConstant:3],
+        [indicator.widthAnchor constraintEqualToConstant:40]
+    ]];
     
-    self.rightView.onSelectInstance = ^{
-        if (weakSelf.onSelectInstance) weakSelf.onSelectInstance();
-    };
+    // 内容容器
+    self.contentContainer = [[UIView alloc] init];
+    self.contentContainer.translatesAutoresizingMaskIntoConstraints = NO;
+    self.contentContainer.backgroundColor = [UIColor clearColor];
+    [self.view addSubview:self.contentContainer];
     
-    self.rightView.onInstanceSettings = ^{
-        if (weakSelf.onInstanceSettings) weakSelf.onInstanceSettings();
-    };
-    
-    self.rightView.onSkinOptions = ^{
-        if (weakSelf.onSkinOptions) weakSelf.onSkinOptions();
-    };
-    
-    self.rightView.onEditProfile = ^{
-        if (weakSelf.onEditProfile) weakSelf.onEditProfile();
-    };
-    
-    self.rightView.onCloseHint = ^{
-        if (weakSelf.onCloseHint) weakSelf.onCloseHint();
-    };
-    
-    self.rightView.onOpenDownload = ^{
-        if (weakSelf.onOpenDownload) weakSelf.onOpenDownload();
-    };
+    [NSLayoutConstraint activateConstraints:@[
+        [self.contentContainer.topAnchor constraintEqualToAnchor:self.tabScrollView.bottomAnchor],
+        [self.contentContainer.leadingAnchor constraintEqualToAnchor:self.view.leadingAnchor],
+        [self.contentContainer.trailingAnchor constraintEqualToAnchor:self.view.trailingAnchor],
+        [self.contentContainer.bottomAnchor constraintEqualToAnchor:self.view.bottomAnchor]
+    ]];
 }
 
-- (void)selectTab:(PCLDownloadTab)tab {
-    self.currentTab = tab;
-    [self.rightView switchToTab:tab];
+- (void)setupChildViewControllers {
+    // Minecraft 原版下载
+    self.vanillaVC = [[PCLVanillaDownloadViewController alloc] init];
+    [self addChildViewController:self.vanillaVC];
+    [self.contentContainer addSubview:self.vanillaVC.view];
+    self.vanillaVC.view.translatesAutoresizingMaskIntoConstraints = NO;
+    [NSLayoutConstraint activateConstraints:@[
+        [self.vanillaVC.view.topAnchor constraintEqualToAnchor:self.contentContainer.topAnchor],
+        [self.vanillaVC.view.leadingAnchor constraintEqualToAnchor:self.contentContainer.leadingAnchor],
+        [self.vanillaVC.view.trailingAnchor constraintEqualToAnchor:self.contentContainer.trailingAnchor],
+        [self.vanillaVC.view.bottomAnchor constraintEqualToAnchor:self.contentContainer.bottomAnchor]
+    ]];
+    [self.vanillaVC didMoveToParentViewController:self];
+    
+    // 模组浏览
+    self.modVC = [[PCLModBrowseViewController alloc] init];
+    [self addChildViewController:self.modVC];
+    [self.contentContainer addSubview:self.modVC.view];
+    self.modVC.view.translatesAutoresizingMaskIntoConstraints = NO;
+    [NSLayoutConstraint activateConstraints:@[
+        [self.modVC.view.topAnchor constraintEqualToAnchor:self.contentContainer.topAnchor],
+        [self.modVC.view.leadingAnchor constraintEqualToAnchor:self.contentContainer.leadingAnchor],
+        [self.modVC.view.trailingAnchor constraintEqualToAnchor:self.contentContainer.trailingAnchor],
+        [self.modVC.view.bottomAnchor constraintEqualToAnchor:self.contentContainer.bottomAnchor}
+    ]];
+    [self.modVC didMoveToParentViewController:self];
+    self.modVC.view.hidden = YES;
+    
+    // 整合包浏览
+    self.modpackVC = [[PCLModpackBrowseViewController alloc] init];
+    [self addChildViewController:self.modpackVC];
+    [self.contentContainer addSubview:self.modpackVC.view];
+    self.modpackVC.view.translatesAutoresizingMaskIntoConstraints = NO;
+    [NSLayoutConstraint activateConstraints:@[
+        [self.modpackVC.view.topAnchor constraintEqualToAnchor:self.contentContainer.topAnchor],
+        [self.modpackVC.view.leadingAnchor constraintEqualToAnchor:self.contentContainer.leadingAnchor],
+        [self.modpackVC.view.trailingAnchor constraintEqualToAnchor:self.contentContainer.trailingAnchor],
+        [self.modpackVC.view.bottomAnchor constraintEqualToAnchor:self.contentContainer.bottomAnchor}
+    ]];
+    [self.modpackVC didMoveToParentViewController:self];
+    self.modpackVC.view.hidden = YES;
 }
 
-- (void)viewDidLayoutSubviews {
-    [super viewDidLayoutSubviews];
-    CGFloat w = CGRectGetWidth(self.view.bounds);
-    CGFloat h = CGRectGetHeight(self.view.bounds);
-    CGFloat scale = MIN(w / 850.0, h / 417.2);
-    CGFloat leftW = self.leftPanelWidth > 0 ? MIN(self.leftPanelWidth, w) : 300.0 * scale;
-    scale = MIN(scale, leftW / 300.0);
-    CGFloat y = 0.0;
-    self.backgroundGradient.frame = self.view.bounds;
-    self.leftView.frame = CGRectMake(0, y, leftW, h);
-    self.leftView.designScale = scale;
-    self.rightView.designScale = scale;
-    self.rightView.frame = CGRectMake(leftW, y, MAX(0, w - leftW), h);
-    self.leftShadowView.frame = CGRectMake(leftW, y, 4 * scale, h);
-    self.leftShadowGradient.frame = self.leftShadowView.bounds;
+- (void)tabTapped:(UIButton *)sender {
+    [self switchToTab:sender.tag];
+}
+
+- (void)switchToTab:(NSInteger)tab {
+    self.selectedTab = tab;
+    
+    // 更新按钮状态
+    for (UIButton *btn in self.tabButtons) {
+        btn.selected = (btn.tag == tab);
+        btn.titleLabel.font = (btn.tag == tab) ? 
+            [UIFont systemFontOfSize:15 weight:UIFontWeightBold] :
+            [UIFont systemFontOfSize:15 weight:UIFontWeightMedium];
+    }
+    
+    // 切换子视图控制器显示
+    self.vanillaVC.view.hidden = (tab != 0);
+    self.modVC.view.hidden = (tab != 1);
+    self.modpackVC.view.hidden = (tab != 2);
+    
+    // 其他标签显示占位
+    if (tab > 2) {
+        self.vanillaVC.view.hidden = YES;
+        self.modVC.view.hidden = YES;
+        self.modpackVC.view.hidden = YES;
+        [self showPlaceholderForTab:tab];
+    }
+    
+    // 更新指示器位置
+    [self updateIndicatorPosition];
+}
+
+- (void)updateIndicatorPosition {
+    UIButton *selectedBtn = self.tabButtons[self.selectedTab];
+    UIView *indicator = [self.tabScrollView viewWithTag:100];
+    
+    [UIView animateWithDuration:0.25 animations:^{
+        // 将指示器移动到选中按钮下方
+        CGRect btnFrame = [self.tabScrollView convertRect:selectedBtn.frame fromView:self.tabStackView];
+        indicator.center = CGPointMake(CGRectGetMidX(btnFrame), self.tabScrollView.bounds.size.height - 1.5);
+        
+        // 滚动标签栏使选中项可见
+        CGFloat targetX = selectedBtn.center.x - self.tabScrollView.bounds.size.width / 2;
+        targetX = MAX(0, MIN(targetX, self.tabScrollView.contentSize.width - self.tabScrollView.bounds.size.width));
+        [self.tabScrollView setContentOffset:CGPointMake(targetX, 0) animated:YES];
+    }];
+}
+
+- (void)showPlaceholderForTab:(NSInteger)tab {
+    static NSInteger placeholderTag = 999;
+    UIView *existing = [self.contentContainer viewWithTag:placeholderTag];
+    [existing removeFromSuperview];
+    
+    UIView *placeholder = [[UIView alloc] init];
+    placeholder.translatesAutoresizingMaskIntoConstraints = NO;
+    placeholder.tag = placeholderTag;
+    placeholder.backgroundColor = [UIColor clearColor];
+    [self.contentContainer addSubview:placeholder];
+    
+    [NSLayoutConstraint activateConstraints:@[
+        [placeholder.topAnchor constraintEqualToAnchor:self.contentContainer.topAnchor],
+        [placeholder.leadingAnchor constraintEqualToAnchor:self.contentContainer.leadingAnchor],
+        [placeholder.trailingAnchor constraintEqualToAnchor:self.contentContainer.trailingAnchor],
+        [placeholder.bottomAnchor constraintEqualToAnchor:self.contentContainer.bottomAnchor]
+    ]];
+    
+    UILabel *label = [[UILabel alloc] init];
+    label.translatesAutoresizingMaskIntoConstraints = NO;
+    label.text = self.tabTitles[tab];
+    label.font = [UIFont systemFontOfSize:18 weight:UIFontWeightBold];
+    label.textColor = PCLColor(0x343D4A);
+    label.textAlignment = NSTextAlignmentCenter;
+    [placeholder addSubview:label];
+    
+    UILabel *subLabel = [[UILabel alloc] init];
+    subLabel.translatesAutoresizingMaskIntoConstraints = NO;
+    subLabel.text = @"功能开发中...";
+    subLabel.font = [UIFont systemFontOfSize:14];
+    subLabel.textColor = PCLColor(0x8C8C8C);
+    subLabel.textAlignment = NSTextAlignmentCenter;
+    [placeholder addSubview:subLabel];
+    
+    [NSLayoutConstraint activateConstraints:@[
+        [label.centerXAnchor constraintEqualToAnchor:placeholder.centerXAnchor],
+        [label.centerYAnchor constraintEqualToAnchor:placeholder.centerYAnchor constant:-20],
+        [subLabel.centerXAnchor constraintEqualToAnchor:placeholder.centerXAnchor],
+        [subLabel.topAnchor constraintEqualToAnchor:label.bottomAnchor constant:8]
+    ]];
 }
 
 - (void)dismissTransientUI {
-    [self.leftView dismissTransientUI];
-    [self.rightView dismissTransientUI];
-}
-
-- (void)prepareCEEnterAnimation {
-    [self.leftView prepareCEEnterAnimation];
-    [self.rightView prepareCEEnterAnimation];
-    self.view.userInteractionEnabled = NO;
-}
-
-- (void)playCEEnterAnimation {
-    [self.leftView playCEEnterAnimation];
-    [self.rightView playCEEnterAnimation];
-    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(.400 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-        self.view.userInteractionEnabled = YES;
-    });
-}
-
-- (void)playCEExitWithCompletion:(dispatch_block_t)completion {
-    [self dismissTransientUI];
-    self.view.userInteractionEnabled = NO;
-    [self.leftView playCEExitAnimation];
-    [self.rightView playCEExitAnimation];
-    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(.110 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-        if (completion) completion();
-    });
-}
-
-- (void)reloadState {
-    [self.leftView reloadState];
-    [self.rightView reloadState];
+    // 清理临时UI
 }
 
 @end

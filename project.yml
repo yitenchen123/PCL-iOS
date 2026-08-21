@@ -14,8 +14,20 @@ targets:
     deploymentTarget: "14.0"
     sources:
       - path: Sources/App
+      - path: Sources/App/Core/config.h
+        buildPhase: none
       - path: Resources
-      - path: depends
+      - path: depends/Frameworks
+        buildPhase: resources
+        optional: true
+        type: folder
+      - path: depends/libs
+        buildPhase: resources
+        optional: true
+      - path: depends/libs/caciocavallo
+        buildPhase: resources
+        optional: true
+      - path: depends/libs/caciocavallo17
         buildPhase: resources
         optional: true
     dependencies:
@@ -34,3 +46,5 @@ targets:
         PRODUCT_NAME: PCL-iOS
         TARGETED_DEVICE_FAMILY: "1,2"
         GCC_PREPROCESSOR_DEFINITIONS: "$(inherited) GLES_SILENT_DEPRECATION=1"
+        COPY_PHASE_STRIP: NO
+        STRIP_INSTALLED_PRODUCT: NO

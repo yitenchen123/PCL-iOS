@@ -51,5 +51,11 @@ extern NSString *const PCLCurrentInstanceNameKey;
 - (NSString *)sharedGameDirectory;
 - (NSString *)modsDirectoryForInstance:(PCLInstance *)instance;
 - (NSString *)configDirectoryForInstance:(PCLInstance *)instance;
+- (NSString *)savesDirectoryForInstance:(PCLInstance *)instance;
+- (NSString *)screenshotsDirectoryForInstance:(PCLInstance *)instance;
+- (NSString *)logsDirectoryForInstance:(PCLInstance *)instance;
+- (NSString *)resourcePacksDirectoryForInstance:(PCLInstance *)instance;
+- (NSString *)shaderPacksDirectoryForInstance:(PCLInstance *)instance;
+- (NSString *)nativesDirectoryForInstance:(PCLInstance *)instance;
 
 @end
