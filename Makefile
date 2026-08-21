@@ -148,7 +148,7 @@ gen:
 	@echo "[PCL-iOS] 项目生成完成"
 
 # ===== LWJGL下载 (来自Amethyst) =====
-AMETHYST_BASE := https://raw.githubusercontent.com/herbrine8403/Amethyst-iOS-MyRemastered/main/JavaApp/libs
+AMETHYST_BASE := https://raw.githubusercontent.com/herbrine8403/Amethyst-iOS-MyRemastered/main
 
 lwjgl:
 	@echo "[PCL-iOS] 下载LWJGL JARs (来自 Amethyst JavaApp/libs)..."
@@ -156,24 +156,50 @@ lwjgl:
 	@# LWJGL JARs
 	for jar in lwjgl.jar lwjgl-opengl.jar lwjgl-openal.jar lwjgl-glfw.jar lwjgl-stb.jar lwjgl-nanovg.jar lwjgl-vulkan.jar lwjgl-callback-descriptor.jar lwjgl-input.jar lwjgl-system.jar lwjgl-util.jar; do \
 		echo "  下载 $$jar..."; \
-	 curl -sL -o $(DEPENDS_DIR)/libs/lwjgl/$$jar "$(AMETHYST_BASE)/lwjgl/$$jar" || wget -q -O $(DEPENDS_DIR)/libs/lwjgl/$$jar "$(AMETHYST_BASE)/lwjgl/$$jar"; \
+	 curl -sL -o $(DEPENDS_DIR)/libs/lwjgl/$$jar "$(AMETHYST_BASE)/JavaApp/libs/lwjgl/$$jar" || wget -q -O $(DEPENDS_DIR)/libs/lwjgl/$$jar "$(AMETHYST_BASE)/JavaApp/libs/lwjgl/$$jar"; \
 	done
 	@# 其他依赖
 	for jar in gson-2.13.1.jar jsr305.jar arc_dns_injector.jar; do \
 		echo "  下载 $$jar..."; \
-	 curl -sL -o $(DEPENDS_DIR)/libs/others/$$jar "$(AMETHYST_BASE)/others/$$jar" || wget -q -O $(DEPENDS_DIR)/libs/others/$$jar "$(AMETHYST_BASE)/others/$$jar"; \
+	 curl -sL -o $(DEPENDS_DIR)/libs/others/$$jar "$(AMETHYST_BASE)/JavaApp/libs/others/$$jar" || wget -q -O $(DEPENDS_DIR)/libs/others/$$jar "$(AMETHYST_BASE)/JavaApp/libs/others/$$jar"; \
 	done
 	@# Caciocavallo (Java 8)
 	for jar in ResConfHack.jar cacio-androidnw-1.10-SNAPSHOT.jar cacio-shared-1.10-SNAPSHOT.jar; do \
 		echo "  下载 $$jar..."; \
-	 curl -sL -o $(DEPENDS_DIR)/libs/caciocavallo/$$jar "$(AMETHYST_BASE)/caciocavallo/$$jar" || wget -q -O $(DEPENDS_DIR)/libs/caciocavallo/$$jar "$(AMETHYST_BASE)/caciocavallo/$$jar"; \
+	 curl -sL -o $(DEPENDS_DIR)/libs/caciocavallo/$$jar "$(AMETHYST_BASE)/JavaApp/libs/caciocavallo/$$jar" || wget -q -O $(DEPENDS_DIR)/libs/caciocavallo/$$jar "$(AMETHYST_BASE)/JavaApp/libs/caciocavallo/$$jar"; \
 	done
 	@# Caciocavallo17 (Java 17+)
 	for jar in cacio-shared-1.18-SNAPSHOT.jar cacio-tta-1.18-SNAPSHOT.jar; do \
 		echo "  下载 $$jar..."; \
-	 curl -sL -o $(DEPENDS_DIR)/libs/caciocavallo17/$$jar "$(AMETHYST_BASE)/caciocavallo17/$$jar" || wget -q -O $(DEPENDS_DIR)/libs/caciocavallo17/$$jar "$(AMETHYST_BASE)/caciocavallo17/$$jar"; \
+		curl -sL -o $(DEPENDS_DIR)/libs/caciocavallo17/$$jar "$(AMETHYST_BASE)/JavaApp/libs/caciocavallo17/$$jar" || wget -q -O $(DEPENDS_DIR)/libs/caciocavallo17/$$jar "$(AMETHYST_BASE)/JavaApp/libs/caciocavallo17/$$jar"; \
 	done
 	@echo "[PCL-iOS] LWJGL下载完成"
+
+# ===== Dylibs下载 (来自Amethyst Natives/resources/Frameworks) =====
+dylibs:
+	@echo "[PCL-iOS] 下载预编译dylib (来自 Amethyst Natives/resources/Frameworks)..."
+	mkdir -p $(DEPENDS_DIR)/Frameworks
+	@# 基础dylib
+	for dylib in libMoltenVK.dylib libOSMesa.8.dylib libfreetype.dylib libgl4es_114.dylib libglapi.0.dylib libopenal.dylib libshaderc.dylib libspirv-cross-c-shared.0.dylib libvirgl_test_server.dylib liblwjgl.dylib liblwjgl_opengl.dylib liblwjgl_nanovg.dylib liblwjgl_stb.dylib liblwjgl_tinyfd.dylib liblwjgl_vma.dylib; do \
+		echo "  下载 $$dylib..."; \
+		curl -sL -o $(DEPENDS_DIR)/Frameworks/$$dylib "$(AMETHYST_BASE)/Natives/resources/Frameworks/$$dylib" || wget -q -O $(DEPENDS_DIR)/Frameworks/$$dylib "$(AMETHYST_BASE)/Natives/resources/Frameworks/$$dylib"; \
+	done
+	@# Frameworks
+	mkdir -p $(DEPENDS_DIR)/Frameworks/libEGL.framework $(DEPENDS_DIR)/Frameworks/libGLESv2.framework $(DEPENDS_DIR)/Frameworks/AltKit.framework $(DEPENDS_DIR)/Frameworks/CAltKit.framework $(DEPENDS_DIR)/Frameworks/UnzipKit.framework
+	curl -sL -o $(DEPENDS_DIR)/Frameworks/libEGL.framework/Info.plist "$(AMETHYST_BASE)/Natives/resources/Frameworks/libEGL.framework/Info.plist"
+	curl -sL -o $(DEPENDS_DIR)/Frameworks/libEGL.framework/libEGL "$(AMETHYST_BASE)/Natives/resources/Frameworks/libEGL.framework/libEGL"
+	curl -sL -o $(DEPENDS_DIR)/Frameworks/libGLESv2.framework/Info.plist "$(AMETHYST_BASE)/Natives/resources/Frameworks/libGLESv2.framework/Info.plist"
+	curl -sL -o $(DEPENDS_DIR)/Frameworks/libGLESv2.framework/libGLESv2 "$(AMETHYST_BASE)/Natives/resources/Frameworks/libGLESv2.framework/libGLESv2"
+	curl -sL -o $(DEPENDS_DIR)/Frameworks/AltKit.framework/Info.plist "$(AMETHYST_BASE)/Natives/resources/Frameworks/AltKit.framework/Info.plist"
+	curl -sL -o $(DEPENDS_DIR)/Frameworks/AltKit.framework/AltKit "$(AMETHYST_BASE)/Natives/resources/Frameworks/AltKit.framework/AltKit"
+	curl -sL -o $(DEPENDS_DIR)/Frameworks/CAltKit.framework/Info.plist "$(AMETHYST_BASE)/Natives/resources/Frameworks/CAltKit.framework/Info.plist"
+	curl -sL -o $(DEPENDS_DIR)/Frameworks/CAltKit.framework/CAltKit "$(AMETHYST_BASE)/Natives/resources/Frameworks/CAltKit.framework/CAltKit"
+	curl -sL -o $(DEPENDS_DIR)/Frameworks/UnzipKit.framework/Info.plist "$(AMETHYST_BASE)/Natives/resources/Frameworks/UnzipKit.framework/Info.plist"
+	curl -sL -o $(DEPENDS_DIR)/Frameworks/UnzipKit.framework/UnzipKit "$(AMETHYST_BASE)/Natives/resources/Frameworks/UnzipKit.framework/UnzipKit"
+	@echo "[PCL-iOS] Dylibs下载完成"
+	@# MoltenVK (使用yitenchen123预构建的1.4.3真机版)
+	@echo "[PCL-iOS] 注意: libMoltenVK.dylib 应替换为 yitenchen123/MoltenVK 构建的 1.4.3 真机arm64 版本"
+	@echo "  下载地址: https://github.com/yitenchen123/MoltenVK/actions/runs/31651139093"
 
 # ===== 清理 =====
 clean:
