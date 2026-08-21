@@ -47,7 +47,7 @@ static NSString *const kVersionManifestURL = @"https://piston-meta.mojang.com/mc
         return;
     }
     
-    self.isDownloading = YES;
+    self.downloading = YES;
     self.currentVersionId = versionId;
     self.progressBlock = progress;
     self.completionBlock = completion;
@@ -58,7 +58,7 @@ static NSString *const kVersionManifestURL = @"https://piston-meta.mojang.com/mc
 }
 
 - (void)cancelDownload {
-    self.isDownloading = NO;
+    self.downloading = NO;
     self.currentStep = PCLVanillaDownloadStepIdle;
 }
 
@@ -351,7 +351,7 @@ static NSString *const kVersionManifestURL = @"https://piston-meta.mojang.com/mc
 - (void)_extractNatives:(NSDictionary *)json versionId:(NSString *)versionId {
     [self _updateStep:PCLVanillaDownloadStepExtractingNatives overall:0.9 stepProgress:0.0 message:@"解压native库..."];
     
-    self.isDownloading = NO;
+    self.downloading = NO;
     self.currentStep = PCLVanillaDownloadStepCompleted;
     
     [self _updateStep:PCLVanillaDownloadStepCompleted overall:1.0 stepProgress:1.0 message:@"下载完成"];
@@ -426,7 +426,7 @@ static NSString *const kVersionManifestURL = @"https://piston-meta.mojang.com/mc
 }
 
 - (void)_failWithError:(NSError *)error {
-    self.isDownloading = NO;
+    self.downloading = NO;
     self.currentStep = PCLVanillaDownloadStepFailed;
     PCLLogger *logger = [PCLLogger sharedLogger];
     [logger error:[NSString stringWithFormat:@"[VanillaDownload] Failed: %@", error.localizedDescription]];
