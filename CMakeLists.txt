@@ -13,11 +13,6 @@ set(CMAKE_OSX_ARCHITECTURES arm64)
 set(CMAKE_OSX_DEPLOYMENT_TARGET "14.0")
 set(CMAKE_XCODE_ATTRIBUTE_ONLY_ACTIVE_ARCH NO)
 
-# Find toolchain
-set(CMAKE_C_COMPILER clang)
-set(CMAKE_CXX_COMPILER clang++)
-set(CMAKE_ASM_COMPILER clang)
-
 # Common flags for iOS
 set(IOS_FLAGS "-miphoneos-version-min=14.0 -fembed-bitcode")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${IOS_FLAGS}")
@@ -36,29 +31,11 @@ configure_file(
 
 # ============================================================================
 # MobileGlues (GL/Vulkan wrapper) - 源码内置，构建时编译 (参考Amethyst)
-# 来源: Amethyst-iOS-MyRemastered/external/MobileGlues
+# 来源: MobileGL-Dev/MobileGlues (Amethyst使用相同方式)
 # ============================================================================
-set(MOBILEGLUES_DIR ${CMAKE_CURRENT_SOURCE_DIR}/Sources/Native/mobileglues/src/main/cpp)
-
-add_library(mobileglues SHARED
-    ${MOBILEGLUES_DIR}/src/mobileglues.c
-    ${MOBILEGLUES_DIR}/src/ltw.c
-)
-
-target_include_directories(mobileglues PRIVATE
-    ${MOBILEGLUES_DIR}/include
-)
-
-target_compile_definitions(mobileglues PRIVATE
-    MOBILEGLUES_BUILD=1
-    LTW_BUILD=1
-)
-
-set_target_properties(mobileglues PROPERTIES
-    C_STANDARD 11
-    C_STANDARD_REQUIRED ON
-    FRAMEWORK FALSE
-)
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/Sources/Native/mobileglues/CMakeLists.txt)
+    add_subdirectory(Sources/Native/mobileglues)
+endif()
 
 # ============================================================================
 # AWT/Caciocavallo (from PojavLauncherTeam)
@@ -101,12 +78,10 @@ target_compile_definitions(gl4es_114 PRIVATE
 add_library(tinygl4angle SHARED
     Sources/Native/gl4es/string_utils.c
     Sources/Native/gl4es/tinygl4angle.c
-    ${MOBILEGLUES_DIR}/src/mobileglues.c
 )
 
 target_include_directories(tinygl4angle PRIVATE
     Sources/Native/gl4es/include
-    ${MOBILEGLUES_DIR}/include
 )
 
 # ============================================================================
@@ -128,12 +103,12 @@ target_include_directories(OSMesa PRIVATE
 # ============================================================================
 
 add_library(ltw SHARED
-    ${MOBILEGLUES_DIR}/src/ltw.c
-    ${MOBILEGLUES_DIR}/src/mobileglues.c
+    Sources/Native/mobileglues/src/main/cpp/src/ltw.c
+    Sources/Native/mobileglues/src/main/cpp/src/mobileglues.c
 )
 
 target_include_directories(ltw PRIVATE
-    ${MOBILEGLUES_DIR}/include
+    Sources/Native/mobileglues/src/main/cpp/include
 )
 
 target_compile_definitions(ltw PRIVATE
@@ -144,31 +119,6 @@ set_target_properties(ltw PROPERTIES
     C_STANDARD 11
     C_STANDARD_REQUIRED ON
 )
-
-# ============================================================================
-# GLFW (bundled for iOS)
-# 来源: https://github.com/glfw/glfw (iOS port)
-# ============================================================================
-
-find_package(glfw3 QUIET)
-if (NOT glfw3_FOUND)
-    add_subdirectory(Sources/Native/glfw)
-endif()
-
-# ============================================================================
-# MoltenVK (Vulkan-to-Metal)
-# dylib placed in Frameworks, not built from source
-# 使用yitenchen123预构建的1.4.3真机arm64版本
-# ============================================================================
-
-# ============================================================================
-# CurseForge API Key
-# Defined in config.h.in, set from Makefile
-# ============================================================================
-
-# ============================================================================
-# LWJGL Natives (not built, bundled as dylib)
-# ============================================================================
 
 # ============================================================================
 # Install rules
@@ -192,6 +142,6 @@ message(STATUS "=== PCL-iOS Native Build Configuration ===")
 message(STATUS "  System:           iOS arm64")
 message(STATUS "  Deployment target: 14.0")
 message(STATUS "  Build type:       ${CMAKE_BUILD_TYPE}")
-message(STATUS "  MobileGlues:      内置源码 (${MOBILEGLUES_DIR})")
+message(STATUS "  MobileGlues:      内置源码 (Sources/Native/mobileglues)")
 message(STATUS "  Output:           ${CMAKE_BINARY_DIR}/lib")
 message(STATUS "")
