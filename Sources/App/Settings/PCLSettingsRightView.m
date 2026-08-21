@@ -145,7 +145,7 @@ static NSString *const kGameDirectory = @"gameDirectory";
 
 - (void)switchToTab:(PCLSettingsTab)tab {
     self.currentTab = tab;
-    [self.cardStackView.arrangedSubviews makeObjectsPerformSelector:@selector(removeFromSuperview]];
+    [self.cardStackView.arrangedSubviews makeObjectsPerformSelector:@selector(removeFromSuperview)];
     
     switch (tab) {
         case PCLSettingsTabLaunch: [self buildLaunchSettings]; break;
