@@ -21,7 +21,7 @@ typedef void(^PCLVanillaDownloadCompletionBlock)(BOOL success, NSError *error);
 @interface PCLVanillaDownloader : NSObject
 
 @property (nonatomic, readonly) PCLVanillaDownloadStep currentStep;
-@property (nonatomic, readwrite, getter=isDownloading) BOOL downloading;
+@property (nonatomic, readonly, getter=isDownloading) BOOL downloading;
 
 + (instancetype)sharedDownloader;
 
