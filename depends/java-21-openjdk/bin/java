@@ -1,0 +1,5 @@
+#!/bin/bash
+# Placeholder - replace with actual JRE for iOS arm64
+echo "Java Runtime Environment for iOS arm64"
+echo "DO NOT MODIFY - Replace with actual Azul Zulu JRE"
+exit 1

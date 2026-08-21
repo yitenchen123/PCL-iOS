@@ -1,11 +1,4 @@
 #import "PCLLWJGLManager.h"
-#import "PCLDownloadManager.h"
-#import "PCLLogger.h"
-
-static NSString *const kMavenBaseURL = @"https://repo1.maven.org/maven2/org/lwjgl/";
-
-@implementation PCLLWJGLLibrary
-@end
 
 @implementation PCLLWJGLManager
 
@@ -18,261 +11,88 @@ static NSString *const kMavenBaseURL = @"https://repo1.maven.org/maven2/org/lwjg
     return instance;
 }
 
-+ (NSString *)versionStringFromEnum:(PCLLWJGLVersion)version {
-    switch (version) {
-        case PCLLWJGLVersion331: return @"3.3.1";
-        case PCLLWJGLVersion332: return @"3.3.2";
-        case PCLLWJGLVersion333: return @"3.3.3";
-    }
-    return @"3.3.1";
-}
-
-- (NSString *)documentsDirectory {
-    return NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES).firstObject;
-}
-
-- (NSString *)librariesDirectory {
-    NSString *path = [[self documentsDirectory] stringByAppendingPathComponent:@"PCL Games/libraries"];
-    NSFileManager *fm = [NSFileManager defaultManager];
-    if (![fm fileExistsAtPath:path]) {
-        [fm createDirectoryAtPath:path withIntermediateDirectories:YES attributes:nil error:nil];
-    }
+- (NSString *)libsDirectory {
+    NSString *path = [[NSBundle mainBundle].resourcePath stringByAppendingPathComponent:@"libs"];
     return path;
 }
 
-- (NSString *)lwjglDirectory {
-    NSString *path = [[self documentsDirectory] stringByAppendingPathComponent:@"PCL Games/lwjgl"];
-    NSFileManager *fm = [NSFileManager defaultManager];
-    if (![fm fileExistsAtPath:path]) {
-        [fm createDirectoryAtPath:path withIntermediateDirectories:YES attributes:nil error:nil];
-    }
-    return path;
+- (NSString *)caciocavalloDir:(NSInteger)javaVersion {
+    NSString *folder = javaVersion >= 17 ? @"caciocavallo17" : @"caciocavallo";
+    return [[NSBundle mainBundle].resourcePath stringByAppendingPathComponent:[NSString stringWithFormat:@"libs_%@/", folder]];
 }
 
-- (NSString *)lwjglDirectoryForVersion:(PCLLWJGLVersion)version {
-    NSString *versionStr = [PCLLWJGLManager versionStringFromEnum:version];
-    NSString *path = [[self lwjglDirectory] stringByAppendingPathComponent:versionStr];
-    NSFileManager *fm = [NSFileManager defaultManager];
-    if (![fm fileExistsAtPath:path]) {
-        [fm createDirectoryAtPath:path withIntermediateDirectories:YES attributes:nil error:nil];
-    }
-    return path;
-}
-
-- (NSString *)lwjglNativeDirectory:(PCLLWJGLVersion)version {
-    NSString *path = [[self lwjglDirectoryForVersion:version] stringByAppendingPathComponent:@"native"];
-    NSFileManager *fm = [NSFileManager defaultManager];
-    if (![fm fileExistsAtPath:path]) {
-        [fm createDirectoryAtPath:path withIntermediateDirectories:YES attributes:nil error:nil];
-    }
-    return path;
-}
-
-- (NSArray<PCLLWJGLLibrary *> *)requiredLWJGLLibraries {
-    return [self requiredLWJGLLibrariesForVersion:PCLLWJGLVersion331];
-}
-
-- (NSArray<PCLLWJGLLibrary *> *)requiredLWJGLLibrariesForVersion:(PCLLWJGLVersion)version {
-    NSString *versionStr = [PCLLWJGLManager versionStringFromEnum:version];
-    
-    NSArray *baseArtifacts = @[
-        @"lwjgl",
-        @"lwjgl-opengl",
-        @"lwjgl-openal",
-        @"lwjgl-glfw",
-        @"lwjgl-stb",
-        @"lwjgl-nanovg",
-        @"lwjgl-jemalloc",
-        @"lwjgl-tinyfd",
-        @"lwjgl-vulkan"
+- (NSArray<NSString *> *)lwjglJars {
+    NSString *dir = [self libsDirectory];
+    NSArray *names = @[
+        @"lwjgl.jar", @"lwjgl-opengl.jar", @"lwjgl-openal.jar",
+        @"lwjgl-glfw.jar", @"lwjgl-stb.jar", @"lwjgl-nanovg.jar",
+        @"lwjgl-jemalloc.jar", @"lwjgl-tinyfd.jar", @"lwjgl-vulkan.jar",
+        @"lwjgl-callback-descriptor.jar", @"lwjgl-input.jar",
+        @"lwjgl-system.jar", @"lwjgl-util.jar"
     ];
-    
-    NSArray *nativeArtifacts = @[
-        @"lwjgl",
-        @"lwjgl-opengl",
-        @"lwjgl-openal",
-        @"lwjgl-glfw",
-        @"lwjgl-stb",
-        @"lwjgl-nanovg",
-        @"lwjgl-jemalloc",
-        @"lwjgl-tinyfd"
-    ];
-    
-    NSMutableArray *libs = [NSMutableArray array];
-    
-    for (NSString *artifact in baseArtifacts) {
-        PCLLWJGLLibrary *lib = [[PCLLWJGLLibrary alloc] init];
-        lib.artifact = artifact;
-        lib.group = @"org.lwjgl";
-        lib.version = versionStr;
-        lib.isNative = NO;
-        lib.classifier = @"";
-        [libs addObject:lib];
-    }
-    
-    for (NSString *artifact in nativeArtifacts) {
-        PCLLWJGLLibrary *lib = [[PCLLWJGLLibrary alloc] init];
-        lib.artifact = artifact;
-        lib.group = @"org.lwjgl";
-        lib.version = versionStr;
-        lib.isNative = YES;
-        lib.classifier = @"natives-ios";
-        [libs addObject:lib];
-    }
-    
-    return libs;
-}
-
-- (NSString *)downloadURLForLibrary:(PCLLWJGLLibrary *)lib {
-    NSString *groupPath = [lib.group stringByReplacingOccurrencesOfString:@"." withString:@"/"];
-    
-    NSString *filename;
-    if (lib.isNative && lib.classifier.length > 0) {
-        filename = [NSString stringWithFormat:@"%@-%@-%@.jar", lib.artifact, lib.version, lib.classifier];
-    } else {
-        filename = [NSString stringWithFormat:@"%@-%@.jar", lib.artifact, lib.version];
-    }
-    
-    return [NSString stringWithFormat:@"%@%@/%@/%@/%@", kMavenBaseURL, groupPath, lib.artifact, lib.version, filename];
-}
-
-- (NSString *)localPathForLibrary:(PCLLWJGLLibrary *)lib version:(PCLLWJGLVersion)version {
-    NSString *lwjglDir = [self lwjglDirectoryForVersion:version];
-    
-    NSString *filename;
-    if (lib.isNative && lib.classifier.length > 0) {
-        filename = [NSString stringWithFormat:@"%@-%@-%@.jar", lib.artifact, lib.version, lib.classifier];
-    } else {
-        filename = [NSString stringWithFormat:@"%@-%@.jar", lib.artifact, lib.version];
-    }
-    
-    if (lib.isNative) {
-        return [[self lwjglNativeDirectory:version] stringByAppendingPathComponent:filename];
-    }
-    return [lwjglDir stringByAppendingPathComponent:filename];
-}
-
-- (BOOL)isLWJGLDownloaded:(PCLLWJGLVersion)version {
-    NSArray *libs = [self requiredLWJGLLibrariesForVersion:version];
-    NSFileManager *fm = [NSFileManager defaultManager];
-    
-    for (PCLLWJGLLibrary *lib in libs) {
-        NSString *path = [self localPathForLibrary:lib version:version];
-        if (![fm fileExistsAtPath:path]) {
-            return NO;
+    NSMutableArray *jars = [NSMutableArray array];
+    for (NSString *name in names) {
+        NSString *path = [dir stringByAppendingPathComponent:name];
+        if ([[NSFileManager defaultManager] fileExistsAtPath:path]) {
+            [jars addObject:path];
         }
     }
-    
-    return YES;
+    return jars;
 }
 
-- (NSString *)lwjglClasspath:(PCLLWJGLVersion)version {
-    NSArray *libs = [self requiredLWJGLLibrariesForVersion:version];
-    NSMutableString *classpath = [NSMutableString string];
-    NSFileManager *fm = [NSFileManager defaultManager];
-    
-    for (PCLLWJGLLibrary *lib in libs) {
-        if (lib.isNative) continue;
-        
-        NSString *path = [self localPathForLibrary:lib version:version];
-        if ([fm fileExistsAtPath:path]) {
-            [classpath appendString:path];
-            [classpath appendString:@":"];
+- (NSArray<NSString *> *)caciocavalloJars {
+    NSString *dir = [self caciocavalloDir:17];
+    NSArray *names = @[@"cacio-shared-1.10-SNAPSHOT.jar", @"cacio-androidnw-1.10-SNAPSHOT.jar", @"ResConfHack.jar"];
+    NSMutableArray *jars = [NSMutableArray array];
+    for (NSString *name in names) {
+        NSString *path = [dir stringByAppendingPathComponent:name];
+        if ([[NSFileManager defaultManager] fileExistsAtPath:path]) {
+            [jars addObject:path];
         }
     }
-    
-    if (classpath.length > 0 && [classpath hasSuffix:@":"]) {
-        [classpath deleteCharactersInRange:NSMakeRange(classpath.length - 1, 1)];
-    }
-    
-    return [NSString stringWithString:classpath];
+    return jars;
 }
 
-- (void)downloadLWJGL:(PCLLWJGLVersion)version
-             progress:(void (^)(double, NSString *))progress
-           completion:(void (^)(BOOL, NSError *))completion {
-    
-    if ([self isLWJGLDownloaded:version]) {
-        NSString *versionStr = [PCLLWJGLManager versionStringFromEnum:version];
-        [[PCLLogger sharedLogger] info:[NSString stringWithFormat:@"LWJGL %@ already downloaded, skipping", versionStr]];
-        if (completion) completion(YES, nil);
-        return;
-    }
-    
-    NSString *versionStr = [PCLLWJGLManager versionStringFromEnum:version];
-    [[PCLLogger sharedLogger] info:[NSString stringWithFormat:@"Starting LWJGL %@ library download", versionStr]];
-    
-    NSArray *libs = [self requiredLWJGLLibrariesForVersion:version];
-    NSUInteger totalLibs = libs.count;
-    __block NSUInteger completedLibs = 0;
-    __block BOOL overallSuccess = YES;
-    __block NSError *lastError = nil;
-    
-    dispatch_group_t downloadGroup = dispatch_group_create();
-    dispatch_queue_t downloadQueue = dispatch_queue_create("com.pcl.lwjgl.download", DISPATCH_QUEUE_SERIAL);
-    
-    for (PCLLWJGLLibrary *lib in libs) {
-        dispatch_group_enter(downloadGroup);
-        
-        NSString *localPath = [self localPathForLibrary:lib version:version];
-        NSString *downloadURL = [self downloadURLForLibrary:lib];
-        
-        NSFileManager *fm = [NSFileManager defaultManager];
-        NSString *dir = [localPath stringByDeletingLastPathComponent];
-        [fm createDirectoryAtPath:dir withIntermediateDirectories:YES attributes:nil error:nil];
-        
-        if ([fm fileExistsAtPath:localPath]) {
-            completedLibs++;
-            dispatch_group_leave(downloadGroup);
-            continue;
+- (NSArray<NSString *> *)otherJars {
+    NSString *dir = [self libsDirectory];
+    NSArray *names = @[@"gson-2.13.1.jar", @"jsr305.jar", @"arc_dns_injector.jar"];
+    NSMutableArray *jars = [NSMutableArray array];
+    for (NSString *name in names) {
+        NSString *path = [dir stringByAppendingPathComponent:name];
+        if ([[NSFileManager defaultManager] fileExistsAtPath:path]) {
+            [jars addObject:path];
         }
-        
-        dispatch_async(downloadQueue, ^{
-            dispatch_semaphore_t sema = dispatch_semaphore_create(0);
-            
-            PCLDownloadTask *task = [[PCLDownloadTask alloc] init];
-            task.url = downloadURL;
-            task.targetPath = localPath;
-            task.displayName = [NSString stringWithFormat:@"%@-%@", lib.artifact, lib.version];
-            task.resourceType = PCLResourceTypeLibrary;
-            
-            [[PCLDownloadManager sharedManager] addTask:task];
-            [[PCLDownloadManager sharedManager] startDownload:task];
-            
-            dispatch_async(dispatch_get_main_queue(), ^{
-                BOOL success = (task.state == PCLDownloadStateCompleted);
-                
-                NSFileManager *fm2 = [NSFileManager defaultManager];
-                if (success && [fm2 fileExistsAtPath:localPath]) {
-                    completedLibs++;
-                    [[PCLLogger sharedLogger] info:[NSString stringWithFormat:@"LWJGL lib %@-%@ downloaded", lib.artifact, lib.version]];
-                } else if (!success) {
-                    overallSuccess = NO;
-                    lastError = task.error ?: [NSError errorWithDomain:@"PCLLWJGLManager" code:-1 userInfo:@{NSLocalizedDescriptionKey: [NSString stringWithFormat:@"Failed to download %@", lib.artifact]}];
-                    [[PCLLogger sharedLogger] error:[NSString stringWithFormat:@"Failed to download LWJGL lib %@: %@", lib.artifact, lastError.localizedDescription]];
-                }
-                
-                double currentProgress = (double)completedLibs / (double)totalLibs;
-                if (progress) {
-                    progress(currentProgress, lib.artifact);
-                }
-                
-                dispatch_semaphore_signal(sema);
-            });
-            
-            dispatch_semaphore_wait(sema, DISPATCH_TIME_FOREVER);
-            dispatch_group_leave(downloadGroup);
-        });
     }
-    
-    dispatch_group_notify(downloadGroup, dispatch_get_main_queue(), ^{
-        if (overallSuccess) {
-            [[PCLLogger sharedLogger] info:[NSString stringWithFormat:@"LWJGL %@ all libraries downloaded successfully", versionStr]];
-        } else {
-            [[PCLLogger sharedLogger] error:[NSString stringWithFormat:@"LWJGL %@ download completed with errors", versionStr]];
+    return jars;
+}
+
+- (NSString *)lwjglClasspath {
+    return [[self lwjglJars] componentsJoinedByString:@":"];
+}
+
+- (NSString *)caciocavalloClasspathForJavaVersion:(NSInteger)javaVersion {
+    NSString *dir = [self caciocavalloDir:javaVersion];
+    NSArray *names = @[@"cacio-shared-1.10-SNAPSHOT.jar", @"cacio-androidnw-1.10-SNAPSHOT.jar", @"ResConfHack.jar"];
+    NSMutableArray *jars = [NSMutableArray array];
+    for (NSString *name in names) {
+        NSString *path = [dir stringByAppendingPathComponent:name];
+        if ([[NSFileManager defaultManager] fileExistsAtPath:path]) {
+            [jars addObject:path];
         }
-        if (completion) completion(overallSuccess, lastError);
-    });
+    }
+    return [jars componentsJoinedByString:@":"];
+}
+
+- (NSString *)allLibrariesClasspath {
+    NSMutableArray *all = [NSMutableArray array];
+    [all addObjectsFromArray:[self lwjglJars]];
+    [all addObjectsFromArray:[self caciocavalloJars]];
+    [all addObjectsFromArray:[self otherJars]];
+    return [all componentsJoinedByString:@":"];
+}
+
+- (BOOL)isAvailable {
+    return [self lwjglJars].count > 0;
 }
 
 @end

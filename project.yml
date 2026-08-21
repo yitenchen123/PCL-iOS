@@ -6,6 +6,7 @@ options:
 settings:
   base:
     CLANG_ENABLE_OBJC_ARC: YES
+    IPHONEOS_DEPLOYMENT_TARGET: "14.0"
 targets:
   PCL-iOS:
     type: application
@@ -14,11 +15,17 @@ targets:
     sources:
       - path: Sources/App
       - path: Resources
+      - path: depends
+        buildPhase: resources
+        optional: true
     dependencies:
       - sdk: QuartzCore.framework
       - sdk: GameController.framework
       - sdk: AuthenticationServices.framework
       - sdk: Security.framework
+      - sdk: Metal.framework
+      - sdk: MetalKit.framework
+      - sdk: UIKit.framework
     settings:
       base:
         INFOPLIST_FILE: Resources/Info.plist
@@ -26,3 +33,4 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.pcl-ios.pcl
         PRODUCT_NAME: PCL-iOS
         TARGETED_DEVICE_FAMILY: "1,2"
+        GCC_PREPROCESSOR_DEFINITIONS: "$(inherited) GLES_SILENT_DEPRECATION=1"

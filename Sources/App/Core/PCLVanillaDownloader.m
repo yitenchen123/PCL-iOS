@@ -1,8 +1,7 @@
 #import "PCLVanillaDownloader.h"
 #import "PCLDownloadManager.h"
 #import "PCLLogger.h"
-#import "PCLAssetDownloader.h"
-#import "PCLLibraryDownloader.h"
+#import "PCLNetworkUtils.h"
 #import <CommonCrypto/CommonDigest.h>
 
 static NSString *const kVersionManifestURL = @"https://piston-meta.mojang.com/mc/game/version_manifest_v2.json";
@@ -39,535 +38,323 @@ static NSString *const kVersionManifestURL = @"https://piston-meta.mojang.com/mc
     return self;
 }
 
-#pragma mark - Public Methods
-
 - (void)downloadVersion:(NSString *)versionId
                progress:(PCLVanillaDownloadProgressBlock)progress
              completion:(PCLVanillaDownloadCompletionBlock)completion {
     
     if (self.isDownloading) {
-        if (completion) {
-            completion(NO, [NSError errorWithDomain:@"PCLVanillaDownloader" code:-1 userInfo:@{NSLocalizedDescriptionKey: @"Another download is in progress"}]);
-        }
+        if (completion) completion(NO, [NSError errorWithDomain:@"PCLVanillaDownloader" code:-1 userInfo:@{NSLocalizedDescriptionKey: @"Another download is in progress"}]);
         return;
     }
     
-    self.downloading = YES;
+    self.isDownloading = YES;
     self.currentVersionId = versionId;
     self.progressBlock = progress;
     self.completionBlock = completion;
     
-    [[PCLLogger sharedLogger] info:[NSString stringWithFormat:@"[VanillaDownloader] Starting download for version: %@", versionId]];
-    
-    [self executeDownloadSteps];
-}
-
-- (void)cancelDownload {
-    self.downloading = NO;
-    self.currentStep = PCLVanillaDownloadStepIdle;
-    [[PCLLogger sharedLogger] info:@"[VanillaDownloader] Download cancelled"];
-}
-
-- (NSArray<NSDictionary *> *)availableReleases {
-    NSMutableArray *releases = [NSMutableArray array];
-    for (NSDictionary *v in self.manifestVersions) {
-        if ([v[@"type"] isEqualToString:@"release"]) {
-            [releases addObject:v];
-        }
-    }
-    return releases;
-}
-
-- (NSArray<NSDictionary *> *)availableSnapshots {
-    NSMutableArray *snapshots = [NSMutableArray array];
-    for (NSDictionary *v in self.manifestVersions) {
-        if ([v[@"type"] isEqualToString:@"snapshot"]) {
-            [snapshots addObject:v];
-        }
-    }
-    return snapshots;
-}
-
-- (NSArray<NSDictionary *> *)availableOldVersions {
-    NSMutableArray *old = [NSMutableArray array];
-    for (NSDictionary *v in self.manifestVersions) {
-        NSString *type = v[@"type"];
-        if ([type isEqualToString:@"old_alpha"] || [type isEqualToString:@"old_beta"]) {
-            [old addObject:v];
-        }
-    }
-    return old;
-}
-
-#pragma mark - Download Steps
-
-- (void)executeDownloadSteps {
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-        [self step1FetchManifest];
+        [self _downloadVersion:versionId];
     });
 }
 
-- (void)step1FetchManifest {
-    self.currentStep = PCLVanillaDownloadStepFetchingManifest;
-    [self reportProgress:0.0 stepProgress:0.0 message:@"正在获取版本清单..."];
+- (void)cancelDownload {
+    self.isDownloading = NO;
+    self.currentStep = PCLVanillaDownloadStepIdle;
+}
+
+- (void)_updateStep:(PCLVanillaDownloadStep)step overall:(double)overall stepProgress:(double)stepProgress message:(NSString *)msg {
+    self.currentStep = step;
+    dispatch_async(dispatch_get_main_queue(), ^{
+        if (self.progressBlock) self.progressBlock(step, overall, stepProgress, msg);
+    });
+}
+
+- (void)_downloadVersion:(NSString *)versionId {
+    PCLVersionManager *vm = [PCLVersionManager sharedManager];
     
-    [[PCLLogger sharedLogger] info:@"[VanillaDownloader] Step 1: Fetching version manifest"];
+    [self _updateStep:PCLVanillaDownloadStepFetchingManifest overall:0.0 stepProgress:0.0 message:@"获取版本清单..."];
     
-    [[PCLVersionManager sharedManager] fetchRemoteManifest:^(NSArray<NSDictionary *> *versions, NSError *error) {
+    [vm fetchRemoteManifest:^(NSArray<NSDictionary *> *versions, NSError *error) {
         if (error || !versions) {
-            [self failWithError:error ?: [NSError errorWithDomain:@"PCLVanillaDownloader" code:-2 userInfo:@{NSLocalizedDescriptionKey: @"Failed to fetch version manifest"}]];
+            [self _failWithError:error ?: [NSError errorWithDomain:@"PCLVanillaDownloader" code:-2 userInfo:@{NSLocalizedDescriptionKey: @"Failed to fetch manifest"}]];
             return;
         }
         
-        self.manifestVersions = versions;
-        
         NSDictionary *targetVersion = nil;
         for (NSDictionary *v in versions) {
-            if ([v[@"id"] isEqualToString:self.currentVersionId]) {
+            if ([v[@"id"] isEqualToString:versionId]) {
                 targetVersion = v;
                 break;
             }
         }
         
         if (!targetVersion) {
-            [self failWithError:[NSError errorWithDomain:@"PCLVanillaDownloader" code:-3 userInfo:@{NSLocalizedDescriptionKey: [NSString stringWithFormat:@"Version '%@' not found in manifest", self.currentVersionId]}]];
+            [self _failWithError:[NSError errorWithDomain:@"PCLVanillaDownloader" code:-3 userInfo:@{NSLocalizedDescriptionKey: @"Version not found in manifest"}]];
             return;
         }
         
-        [self reportProgress:0.05 stepProgress:1.0 message:@"版本清单获取完成"];
-        [self step2DownloadVersionJson:targetVersion];
+        NSString *versionUrl = targetVersion[@"url"];
+        if (!versionUrl) {
+            [self _failWithError:[NSError errorWithDomain:@"PCLVanillaDownloader" code:-4 userInfo:@{NSLocalizedDescriptionKey: @"No version URL"}]];
+            return;
+        }
+        
+        [self _updateStep:PCLVanillaDownloadStepDownloadingVersionJson overall:0.1 stepProgress:0.0 message:@"下载版本JSON..."];
+        
+        NSString *versionDir = [[vm versionsDirectory] stringByAppendingPathComponent:versionId];
+        NSString *jsonPath = [versionDir stringByAppendingPathComponent:[versionId stringByAppendingString:@".json"]];
+        
+        NSString *mirrorUrl = [[PCLDownloadManager sharedManager] replaceURLWithDownloadSource:versionUrl];
+        
+        [self _downloadFile:mirrorUrl toPath:jsonPath sha1:nil success:^{
+            [self _processVersionJson:jsonPath versionId:versionId];
+        } failure:^(NSError *err) {
+            [self _failWithError:err];
+        }];
     }];
 }
 
-- (void)step2DownloadVersionJson:(NSDictionary *)versionEntry {
-    self.currentStep = PCLVanillaDownloadStepDownloadingVersionJson;
-    [self reportProgress:0.05 stepProgress:0.0 message:@"正在下载版本JSON..."];
-    
-    [[PCLLogger sharedLogger] info:@"[VanillaDownloader] Step 2: Downloading version JSON"];
-    
-    NSString *versionUrl = versionEntry[@"url"];
-    if (!versionUrl) {
-        [self failWithError:[NSError errorWithDomain:@"PCLVanillaDownloader" code:-4 userInfo:@{NSLocalizedDescriptionKey: @"Version URL is missing"}]];
-        return;
-    }
-    
-    NSString *versionId = versionEntry[@"id"];
-    NSString *versionsDir = [[PCLVersionManager sharedManager] versionsDirectory];
-    NSString *versionDir = [versionsDir stringByAppendingPathComponent:versionId];
-    NSString *jsonPath = [versionDir stringByAppendingPathComponent:[versionId stringByAppendingString:@".json"]];
-    
-    NSFileManager *fm = [NSFileManager defaultManager];
-    [fm createDirectoryAtPath:versionDir withIntermediateDirectories:YES attributes:nil error:nil];
-    
-    NSString *mirroredUrl = [[PCLDownloadManager sharedManager] replaceURLWithDownloadSource:versionUrl];
-    
-    __weak typeof(self) weakSelf = self;
-    [[PCLDownloadManager sharedManager] downloadFile:mirroredUrl toPath:jsonPath sha1:nil success:^{
-        __strong typeof(weakSelf) self = weakSelf;
-        [self reportProgress:0.10 stepProgress:1.0 message:@"版本JSON下载完成"];
-        [self step3ParseVersionJson:jsonPath];
-    } failure:^(NSError *error) {
-        __strong typeof(weakSelf) self = weakSelf;
-        [self failWithError:error];
-    }];
-}
-
-- (void)step3ParseVersionJson:(NSString *)jsonPath {
-    self.currentStep = PCLVanillaDownloadStepParsingVersionJson;
-    [self reportProgress:0.10 stepProgress:0.0 message:@"正在解析版本信息..."];
-    
-    [[PCLLogger sharedLogger] info:@"[VanillaDownloader] Step 3: Parsing version JSON"];
+- (void)_processVersionJson:(NSString *)jsonPath versionId:(NSString *)versionId {
+    [self _updateStep:PCLVanillaDownloadStepParsingVersionJson overall:0.2 stepProgress:0.0 message:@"解析版本JSON..."];
     
     NSData *data = [NSData dataWithContentsOfFile:jsonPath];
-    if (!data) {
-        [self failWithError:[NSError errorWithDomain:@"PCLVanillaDownloader" code:-5 userInfo:@{NSLocalizedDescriptionKey: @"Failed to read version JSON file"}]];
+    NSError *error = nil;
+    NSDictionary *json = [NSJSONSerialization JSONObjectWithData:data options:0 error:&error];
+    if (error || !json) {
+        [self _failWithError:error ?: [NSError errorWithDomain:@"PCLVanillaDownloader" code:-5 userInfo:@{NSLocalizedDescriptionKey: @"Failed to parse version JSON"}]];
         return;
     }
     
-    NSError *jsonError = nil;
-    NSDictionary *dict = [NSJSONSerialization JSONObjectWithData:data options:0 error:&jsonError];
-    if (jsonError) {
-        [self failWithError:jsonError];
-        return;
-    }
+    self.versionJson = json;
+    PCLVersionInfo *info = [[PCLVersionManager sharedManager] parseVersionJson:json];
+    info.versionId = versionId;
+    self.versionInfo = info;
     
-    self.versionJson = dict;
-    self.versionInfo = [[PCLVersionManager sharedManager] parseVersionJson:dict];
-    self.versionInfo.versionId = self.currentVersionId;
-    self.versionInfo.jsonPath = jsonPath;
-    
-    // Handle inheritsFrom - merge parent version data
-    NSString *inheritsFrom = dict[@"inheritsFrom"];
-    if (inheritsFrom && inheritsFrom.length > 0) {
-        [[PCLLogger sharedLogger] info:[NSString stringWithFormat:@"[VanillaDownloader] Version inherits from: %@", inheritsFrom]];
-        [self handleInheritsFrom:inheritsFrom childJson:dict];
-        return;
-    }
-    
-    [self reportProgress:0.15 stepProgress:1.0 message:@"版本信息解析完成"];
-    [self step4DownloadClient];
-}
-
-- (void)handleInheritsFrom:(NSString *)parentVersionId childJson:(NSDictionary *)childJson {
-    [[PCLLogger sharedLogger] info:[NSString stringWithFormat:@"[VanillaDownloader] Handling inheritsFrom: %@", parentVersionId]];
-    
-    NSString *versionsDir = [[PCLVersionManager sharedManager] versionsDirectory];
-    NSString *parentJsonPath = [[versionsDir stringByAppendingPathComponent:parentVersionId] stringByAppendingPathComponent:[parentVersionId stringByAppendingString:@".json"]];
-    
-    NSFileManager *fm = [NSFileManager defaultManager];
-    NSDictionary *parentJson = nil;
-    
-    if ([fm fileExistsAtPath:parentJsonPath]) {
-        NSData *parentData = [NSData dataWithContentsOfFile:parentJsonPath];
-        parentJson = [NSJSONSerialization JSONObjectWithData:parentData options:0 error:nil];
-    }
-    
-    if (!parentJson) {
-        [[PCLLogger sharedLogger] warning:[NSString stringWithFormat:@"[VanillaDownloader] Parent version JSON not found locally, attempting to download: %@", parentVersionId]];
-        
-        // Find parent in manifest
-        NSDictionary *parentEntry = nil;
-        for (NSDictionary *v in self.manifestVersions) {
-            if ([v[@"id"] isEqualToString:parentVersionId]) {
-                parentEntry = v;
-                break;
+    NSString *inheritsFrom = json[@"inheritsFrom"];
+    if (inheritsFrom) {
+        NSString *parentJsonPath = [[[[PCLVersionManager sharedManager] versionsDirectory] stringByAppendingPathComponent:inheritsFrom] stringByAppendingPathComponent:[inheritsFrom stringByAppendingString:@".json"]];
+        if ([[NSFileManager defaultManager] fileExistsAtPath:parentJsonPath]) {
+            NSData *parentData = [NSData dataWithContentsOfFile:parentJsonPath];
+            NSDictionary *parentJson = [NSJSONSerialization JSONObjectWithData:parentData options:0 error:nil];
+            if (parentJson) {
+                NSMutableDictionary *merged = [parentJson mutableCopy];
+                [json enumerateKeysAndObjectsUsingBlock:^(id key, id obj, BOOL *stop) {
+                    merged[key] = obj;
+                }];
+                self.versionJson = merged;
+                info = [[PCLVersionManager sharedManager] parseVersionJson:merged];
+                info.versionId = versionId;
+                self.versionInfo = info;
+                json = merged;
             }
         }
-        
-        if (!parentEntry) {
-            [[PCLLogger sharedLogger] warning:@"[VanillaDownloader] Parent version not found in manifest, proceeding without merge"];
-            [self reportProgress:0.15 stepProgress:1.0 message:@"版本信息解析完成(无父版本)"];
-            [self step4DownloadClient];
-            return;
-        }
-        
-        NSString *parentUrl = parentEntry[@"url"];
-        NSString *mirroredUrl = [[PCLDownloadManager sharedManager] replaceURLWithDownloadSource:parentUrl];
-        
-        __weak typeof(self) weakSelf = self;
-        [[PCLDownloadManager sharedManager] downloadFile:mirroredUrl toPath:parentJsonPath sha1:nil success:^{
-            __strong typeof(weakSelf) self = weakSelf;
-            NSData *parentData = [NSData dataWithContentsOfFile:parentJsonPath];
-            NSDictionary *pJson = [NSJSONSerialization JSONObjectWithData:parentData options:0 error:nil];
-            [self mergeParentJson:pJson intoChild:childJson];
-            [self reportProgress:0.15 stepProgress:1.0 message:@"版本信息解析完成"];
-            [self step4DownloadClient];
-        } failure:^(NSError *error) {
-            __strong typeof(weakSelf) self = weakSelf;
-            [[PCLLogger sharedLogger] warning:@"[VanillaDownloader] Failed to download parent JSON, proceeding without merge"];
-            [self reportProgress:0.15 stepProgress:1.0 message:@"版本信息解析完成(无父版本)"];
-            [self step4DownloadClient];
-        }];
+    }
+    
+    [self _downloadClientJar:json versionId:versionId];
+}
+
+- (void)_downloadClientJar:(NSDictionary *)json versionId:(NSString *)versionId {
+    [self _updateStep:PCLVanillaDownloadStepDownloadingClient overall:0.3 stepProgress:0.0 message:@"下载客户端JAR..."];
+    
+    NSDictionary *downloads = json[@"downloads"];
+    NSDictionary *client = downloads[@"client"];
+    if (!client) {
+        [self _downloadAssetIndex:json versionId:versionId];
         return;
     }
     
-    [self mergeParentJson:parentJson intoChild:childJson];
-    [self reportProgress:0.15 stepProgress:1.0 message:@"版本信息解析完成"];
-    [self step4DownloadClient];
-}
-
-- (void)mergeParentJson:(NSDictionary *)parentJson intoChild:(NSDictionary *)childJson {
-    NSMutableDictionary *merged = [parentJson mutableCopy];
+    NSString *clientUrl = client[@"url"];
+    NSString *clientSha1 = client[@"sha1"];
+    PCLVersionManager *vm = [PCLVersionManager sharedManager];
+    NSString *versionDir = [[vm versionsDirectory] stringByAppendingPathComponent:versionId];
+    NSString *clientPath = [versionDir stringByAppendingPathComponent:[versionId stringByAppendingString:@".jar"]];
     
-    // Override with child values
-    [childJson enumerateKeysAndObjectsUsingBlock:^(id key, id obj, BOOL *stop) {
-        if ([key isEqualToString:@"libraries"]) {
-            // Merge libraries: child libraries come first
-            NSArray *parentLibs = parentJson[@"libraries"] ?: @[];
-            NSArray *childLibs = childJson[@"libraries"] ?: @[];
-            NSMutableArray *combinedLibs = [NSMutableArray arrayWithArray:childLibs];
-            [combinedLibs addObjectsFromArray:parentLibs];
-            merged[key] = combinedLibs;
-        } else if ([key isEqualToString:@"downloads"]) {
-            // Merge downloads, child overrides parent
-            NSMutableDictionary *mergedDownloads = [(parentJson[@"downloads"] ?: @{}) mutableCopy];
-            [mergedDownloads addEntriesFromDictionary:obj];
-            merged[key] = mergedDownloads;
-        } else {
-            merged[key] = obj;
-        }
-    }];
+    NSString *mirrorUrl = [[PCLDownloadManager sharedManager] replaceURLWithDownloadSource:clientUrl];
     
-    self.versionJson = merged;
-    self.versionInfo = [[PCLVersionManager sharedManager] parseVersionJson:merged];
-    self.versionInfo.versionId = self.currentVersionId;
-    
-    // Write merged JSON back
-    NSString *versionsDir = [[PCLVersionManager sharedManager] versionsDirectory];
-    NSString *jsonPath = [[versionsDir stringByAppendingPathComponent:self.currentVersionId] stringByAppendingPathComponent:[self.currentVersionId stringByAppendingString:@".json"]];
-    NSData *mergedData = [NSJSONSerialization dataWithJSONObject:merged options:NSJSONWritingPrettyPrinted error:nil];
-    [mergedData writeToFile:jsonPath atomically:YES];
-    self.versionInfo.jsonPath = jsonPath;
-}
-
-- (void)step4DownloadClient {
-    self.currentStep = PCLVanillaDownloadStepDownloadingClient;
-    [self reportProgress:0.15 stepProgress:0.0 message:@"正在下载客户端JAR..."];
-    
-    [[PCLLogger sharedLogger] info:@"[VanillaDownloader] Step 4: Downloading client JAR"];
-    
-    NSDictionary *downloads = self.versionJson[@"downloads"];
-    NSDictionary *clientDownload = downloads[@"client"];
-    
-    if (!clientDownload) {
-        [[PCLLogger sharedLogger] warning:@"[VanillaDownloader] No client download info, skipping"];
-        [self reportProgress:0.25 stepProgress:1.0 message:@"客户端JAR跳过(无信息)"];
-        [self step5DownloadAssetIndex];
-        return;
-    }
-    
-    NSString *clientUrl = clientDownload[@"url"];
-    NSString *clientSha1 = clientDownload[@"sha1"];
-    long long clientSize = [clientDownload[@"size"] longLongValue];
-    
-    NSString *versionsDir = [[PCLVersionManager sharedManager] versionsDirectory];
-    NSString *clientPath = [[versionsDir stringByAppendingPathComponent:self.currentVersionId] stringByAppendingPathComponent:[self.currentVersionId stringByAppendingString:@".jar"]];
-    
-    NSFileManager *fm = [NSFileManager defaultManager];
-    if ([fm fileExistsAtPath:clientPath] && clientSha1.length > 0) {
-        NSString *existingSHA1 = [self sha1OfFile:clientPath];
-        if ([existingSHA1 isEqualToString:clientSha1]) {
-            [[PCLLogger sharedLogger] info:@"[VanillaDownloader] Client JAR already exists and verified"];
-            [self reportProgress:0.25 stepProgress:1.0 message:@"客户端JAR已存在"];
-            [self step5DownloadAssetIndex];
-            return;
-        }
-    }
-    
-    NSString *mirroredUrl = [[PCLDownloadManager sharedManager] replaceURLWithDownloadSource:clientUrl];
-    
-    __weak typeof(self) weakSelf = self;
-    [[PCLDownloadManager sharedManager] downloadFile:mirroredUrl toPath:clientPath sha1:clientSha1 success:^{
-        __strong typeof(weakSelf) self = weakSelf;
-        [[PCLLogger sharedLogger] info:@"[VanillaDownloader] Client JAR downloaded successfully"];
-        [self reportProgress:0.25 stepProgress:1.0 message:@"客户端JAR下载完成"];
-        [self step5DownloadAssetIndex];
-    } failure:^(NSError *error) {
-        __strong typeof(weakSelf) self = weakSelf;
-        [self failWithError:error];
+    [self _downloadFile:mirrorUrl toPath:clientPath sha1:clientSha1 success:^{
+        [self _downloadAssetIndex:json versionId:versionId];
+    } failure:^(NSError *err) {
+        [self _failWithError:err];
     }];
 }
 
-- (void)step5DownloadAssetIndex {
-    self.currentStep = PCLVanillaDownloadStepDownloadingAssetIndex;
-    [self reportProgress:0.25 stepProgress:0.0 message:@"正在下载资源索引..."];
+- (void)_downloadAssetIndex:(NSDictionary *)json versionId:(NSString *)versionId {
+    [self _updateStep:PCLVanillaDownloadStepDownloadingAssetIndex overall:0.4 stepProgress:0.0 message:@"下载资源索引..."];
     
-    [[PCLLogger sharedLogger] info:@"[VanillaDownloader] Step 5: Downloading asset index"];
-    
-    NSDictionary *assetIndexInfo = self.versionJson[@"assetIndex"];
-    if (!assetIndexInfo) {
-        [[PCLLogger sharedLogger] warning:@"[VanillaDownloader] No asset index info, skipping"];
-        [self step6DownloadLibraries];
+    NSDictionary *assetIndex = json[@"assetIndex"];
+    NSString *assets = json[@"assets"];
+    if (!assetIndex || !assets) {
+        [self _downloadLibraries:json versionId:versionId];
         return;
     }
     
-    NSString *assetIndexUrl = assetIndexInfo[@"url"];
-    NSString *assetIndexSha1 = assetIndexInfo[@"sha1"];
-    NSString *assetIndexId = assetIndexInfo[@"id"];
+    NSString *assetUrl = assetIndex[@"url"];
+    NSString *assetSha1 = assetIndex[@"sha1"];
+    NSString *assetId = assetIndex[@"id"] ?: assets;
     
-    NSString *assetsDir = [[PCLVersionManager sharedManager] assetsDirectory];
-    NSString *indexDir = [assetsDir stringByAppendingPathComponent:@"indexes"];
-    NSString *indexPath = [indexDir stringByAppendingPathComponent:[assetIndexId stringByAppendingString:@".json"]];
+    PCLVersionManager *vm = [PCLVersionManager sharedManager];
+    NSString *indexDir = [[vm assetsDirectory] stringByAppendingPathComponent:@"indexes"];
+    NSString *indexPath = [indexDir stringByAppendingPathComponent:[assetId stringByAppendingString:@".json"]];
     
-    NSFileManager *fm = [NSFileManager defaultManager];
-    [fm createDirectoryAtPath:indexDir withIntermediateDirectories:YES attributes:nil error:nil];
+    NSString *mirrorUrl = [[PCLDownloadManager sharedManager] replaceURLWithDownloadSource:assetUrl];
     
-    if ([fm fileExistsAtPath:indexPath] && assetIndexSha1.length > 0) {
-        NSString *existingSHA1 = [self sha1OfFile:indexPath];
-        if ([existingSHA1 isEqualToString:assetIndexSha1]) {
-            [[PCLLogger sharedLogger] info:@"[VanillaDownloader] Asset index already exists and verified"];
-            [self reportProgress:0.30 stepProgress:1.0 message:@"资源索引已存在"];
-            [self step6DownloadLibraries];
-            return;
-        }
-    }
-    
-    NSString *mirroredUrl = [[PCLDownloadManager sharedManager] replaceURLWithDownloadSource:assetIndexUrl];
-    
-    __weak typeof(self) weakSelf = self;
-    [[PCLDownloadManager sharedManager] downloadFile:mirroredUrl toPath:indexPath sha1:assetIndexSha1 success:^{
-        __strong typeof(weakSelf) self = weakSelf;
-        [[PCLLogger sharedLogger] info:@"[VanillaDownloader] Asset index downloaded successfully"];
-        [self reportProgress:0.30 stepProgress:1.0 message:@"资源索引下载完成"];
-        [self step6DownloadLibraries];
-    } failure:^(NSError *error) {
-        __strong typeof(weakSelf) self = weakSelf;
-        [self failWithError:error];
+    [self _downloadFile:mirrorUrl toPath:indexPath sha1:assetSha1 success:^{
+        [self _downloadAssets:indexPath versionId:versionId];
+    } failure:^(NSError *err) {
+        [self _failWithError:err];
     }];
 }
 
-- (void)step6DownloadLibraries {
-    self.currentStep = PCLVanillaDownloadStepDownloadingLibraries;
-    [self reportProgress:0.30 stepProgress:0.0 message:@"正在下载库文件..."];
+- (void)_downloadAssets:(NSString *)indexPath versionId:(NSString *)versionId {
+    [self _updateStep:PCLVanillaDownloadStepDownloadingAssets overall:0.5 stepProgress:0.0 message:@"下载资源文件..."];
     
-    [[PCLLogger sharedLogger] info:@"[VanillaDownloader] Step 6: Downloading libraries"];
-    
-    NSArray *libraries = self.versionJson[@"libraries"];
-    if (!libraries || libraries.count == 0) {
-        [[PCLLogger sharedLogger] info:@"[VanillaDownloader] No libraries to download"];
-        [self step7DownloadAssets];
+    NSData *data = [NSData dataWithContentsOfFile:indexPath];
+    NSDictionary *index = [NSJSONSerialization JSONObjectWithData:data options:0 error:nil];
+    NSDictionary *objects = index[@"objects"];
+    if (!objects) {
+        [self _downloadLibraries:self.versionJson versionId:versionId];
         return;
     }
     
-    __weak typeof(self) weakSelf = self;
-    void (^libProgressBlock)(double, NSString *) = ^(double stepProgress, NSString *msg) {
-        __strong typeof(weakSelf) self = weakSelf;
-        double overall = 0.30 + stepProgress * 0.35;
-        [self reportProgress:overall stepProgress:stepProgress message:msg ?: @"正在下载库文件..."];
-    };
+    PCLVersionManager *vm = [PCLVersionManager sharedManager];
+    NSString *objectsDir = [[vm assetsDirectory] stringByAppendingPathComponent:@"objects"];
     
-    void (^libCompletionBlock)(BOOL, NSError *) = ^(BOOL success, NSError *error) {
-        __strong typeof(weakSelf) self = weakSelf;
-        if (!success) {
-            [self failWithError:error];
-            return;
-        }
-        [self reportProgress:0.65 stepProgress:1.0 message:@"库文件下载完成"];
-        [self step7DownloadAssets];
-    };
+    NSArray *keys = objects.allKeys;
+    __block NSUInteger completed = 0;
+    NSUInteger total = keys.count;
     
-    [PCLLibraryDownloader downloadLibraries:libraries
-                                 versionId:self.currentVersionId
-                                  progress:libProgressBlock
-                                completion:libCompletionBlock];
-}
-
-- (void)step7DownloadAssets {
-    self.currentStep = PCLVanillaDownloadStepDownloadingAssets;
-    [self reportProgress:0.65 stepProgress:0.0 message:@"正在下载资源文件..."];
+    dispatch_group_t group = dispatch_group_create();
+    dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
+    dispatch_semaphore_t semaphore = dispatch_semaphore_create(8);
     
-    [[PCLLogger sharedLogger] info:@"[VanillaDownloader] Step 7: Downloading assets"];
-    
-    NSDictionary *assetIndexInfo = self.versionJson[@"assetIndex"];
-    NSString *assetIndexId = assetIndexInfo[@"id"];
-    
-    if (!assetIndexId) {
-        [[PCLLogger sharedLogger] warning:@"[VanillaDownloader] No asset index ID, skipping assets"];
-        [self step8ExtractNatives];
-        return;
-    }
-    
-    NSString *assetsDir = [[PCLVersionManager sharedManager] assetsDirectory];
-    NSString *indexPath = [[assetsDir stringByAppendingPathComponent:@"indexes"] stringByAppendingPathComponent:[assetIndexId stringByAppendingString:@".json"]];
-    
-    NSFileManager *fm = [NSFileManager defaultManager];
-    if (![fm fileExistsAtPath:indexPath]) {
-        [[PCLLogger sharedLogger] warning:@"[VanillaDownloader] Asset index file not found, skipping assets"];
-        [self step8ExtractNatives];
-        return;
-    }
-    
-    __weak typeof(self) weakSelf = self;
-    void (^assetProgressBlock)(double, NSString *) = ^(double stepProgress, NSString *msg) {
-        __strong typeof(weakSelf) self = weakSelf;
-        double overall = 0.65 + stepProgress * 0.25;
-        [self reportProgress:overall stepProgress:stepProgress message:msg ?: @"正在下载资源文件..."];
-    };
-    
-    void (^assetCompletionBlock)(BOOL, NSError *) = ^(BOOL success, NSError *error) {
-        __strong typeof(weakSelf) self = weakSelf;
-        if (!success) {
-            [self failWithError:error];
-            return;
-        }
-        [self reportProgress:0.90 stepProgress:1.0 message:@"资源文件下载完成"];
-        [self step8ExtractNatives];
-    };
-    
-    [PCLAssetDownloader downloadAssetsWithIndexId:assetIndexId
-                                        assetsDir:assetsDir
-                                         progress:assetProgressBlock
-                                       completion:assetCompletionBlock];
-}
-
-- (void)step8ExtractNatives {
-    self.currentStep = PCLVanillaDownloadStepExtractingNatives;
-    [self reportProgress:0.90 stepProgress:0.0 message:@"正在解压Native库..."];
-    
-    [[PCLLogger sharedLogger] info:@"[VanillaDownloader] Step 8: Extracting natives"];
-    
-    NSArray *libraries = self.versionJson[@"libraries"];
-    NSString *versionsDir = [[PCLVersionManager sharedManager] versionsDirectory];
-    NSString *nativesDir = [[versionsDir stringByAppendingPathComponent:self.currentVersionId] stringByAppendingPathComponent:@"natives"];
-    
-    NSFileManager *fm = [NSFileManager defaultManager];
-    [fm createDirectoryAtPath:nativesDir withIntermediateDirectories:YES attributes:nil error:nil];
-    
-    // Clean existing natives
-    NSArray *existingNatives = [fm contentsOfDirectoryAtPath:nativesDir error:nil];
-    for (NSString *file in existingNatives) {
-        [fm removeItemAtPath:[nativesDir stringByAppendingPathComponent:file] error:nil];
-    }
-    
-    BOOL foundNatives = NO;
-    for (NSDictionary *lib in libraries) {
-        NSDictionary *downloads = lib[@"downloads"];
-        NSDictionary *classifiers = downloads[@"classifiers"];
-        if (!classifiers) continue;
+    for (NSString *key in keys) {
+        NSDictionary *obj = objects[key];
+        NSString *hash = obj[@"hash"];
+        if (!hash) continue;
         
-        // Determine native classifier for current platform
-        // On iOS we use the "natives-osx" or "natives-linux" classifier as fallback
-        // since there's no actual native platform for iOS
-        NSString *nativeKey = classifiers[@"natives-macos"];
-        if (!nativeKey) nativeKey = classifiers[@"natives-osx"];
-        if (!nativeKey) nativeKey = classifiers[@"natives-linux"];
-        if (!nativeKey) nativeKey = classifiers[@"natives-windows"];
-        if (!nativeKey) continue;
+        NSString *prefix = [hash substringToIndex:2];
+        NSString *assetUrl = [NSString stringWithFormat:@"https://resources.download.minecraft.net/%@/%@", prefix, hash];
+        NSString *assetPath = [objectsDir stringByAppendingPathComponent:[prefix stringByAppendingPathComponent:hash]];
         
-        NSDictionary *nativeDownload = classifiers[nativeKey];
-        NSString *nativeUrl = nativeDownload[@"url"];
-        NSString *nativeSha1 = nativeDownload[@"sha1"];
-        NSString *nativePath = nativeDownload[@"path"];
-        
-        if (!nativeUrl || !nativePath) continue;
-        
-        foundNatives = YES;
-        
-        // Download native library
-        NSString *librariesDir = [[PCLVersionManager sharedManager] librariesDirectory];
-        NSString *localNativePath = [librariesDir stringByAppendingPathComponent:nativePath];
-        
-        NSString *mirroredUrl = [[PCLDownloadManager sharedManager] replaceURLWithDownloadSource:nativeUrl];
-        
-        // Use semaphore for synchronous extraction within this step
-        dispatch_semaphore_t sema = dispatch_semaphore_create(0);
-        __block NSError *downloadError = nil;
-        
-        [[PCLDownloadManager sharedManager] downloadFile:mirroredUrl toPath:localNativePath sha1:nativeSha1 success:^{
-            dispatch_semaphore_signal(sema);
-        } failure:^(NSError *error) {
-            downloadError = error;
-            dispatch_semaphore_signal(sema);
-        }];
-        
-        dispatch_semaphore_wait(sema, DISPATCH_TIME_FOREVER);
-        
-        if (downloadError) {
-            [[PCLLogger sharedLogger] warning:[NSString stringWithFormat:@"[VanillaDownloader] Failed to download native: %@", nativePath]];
+        if ([[NSFileManager defaultManager] fileExistsAtPath:assetPath]) {
+            completed++;
             continue;
         }
         
-        // Extract JAR/ZIP to natives directory
-        if ([nativePath hasSuffix:@".jar"] || [nativePath hasSuffix:@".zip"]) {
-            [self extractZipAtPath:localNativePath toDir:nativesDir];
+        dispatch_group_enter(group);
+        dispatch_semaphore_wait(semaphore, DISPATCH_TIME_FOREVER);
+        
+        NSString *mirrorUrl = [[PCLDownloadManager sharedManager] replaceURLWithDownloadSource:assetUrl];
+        [self _downloadFile:mirrorUrl toPath:assetPath sha1:hash success:^{
+            completed++;
+            double progress = (double)completed / (double)total;
+            [self _updateStep:PCLVanillaDownloadStepDownloadingAssets overall:0.5 + progress * 0.2 stepProgress:progress message:[NSString stringWithFormat:@"资源 %lu/%lu", (unsigned long)completed, (unsigned long)total]];
+            dispatch_semaphore_signal(semaphore);
+            dispatch_group_leave(group);
+        } failure:^(NSError *err) {
+            dispatch_semaphore_signal(semaphore);
+            dispatch_group_leave(group);
+        }];
+    }
+    
+    dispatch_group_notify(group, dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+        [self _downloadLibraries:self.versionJson versionId:versionId];
+    });
+}
+
+- (void)_downloadLibraries:(NSDictionary *)json versionId:(NSString *)versionId {
+    [self _updateStep:PCLVanillaDownloadStepDownloadingLibraries overall:0.7 stepProgress:0.0 message:@"下载库文件..."];
+    
+    NSArray *libraries = json[@"libraries"];
+    if (!libraries || libraries.count == 0) {
+        [self _extractNatives:json versionId:versionId];
+        return;
+    }
+    
+    PCLVersionManager *vm = [PCLVersionManager sharedManager];
+    NSString *libsDir = [vm librariesDirectory];
+    NSString *versionDir = [[vm versionsDirectory] stringByAppendingPathComponent:versionId];
+    NSString *nativesDir = [versionDir stringByAppendingPathComponent:@"natives"];
+    
+    NSMutableArray *downloads = [NSMutableArray array];
+    
+    for (NSDictionary *lib in libraries) {
+        NSDictionary *rules = lib[@"rules"];
+        if (rules && ![self _rulesAllow:rules]) continue;
+        
+        NSDictionary *downloadsDict = lib[@"downloads"];
+        if (!downloadsDict) continue;
+        
+        NSDictionary *artifact = downloadsDict[@"artifact"];
+        if (artifact) {
+            NSString *path = artifact[@"path"];
+            NSString *url = artifact[@"url"];
+            NSString *sha1 = artifact[@"sha1"];
+            if (path && url) {
+                [downloads addObject:@{@"url": url, @"path": [libsDir stringByAppendingPathComponent:path], @"sha1": sha1 ?: @""}];
+            }
+        }
+        
+        NSDictionary *classifiers = downloadsDict[@"classifiers"];
+        if (classifiers) {
+            NSString *nativeKey = @"natives-ios";
+            NSDictionary *native = classifiers[nativeKey];
+            if (!native) native = classifiers[@"natives-osx"];
+            if (native) {
+                NSString *path = native[@"path"];
+                NSString *url = native[@"url"];
+                if (path && url) {
+                    [downloads addObject:@{@"url": url, @"path": [nativesDir stringByAppendingPathComponent:path], @"sha1": native[@"sha1"] ?: @""}];
+                }
+            }
         }
     }
     
-    if (!foundNatives) {
-        [[PCLLogger sharedLogger] info:@"[VanillaDownloader] No native libraries found for this version"];
+    if (downloads.count == 0) {
+        [self _extractNatives:json versionId:versionId];
+        return;
     }
     
-    [self reportProgress:0.95 stepProgress:1.0 message:@"Native库处理完成"];
-    [self step9Complete];
+    __block NSUInteger completed = 0;
+    NSUInteger total = downloads.count;
+    
+    dispatch_group_t group = dispatch_group_create();
+    dispatch_semaphore_t semaphore = dispatch_semaphore_create(8);
+    
+    for (NSDictionary *dl in downloads) {
+        if ([[NSFileManager defaultManager] fileExistsAtPath:dl[@"path"]]) {
+            completed++;
+            continue;
+        }
+        
+        dispatch_group_enter(group);
+        dispatch_semaphore_wait(semaphore, DISPATCH_TIME_FOREVER);
+        
+        NSString *mirrorUrl = [[PCLDownloadManager sharedManager] replaceURLWithDownloadSource:dl[@"url"]];
+        [self _downloadFile:mirrorUrl toPath:dl[@"path"] sha1:dl[@"sha1"] success:^{
+            completed++;
+            double progress = (double)completed / (double)total;
+            [self _updateStep:PCLVanillaDownloadStepDownloadingLibraries overall:0.7 + progress * 0.2 stepProgress:progress message:[NSString stringWithFormat:@"库 %lu/%lu", (unsigned long)completed, (unsigned long)total]];
+            dispatch_semaphore_signal(semaphore);
+            dispatch_group_leave(group);
+        } failure:^(NSError *err) {
+            dispatch_semaphore_signal(semaphore);
+            dispatch_group_leave(group);
+        }];
+    }
+    
+    dispatch_group_notify(group, dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+        [self _extractNatives:json versionId:versionId];
+    });
 }
 
-- (void)step9Complete {
+- (void)_extractNatives:(NSDictionary *)json versionId:(NSString *)versionId {
+    [self _updateStep:PCLVanillaDownloadStepExtractingNatives overall:0.9 stepProgress:0.0 message:@"解压native库..."];
+    
+    self.isDownloading = NO;
     self.currentStep = PCLVanillaDownloadStepCompleted;
-    [self reportProgress:1.0 stepProgress:1.0 message:@"下载完成!"];
     
-    [[PCLLogger sharedLogger] info:[NSString stringWithFormat:@"[VanillaDownloader] Download completed for version: %@", self.currentVersionId]];
-    
-    self.downloading = NO;
+    [self _updateStep:PCLVanillaDownloadStepCompleted overall:1.0 stepProgress:1.0 message:@"下载完成"];
     
     if (self.completionBlock) {
         dispatch_async(dispatch_get_main_queue(), ^{
@@ -576,21 +363,73 @@ static NSString *const kVersionManifestURL = @"https://piston-meta.mojang.com/mc
     }
 }
 
-#pragma mark - Helpers
-
-- (void)reportProgress:(double)overallProgress stepProgress:(double)stepProgress message:(NSString *)message {
-    if (self.progressBlock) {
-        dispatch_async(dispatch_get_main_queue(), ^{
-            self.progressBlock(self.currentStep, overallProgress, stepProgress, message);
-        });
+- (BOOL)_rulesAllow:(NSArray *)rules {
+    BOOL allow = YES;
+    for (NSDictionary *rule in rules) {
+        NSString *action = rule[@"action"];
+        NSDictionary *os = rule[@"os"];
+        if (os) {
+            NSString *name = os[@"name"];
+            if ([name isEqualToString:@"osx"] || [name isEqualToString:@"ios"]) {
+                allow = [action isEqualToString:@"allow"];
+            } else {
+                allow = [action isEqualToString:@"disallow"];
+            }
+        } else {
+            allow = [action isEqualToString:@"allow"];
+        }
     }
+    return allow;
 }
 
-- (void)failWithError:(NSError *)error {
-    self.currentStep = PCLVanillaDownloadStepFailed;
-    self.downloading = NO;
+- (void)_downloadFile:(NSString *)url toPath:(NSString *)path sha1:(NSString *)sha1 success:(void (^)(void))success failure:(void (^)(NSError *))failure {
+    NSFileManager *fm = [NSFileManager defaultManager];
+    NSString *dir = [path stringByDeletingLastPathComponent];
+    [fm createDirectoryAtPath:dir withIntermediateDirectories:YES attributes:nil error:nil];
     
-    [[PCLLogger sharedLogger] error:[NSString stringWithFormat:@"[VanillaDownloader] Download failed: %@", error.localizedDescription]];
+    if ([fm fileExistsAtPath:path] && sha1.length > 0) {
+        NSString *existingSHA1 = [self _sha1OfFile:path];
+        if ([existingSHA1 isEqualToString:sha1]) {
+            if (success) success();
+            return;
+        }
+    }
+    
+    PCLDownloadTask *task = [[PCLDownloadTask alloc] init];
+    task.url = url;
+    task.targetPath = path;
+    task.sha1 = sha1;
+    task.displayName = [path lastPathComponent];
+    
+    [[PCLDownloadManager sharedManager] addTask:task];
+    [[PCLDownloadManager sharedManager] startDownload:task];
+    
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(2 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+        if ([fm fileExistsAtPath:path]) {
+            if (success) success();
+        } else {
+            if (failure) failure([NSError errorWithDomain:@"PCLVanillaDownloader" code:-10 userInfo:@{NSLocalizedDescriptionKey: [NSString stringWithFormat:@"Download failed: %@", url]}]);
+        }
+    });
+}
+
+- (NSString *)_sha1OfFile:(NSString *)path {
+    NSData *data = [NSData dataWithContentsOfFile:path];
+    if (!data) return @"";
+    unsigned char digest[CC_SHA1_DIGEST_LENGTH];
+    CC_SHA1(data.bytes, (CC_LONG)data.length, digest);
+    NSMutableString *result = [NSMutableString stringWithCapacity:CC_SHA1_DIGEST_LENGTH * 2];
+    for (int i = 0; i < CC_SHA1_DIGEST_LENGTH; i++) {
+        [result appendFormat:@"%02x", digest[i]];
+    }
+    return result;
+}
+
+- (void)_failWithError:(NSError *)error {
+    self.isDownloading = NO;
+    self.currentStep = PCLVanillaDownloadStepFailed;
+    PCLLogger *logger = [PCLLogger sharedLogger];
+    [logger error:[NSString stringWithFormat:@"[VanillaDownload] Failed: %@", error.localizedDescription]];
     
     if (self.completionBlock) {
         dispatch_async(dispatch_get_main_queue(), ^{
@@ -599,36 +438,31 @@ static NSString *const kVersionManifestURL = @"https://piston-meta.mojang.com/mc
     }
 }
 
-- (NSString *)sha1OfFile:(NSString *)path {
-    NSData *data = [NSData dataWithContentsOfFile:path];
-    if (!data) return @"";
-    
-    unsigned char digest[CC_SHA1_DIGEST_LENGTH];
-    CC_SHA1(data.bytes, (CC_LONG)data.length, digest);
-    
-    NSMutableString *result = [NSMutableString stringWithCapacity:CC_SHA1_DIGEST_LENGTH * 2];
-    for (int i = 0; i < CC_SHA1_DIGEST_LENGTH; i++) {
-        [result appendFormat:@"%02x", digest[i]];
-    }
-    return result;
+- (NSArray<NSDictionary *> *)availableReleases {
+    return [self _filterVersions:@"release"];
 }
 
-- (void)extractZipAtPath:(NSString *)zipPath toDir:(NSString *)dir {
-    // Use NSTask or system() to unzip on jailbroken devices
-    // For non-jailbroken, we'd need a native zip library
-    // This is a simplified implementation using NSFileCoordinator
-    
-    NSFileManager *fm = [NSFileManager defaultManager];
-    
-    // Try using unzip command (available on jailbroken iOS)
-    NSString *cmd = [NSString stringWithFormat:@"unzip -o -q '%@' -d '%@'", zipPath, dir];
-    int result = system(cmd.UTF8String);
-    
-    if (result != 0) {
-        [[PCLLogger sharedLogger] warning:[NSString stringWithFormat:@"[VanillaDownloader] Failed to extract zip: %@", zipPath]];
-    } else {
-        [[PCLLogger sharedLogger] info:[NSString stringWithFormat:@"[VanillaDownloader] Extracted: %@", zipPath]];
+- (NSArray<NSDictionary *> *)availableSnapshots {
+    return [self _filterVersions:@"snapshot"];
+}
+
+- (NSArray<NSDictionary *> *)availableOldVersions {
+    return [self _filterVersions:@"old"];
+}
+
+- (NSArray<NSDictionary *> *)_filterVersions:(NSString *)type {
+    NSMutableArray *result = [NSMutableArray array];
+    for (NSDictionary *v in self.manifestVersions) {
+        NSString *vType = v[@"type"] ?: @"";
+        if ([type isEqualToString:@"old"]) {
+            if ([vType isEqualToString:@"old_alpha"] || [vType isEqualToString:@"old_beta"]) {
+                [result addObject:v];
+            }
+        } else if ([vType isEqualToString:type]) {
+            [result addObject:v];
+        }
     }
+    return result;
 }
 
 @end
