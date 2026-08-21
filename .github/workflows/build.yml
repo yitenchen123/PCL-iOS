@@ -21,34 +21,91 @@ jobs:
         with:
           xcode-version: latest-stable
       
+      - name: Setup xcodegen
+        run: |
+          if ! command -v xcodegen &> /dev/null; then
+            brew install xcodegen
+          fi
+      
+      - name: Download Java JRE (iOS arm64)
+        run: |
+          echo "=== 下载Java JRE for iOS arm64 ==="
+          mkdir -p depends
+          cd depends
+          
+          # Java 8 (MC 1.16及以下)
+          if [ ! -f "java-8-openjdk/release" ]; then
+            echo "下载 Java 8..."
+            wget -q --show-progress 'https://assets.angelauramc.dev/openjdk/ios-arm64/jre8-ios-aarch64.zip' -O jre8-ios-aarch64.zip
+            unzip -q jre8-ios-aarch64.zip && rm jre8-ios-aarch64.zip
+            mkdir -p java-8-openjdk
+            tar xvf jre8-*.tar.xz -C java-8-openjdk
+            rm -f jre8-*.tar.xz
+          fi
+          
+          # Java 17 (MC 1.17-1.20.x)
+          if [ ! -f "java-17-openjdk/release" ]; then
+            echo "下载 Java 17..."
+            wget -q --show-progress 'https://assets.angelauramc.dev/openjdk/ios-arm64/jre17-ios-aarch64.zip' -O jre17-ios-aarch64.zip
+            unzip -q jre17-ios-aarch64.zip && rm jre17-ios-aarch64.zip
+            mkdir -p java-17-openjdk
+            tar xvf jre17-*.tar.xz -C java-17-openjdk
+            rm -f jre17-*.tar.xz
+          fi
+          
+          # Java 21 (MC 1.21+)
+          if [ ! -f "java-21-openjdk/release" ]; then
+            echo "下载 Java 21..."
+            wget -q --show-progress 'https://assets.angelauramc.dev/openjdk/ios-arm64/jre21-ios-aarch64.zip' -O jre21-ios-aarch64.zip
+            unzip -q jre21-ios-aarch64.zip && rm jre21-ios-aarch64.zip
+            mkdir -p java-21-openjdk
+            tar xvf jre21-*.tar.xz -C java-21-openjdk
+            rm -f jre21-*.tar.xz
+          fi
+          
+          # Java 25 (未来版本)
+          if [ ! -f "java-25-openjdk/release" ]; then
+            echo "下载 Java 25..."
+            wget -q --show-progress 'https://assets.angelauramc.dev/openjdk/ios-arm64/jre25-ios-aarch64.zip' -O jre25-ios-aarch64.zip
+            unzip -q jre25-ios-aarch64.zip && rm jre25-ios-aarch64.zip
+            mkdir -p java-25-openjdk
+            tar xvf jre25-*.tar.xz -C java-25-openjdk
+            rm -f jre25-*.tar.xz
+          fi
+          
+          echo "=== JRE下载完成 ==="
+          ls -la java-*-openjdk/release
+      
       - name: Check Dependencies
         run: make check
       
       - name: Generate Xcode Project
-        run: |
-          if command -v xcodegen &> /dev/null; then
-            xcodegen generate
-          else
-            echo "xcodegen not installed, skipping project generation"
-          fi
+        run: xcodegen generate
       
-      - name: Build Frameworks
+      - name: Build App
         run: |
-          echo "=== Building native dylibs ==="
-          mkdir -p depends/Frameworks
-          # In a real CI, CMake cross-compilation would happen here
-          # For now, this is a placeholder for the native build step
+          xcodebuild -project PCL-iOS.xcodeproj \
+            -scheme PCL-iOS \
+            -configuration Debug \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath build \
+            build
       
-      - name: Verify Makefile Targets
+      - name: Package IPA
         run: |
-          make help
-          make check
+          mkdir -p artifacts/Payload
+          cp -r build/Build/Products/Debug-iphoneos/PCL-iOS.app artifacts/Payload/
+          # 内置JRE
+          mkdir -p artifacts/Payload/PCL-iOS.app/java_runtimes
+          cp -r depends/java-*-openjdk artifacts/Payload/PCL-iOS.app/java_runtimes/
+          cd artifacts
+          zip -r ../PCL-iOS.ipa Payload
+          cd ..
+          ls -lh PCL-iOS.ipa
       
-      - name: Upload Artifacts
+      - name: Upload IPA
         uses: actions/upload-artifact@v4
         with:
-          name: pcl-ios-build
-          path: |
-            depends/
-            artifacts/
-          if-no-files-found: ignore
+          name: PCL-iOS.ipa
+          path: PCL-iOS.ipa
+          if-no-files-found: error

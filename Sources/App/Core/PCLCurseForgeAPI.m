@@ -30,25 +30,8 @@
         NSURLSessionConfiguration *config = [NSURLSessionConfiguration defaultSessionConfiguration];
         config.timeoutIntervalForRequest = 30;
         _session = [NSURLSession sessionWithConfiguration:config];
-        _apiKey = [[NSUserDefaults standardUserDefaults] stringForKey:@"CurseForgeAPIKey"];
     }
     return self;
-}
-
-- (void)setAPIKey:(NSString *)key {
-    self.apiKey = key;
-    [[NSUserDefaults standardUserDefaults] setObject:key forKey:@"CurseForgeAPIKey"];
-    [[NSUserDefaults standardUserDefaults] synchronize];
-}
-
-- (nullable NSString *)currentAPIKey {
-    if (self.apiKey) return self.apiKey;
-    NSString *stored = [[NSUserDefaults standardUserDefaults] stringForKey:@"CurseForgeAPIKey"];
-    if (stored) {
-        self.apiKey = stored;
-        return stored;
-    }
-    return nil;
 }
 
 - (NSMutableURLRequest *)requestWithPath:(NSString *)path query:(NSDictionary *)query {
@@ -66,10 +49,6 @@
     NSMutableURLRequest *req = [NSMutableURLRequest requestWithURL:[NSURL URLWithString:urlString]];
     [req setValue:@"application/json" forHTTPHeaderField:@"Accept"];
     [req setValue:@"application/json" forHTTPHeaderField:@"Content-Type"];
-    NSString *key = [self currentAPIKey];
-    if (key) {
-        [req setValue:key forHTTPHeaderField:@"x-api-key"];
-    }
     return req;
 }
 
@@ -79,13 +58,6 @@
                        page:(NSInteger)page
                    pageSize:(NSInteger)pageSize
                  completion:(void(^)(NSArray<PCLCurseForgeMod *> *mods, NSError *error))completion {
-    
-    if (![self currentAPIKey]) {
-        dispatch_async(self.callbackQueue, ^{
-            completion(nil, [NSError errorWithDomain:@"PCLCurseForgeAPI" code:401 userInfo:@{NSLocalizedDescriptionKey: @"CurseForge API Key not set. Please configure in Settings."}]);
-        });
-        return;
-    }
     
     NSMutableDictionary *params = [@{
         @"gameId": @(self.gameId),

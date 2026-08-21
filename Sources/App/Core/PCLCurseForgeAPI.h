@@ -8,7 +8,7 @@ NS_ASSUME_NONNULL_BEGIN
 @property (nonatomic, strong) NSString *downloadUrl;
 @property (nonatomic, assign) NSInteger fileSize;
 @property (nonatomic, strong) NSString *gameVersion;
-@property (nonatomic, strong) NSString *fileType; // release, beta, alpha
+@property (nonatomic, strong) NSString *fileType;
 @end
 
 @interface PCLCurseForgeMod : NSObject
@@ -23,21 +23,17 @@ NS_ASSUME_NONNULL_BEGIN
 
 @interface PCLCurseForgeAPI : NSObject
 
-@property (nonatomic, strong, nullable) NSString *apiKey;
-@property (nonatomic, assign) NSInteger gameId; // default: 432 (Minecraft)
+@property (nonatomic, assign) NSInteger gameId;
 
 + (instancetype)sharedAPI;
 
-- (void)setAPIKey:(NSString *)key;
-- (nullable NSString *)currentAPIKey;
-
-// Search mods
+// Search mods (no API key required for public endpoints)
 - (void)searchModsWithQuery:(NSString *)query
-                     gameVersion:(nullable NSString *)gameVersion
-                     category:(nullable NSString *)category
-                         page:(NSInteger)page
-                    pageSize:(NSInteger)pageSize
-                  completion:(void(^)(NSArray<PCLCurseForgeMod *> *mods, NSError *error))completion;
+                gameVersion:(nullable NSString *)gameVersion
+                   category:(nullable NSString *)category
+                       page:(NSInteger)page
+                   pageSize:(NSInteger)pageSize
+                 completion:(void(^)(NSArray<PCLCurseForgeMod *> *mods, NSError *error))completion;
 
 // Get mod details
 - (void)getModWithId:(NSInteger)modId
@@ -49,7 +45,7 @@ NS_ASSUME_NONNULL_BEGIN
 
 // Download file
 - (void)downloadFile:(PCLCurseForgeFile *)file
-          toPath:(NSString *)path
+              toPath:(NSString *)path
             progress:(void(^)(double progress))progress
           completion:(void(^)(BOOL success, NSError *error))completion;
 

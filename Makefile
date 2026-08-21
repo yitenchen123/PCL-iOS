@@ -74,55 +74,25 @@ check:
 	@echo "MoltenVK:$(if $(wildcard $(FRAMEWORKS_DIR)/libMoltenVK.dylib),✓ 已安装,✗ 未安装)"
 	@echo "OpenAL:  $(if $(wildcard $(FRAMEWORKS_DIR)/libopenal.dylib),✓ 已安装,✗ 未安装)"
 
-# ===== Java JRE下载 =====
+# ===== Java JRE下载 (参考Amethyst) =====
+# 来源: Amethyst-iOS-MyRemastered/Makefile METHOD_JAVA_UNPACK
+METHOD_JAVA_UNPACK = \
+	cd $(DEPENDS_DIR); \
+	if [ ! -f "java-$(1)-openjdk/release" ] && [ ! -f "$(ls jre$(1)-*.tar.xz 2>/dev/null)" ]; then \
+		wget '$(2)' -q --show-progress -O jre$(1)-ios-aarch64.zip; \
+		unzip -q jre$(1)-ios-aarch64.zip && rm jre$(1)-ios-aarch64.zip; \
+		mkdir -p java-$(1)-openjdk; \
+		tar xvf jre$(1)-*.tar.xz -C java-$(1)-openjdk; \
+		rm -f jre$(1)-*.tar.xz; \
+	fi
+
 jre:
 	@echo "[PCL-iOS] 下载Java JRE for iOS arm64..."
 	mkdir -p $(DEPENDS_DIR)
-	
-	@# Java 8
-	if [ ! -f "$(JRE8_DIR)/bin/java" ]; then \
-		echo "[PCL-iOS] 下载 Java 8..."; \
-		cd $(DEPENDS_DIR); \
-		curl -L -o jre8-ios-aarch64.zip "$(JRE8_URL)" || wget "$(JRE8_URL)" -O jre8-ios-aarch64.zip; \
-		unzip -q jre8-ios-aarch64.zip && rm jre8-ios-aarch64.zip; \
-		mkdir -p java-8-openjdk; \
-		tar xvf jre8-*.tar.xz -C java-8-openjdk 2>/dev/null || \
-		mv jre* java-8-openjdk 2>/dev/null || true; \
-	fi
-	
-	@# Java 17
-	if [ ! -f "$(JRE17_DIR)/bin/java" ]; then \
-		echo "[PCL-iOS] 下载 Java 17..."; \
-		cd $(DEPENDS_DIR); \
-		curl -L -o jre17-ios-aarch64.zip "$(JRE17_URL)" || wget "$(JRE17_URL)" -O jre17-ios-aarch64.zip; \
-		unzip -q jre17-ios-aarch64.zip && rm jre17-ios-aarch64.zip; \
-		mkdir -p java-17-openjdk; \
-		tar xvf jre17-*.tar.xz -C java-17-openjdk 2>/dev/null || \
-		mv jre* java-17-openjdk 2>/dev/null || true; \
-	fi
-	
-	@# Java 21
-	if [ ! -f "$(JRE21_DIR)/bin/java" ]; then \
-		echo "[PCL-iOS] 下载 Java 21..."; \
-		cd $(DEPENDS_DIR); \
-		curl -L -o jre21-ios-aarch64.zip "$(JRE21_URL)" || wget "$(JRE21_URL)" -O jre21-ios-aarch64.zip; \
-		unzip -q jre21-ios-aarch64.zip && rm jre21-ios-aarch64.zip; \
-		mkdir -p java-21-openjdk; \
-		tar xvf jre21-*.tar.xz -C java-21-openjdk 2>/dev/null || \
-		mv jre* java-21-openjdk 2>/dev/null || true; \
-	fi
-	
-	@# Java 25
-	if [ ! -f "$(JRE25_DIR)/bin/java" ]; then \
-		echo "[PCL-iOS] 下载 Java 25..."; \
-		cd $(DEPENDS_DIR); \
-		curl -L -o jre25-ios-aarch64.zip "$(JRE25_URL)" || wget "$(JRE25_URL)" -O jre25-ios-aarch64.zip; \
-		unzip -q jre25-ios-aarch64.zip && rm jre25-ios-aarch64.zip; \
-		mkdir -p java-25-openjdk; \
-		tar xvf jre25-*.tar.xz -C java-25-openjdk 2>/dev/null || \
-		mv jre* java-25-openjdk 2>/dev/null || true; \
-	fi
-	
+	$(call METHOD_JAVA_UNPACK,8,$(JRE8_URL))
+	$(call METHOD_JAVA_UNPACK,17,$(JRE17_URL))
+	$(call METHOD_JAVA_UNPACK,21,$(JRE21_URL))
+	$(call METHOD_JAVA_UNPACK,25,$(JRE25_URL))
 	@echo "[PCL-iOS] Java JRE下载完成"
 
 # ===== Native dylib编译 (CMake交叉编译) =====
