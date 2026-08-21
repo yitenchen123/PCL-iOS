@@ -33,10 +33,7 @@ jobs:
         id: cache-jre
         uses: actions/cache@v4
         with:
-          path: |
-            depends/java-*-openjdk
-            depends/jre*.zip
-            depends/jre*.tar.xz
+          path: depends/java-*-openjdk
           key: jre-ios-${{ hashFiles('Makefile') }}
       
       - name: Download Java JRE (via Makefile)
@@ -52,9 +49,7 @@ jobs:
             if [ -f "$jdir/release" ]; then
               echo "✓ $jdir 已安装"
             else
-              echo "✗ $jdir 缺失，重新下载..."
-              make jre
-              break
+              echo "✗ $jdir 缺失"
             fi
           done
       
@@ -81,7 +76,10 @@ jobs:
             exit 1
           fi
       
-      - name: Package IPA (不含JRE，避免ldid签名错误)
+      # 参考Amethyst: 构建两个版本
+      # 1. 完整版（含JRE）
+      # 2. Slimmed版（不含JRE，用于TrollStore）
+      - name: Package IPA (完整版，含JRE)
         run: |
           mkdir -p artifacts/Payload
           if [ -d "build/Build/Products/Debug-iphoneos/PCL-iOS.app" ]; then
@@ -91,38 +89,46 @@ jobs:
             find build -name "*.app" -type d 2>/dev/null
             exit 1
           fi
-          # 不打包JRE到IPA中 - 参考Amethyst的slimmed版本
-          # JRE将在首次启动时从网络下载
+          # 复制JRE到.app (参考Amethyst payload目标)
+          if [ -d "depends/java-8-openjdk" ]; then
+            echo "=== 复制JRE到.app ==="
+            cp -R artifacts/java_runtimes artifacts/Payload/PCL-iOS.app/java_runtimes
+            echo "JRE已复制到.app"
+          fi
           cd artifacts
           zip -r ../PCL-iOS.ipa Payload
           cd ..
           ls -lh PCL-iOS.ipa
-          echo "=== IPA内容 ==="
-          unzip -l PCL-iOS.ipa | head -30
           
-      - name: Package JRE as standalone artifact
+      - name: Package Slimmed IPA (不含JRE，用于TrollStore)
         run: |
-          echo "=== 打包JRE为独立压缩包 ==="
-          mkdir -p jre_package
-          if [ -d "depends/java-8-openjdk" ]; then
-            cp -r depends/java-*-openjdk jre_package/
-            cd jre_package
-            zip -r ../PCL-iOS-JRE.zip java-*-openjdk
-            cd ..
-            ls -lh PCL-iOS-JRE.zip
+          mkdir -p artifacts_slimmed/Payload
+          if [ -d "build/Build/Products/Debug-iphoneos/PCL-iOS.app" ]; then
+            cp -r build/Build/Products/Debug-iphoneos/PCL-iOS.app artifacts_slimmed/Payload/
+          else
+            echo "ERROR: Build product not found"
+            exit 1
           fi
-          
-      - name: Upload JRE
-        uses: actions/upload-artifact@v4
-        with:
-          name: PCL-iOS-JRE.zip
-          path: PCL-iOS-JRE.zip
-          retention-days: 7
+          # 不复制JRE（参考Amethyst slimmed版本）
+          cd artifacts_slimmed
+          zip -r ../PCL-iOS.slimmed.ipa Payload
+          cd ..
+          ls -lh PCL-iOS.slimmed.ipa
+          echo "=== Slimmed IPA内容（不含JRE）==="
+          unzip -l PCL-iOS.slimmed.ipa | head -20
       
-      - name: Upload IPA
+      - name: Upload 完整版 IPA
         uses: actions/upload-artifact@v4
         with:
           name: PCL-iOS.ipa
           path: PCL-iOS.ipa
+          if-no-files-found: error
+          retention-days: 7
+      
+      - name: Upload Slimmed IPA (TrollStore用)
+        uses: actions/upload-artifact@v4
+        with:
+          name: PCL-iOS.slimmed.ipa
+          path: PCL-iOS.slimmed.ipa
           if-no-files-found: error
           retention-days: 7
