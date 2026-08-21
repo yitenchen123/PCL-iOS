@@ -1,7 +1,7 @@
 #import "PCLInstanceEditViewController.h"
 #import "PCLInstanceManager.h"
 #import "PCLVersionManager.h"
-#import "PCLJavaManager.h"
+#import "PCLPathUtils.h"
 
 static UIColor *PCLColor(NSUInteger rgb) {
     return [UIColor colorWithRed:((rgb >> 16) & 255) / 255.0
@@ -73,8 +73,10 @@ static UIColor *PCLColor(NSUInteger rgb) {
     self.installedVersions = versions;
 
     NSMutableArray *javaVers = [NSMutableArray arrayWithObject:@"自动检测"];
-    for (PCLJavaRuntime *java in [[PCLJavaManager sharedManager] availableJavaVersions]) {
-        [javaVers addObject:java.name];
+    for (NSNumber *ver in @[@8, @17, @21, @25]) {
+        if ([PCLPathUtils javaHomeForVersion:ver.integerValue]) {
+            [javaVers addObject:[NSString stringWithFormat:@"Java %ld", (long)ver.integerValue]];
+        }
     }
     self.javaVersions = javaVers;
 

@@ -91,42 +91,25 @@ static NSString *const kErrorDomain = @"PCLGameLauncher";
         return;
     }
     
-    // Step 2: Find Java
+    // Step 2: Find Java (pre-bundled at build time)
     [self log:@"Step 2/5: Locating Java runtime..."];
-    NSString *javaPath = [[PCLJavaManager sharedManager] findJavaPathForMCVersion:versionInfo.versionId];
-    if (!javaPath.length) {
-        PCLJavaRuntime *java = [[PCLJavaManager sharedManager] javaRuntimeForVersion:versionInfo.versionId];
-        if (java) {
-            [self log:[NSString stringWithFormat:@"  Downloading Java %@...", java.version]];
-            [self downloadJava:java completion:^(BOOL success, NSError *javaError) {
-                if (!success) {
-                    if (completion) completion(NO, javaError);
-                    return;
-                }
-                javaPath = [[PCLJavaManager sharedManager] findJavaPathForMCVersion:versionInfo.versionId];
-                [self verifyAndContinue:versionInfo profile:profile javaPath:javaPath completion:completion];
-            }];
-            return;
+    NSString *javaPath = [PCLPathUtils javaExecutableForVersion:[PCLPathUtils recommendedJavaVersionForMC:versionInfo.versionId]];
+    if (!javaPath) {
+        NSInteger reqVer = [PCLPathUtils recommendedJavaVersionForMC:versionInfo.versionId];
+        [self log:[NSString stringWithFormat:@"  Java %ld not found, checking alternatives...", (long)reqVer]];
+        for (NSInteger ver in @[@8, @17, @21, @25]) {
+            javaPath = [PCLPathUtils javaExecutableForVersion:ver];
+            if (javaPath) break;
         }
+    }
+    if (!javaPath) {
         NSError *error = [self errorWithCode:PCLLaunchErrorJavaNotFound 
-                                     message:@"No suitable Java runtime found"];
+                                     message:@"No Java runtime found. JRE must be bundled at build time."];
         if (completion) completion(NO, error);
         return;
     }
-    
-    [self log:[NSString stringWithFormat("  Java found at: %@", javaPath]];
+    [self log:[NSString stringWithFormat:@"  Java found at: %@", javaPath]];
     [self verifyAndContinue:versionInfo profile:profile javaPath:javaPath completion:completion];
-}
-
-- (void)downloadJava:(PCLJavaRuntime *)javaRuntime
-          completion:(void(^)(BOOL success, NSError *error))completion {
-    [[PCLJavaManager sharedManager] downloadJava:javaRuntime
-                                        progress:^(double p) {
-                                            // Progress callback if needed
-                                      }
-                                      completion:^(BOOL success, NSError *error) {
-                                          if (completion) completion(success, error);
-                                      }];
 }
 
 - (void)verifyAndContinue:(PCLVersionInfo *)versionInfo

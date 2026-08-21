@@ -1,6 +1,6 @@
 #import <Foundation/Foundation.h>
 #import "PCLVersionManager.h"
-#import "PCLJavaManager.h"
+#import "PCLPathUtils.h"
 
 typedef NS_ENUM(NSInteger, PCLLaunchError) {
     PCLLaunchErrorNone = 0,

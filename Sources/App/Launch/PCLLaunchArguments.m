@@ -1,6 +1,6 @@
 #import "PCLLaunchArguments.h"
 #import "PCLClasspathBuilder.h"
-#import "PCLJavaManager.h"
+#import "PCLPathUtils.h"
 
 @implementation PCLLaunchArguments
 
@@ -124,7 +124,7 @@
         @"gameArguments": [gameArgs copy],
         @"classpath": classpath,
         @"gameDirectory": gameDir,
-        @"javaPath": [[PCLJavaManager sharedManager] findJavaPathForMCVersion:version.versionId]
+        @"javaPath": [PCLPathUtils javaExecutableForVersion:[PCLPathUtils recommendedJavaVersionForMC:version.versionId]] ?: @""
     };
 }
 
