@@ -13,6 +13,8 @@
 @property (nonatomic, copy) void (^onCloseHint)(void);
 @property (nonatomic, copy) void (^onOpenDownload)(void);
 
+@property (nonatomic, strong) NSString *selectedGameVersion;
+
 - (void)switchToTab:(PCLDownloadTab)tab;
 - (void)dismissTransientUI;
 - (void)prepareCEEnterAnimation;

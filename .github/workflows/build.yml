@@ -59,7 +59,12 @@ jobs:
             -destination 'generic/platform=iOS' \
             -derivedDataPath build \
             CODE_SIGNING_ALLOWED=NO \
-            build 2>&1 | tail -50
+            build 2>&1 | tee /tmp/build.log | tail -50
+          if grep -q "BUILD FAILED" /tmp/build.log; then
+            echo "=== BUILD FAILED ==="
+            grep "error:" /tmp/build.log | head -20
+            exit 1
+          fi
       
       - name: Package IPA (with JRE bundled)
         run: |

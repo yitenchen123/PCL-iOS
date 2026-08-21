@@ -48,3 +48,4 @@ targets:
         GCC_PREPROCESSOR_DEFINITIONS: "$(inherited) GLES_SILENT_DEPRECATION=1"
         COPY_PHASE_STRIP: NO
         STRIP_INSTALLED_PRODUCT: NO
+        HEADER_SEARCH_PATHS: "$(inherited) depends/Headers"

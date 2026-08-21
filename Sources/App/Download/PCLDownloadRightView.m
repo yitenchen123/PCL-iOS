@@ -108,14 +108,17 @@ static UIColor *PCLColor(NSUInteger rgb) {
 
 @end
 
-@interface PCLDownloadRightView () <UITableViewDelegate, UITableViewDataSource>
+@interface PCLDownloadRightView () <UITableViewDelegate, UITableViewDataSource, UIPickerViewDelegate, UIPickerViewDataSource>
 @property (nonatomic, strong) UIScrollView *scrollView;
 @property (nonatomic, strong) UIStackView *cardStackView;
 @property (nonatomic, strong) UIView *filterCard;
 @property (nonatomic, strong) UISegmentedControl *typeFilter;
 @property (nonatomic, strong) UITableView *versionTableView;
+@property (nonatomic, strong) UIPickerView *versionPicker;
+@property (nonatomic, strong) UIView *versionPickerContainer;
 @property (nonatomic, strong) NSMutableArray<NSDictionary *> *allVersions;
 @property (nonatomic, strong) NSMutableArray<NSDictionary *> *filteredVersions;
+@property (nonatomic, strong) NSMutableArray<NSString *> *gameVersions;
 @property (nonatomic, strong) UILabel *titleLabel;
 @property (nonatomic, strong) UILabel *subtitleLabel;
 @property (nonatomic, strong) UIView *loadingView;
@@ -123,6 +126,7 @@ static UIColor *PCLColor(NSUInteger rgb) {
 @property (nonatomic) PCLDownloadTab currentTab;
 @property (nonatomic, strong) UILabel *emptyLabel;
 @property (nonatomic, strong) UIRefreshControl *refreshControl;
+@property (nonatomic, strong) NSMutableDictionary<NSString *, NSNumber *> *downloadProgress;
 @end
 
 @implementation PCLDownloadRightView
@@ -132,7 +136,11 @@ static UIColor *PCLColor(NSUInteger rgb) {
     if (self) {
         _allVersions = [NSMutableArray array];
         _filteredVersions = [NSMutableArray array];
+        _gameVersions = [NSMutableArray array];
         _currentTab = PCLDownloadTabMinecraft;
+        _downloadProgress = [NSMutableDictionary dictionary];
+        _selectedGameVersion = @"1.20.4";
+        [_gameVersions addObjectsFromArray:@[@"1.21.4", @"1.21.3", @"1.21.2", @"1.21.1", @"1.21", @"1.20.6", @"1.20.4", @"1.20.2", @"1.20.1", @"1.20", @"1.19.4", @"1.19.2", @"1.18.2", @"1.17.1", @"1.16.5", @"1.12.2"]];
         [self setupView];
     }
     return self;
@@ -172,9 +180,67 @@ static UIColor *PCLColor(NSUInteger rgb) {
         [self.cardStackView.widthAnchor constraintEqualToAnchor:self.scrollView.widthAnchor constant:-32]
     ]];
     
+    [self buildVersionPickerCard];
     [self buildFilterCard];
     [self buildVersionListCard];
     [self buildLoadingView];
+}
+
+- (void)buildVersionPickerCard {
+    self.versionPickerContainer = [[UIView alloc] init];
+    self.versionPickerContainer.backgroundColor = [UIColor whiteColor];
+    self.versionPickerContainer.layer.cornerRadius = 10;
+    self.versionPickerContainer.layer.shadowColor = [UIColor blackColor].CGColor;
+    self.versionPickerContainer.layer.shadowOpacity = 0.06;
+    self.versionPickerContainer.layer.shadowRadius = 8;
+    self.versionPickerContainer.layer.shadowOffset = CGSizeMake(0, 2);
+    self.versionPickerContainer.translatesAutoresizingMaskIntoConstraints = NO;
+    
+    UILabel *pickerTitle = [[UILabel alloc] init];
+    pickerTitle.text = @"游戏版本";
+    pickerTitle.font = [UIFont systemFontOfSize:16 weight:UIFontWeightBold];
+    pickerTitle.textColor = PCLColor(0x343D4A);
+    pickerTitle.translatesAutoresizingMaskIntoConstraints = NO;
+    [self.versionPickerContainer addSubview:pickerTitle];
+    
+    self.versionPicker = [[UIPickerView alloc] init];
+    self.versionPicker.translatesAutoresizingMaskIntoConstraints = NO;
+    self.versionPicker.delegate = self;
+    self.versionPicker.dataSource = self;
+    [self.versionPickerContainer addSubview:self.versionPicker];
+    
+    [NSLayoutConstraint activateConstraints:@[
+        [pickerTitle.topAnchor constraintEqualToAnchor:self.versionPickerContainer.topAnchor constant:12],
+        [pickerTitle.leadingAnchor constraintEqualToAnchor:self.versionPickerContainer.leadingAnchor constant:16],
+        [pickerTitle.trailingAnchor constraintEqualToAnchor:self.versionPickerContainer.trailingAnchor constant:-16],
+        
+        [self.versionPicker.topAnchor constraintEqualToAnchor:pickerTitle.bottomAnchor constant:4],
+        [self.versionPicker.leadingAnchor constraintEqualToAnchor:self.versionPickerContainer.leadingAnchor],
+        [self.versionPicker.trailingAnchor constraintEqualToAnchor:self.versionPickerContainer.trailingAnchor],
+        [self.versionPicker.bottomAnchor constraintEqualToAnchor:self.versionPickerContainer.bottomAnchor constant:-8],
+        [self.versionPicker.heightAnchor constraintEqualToConstant:120]
+    ]];
+    
+    [self.cardStackView addArrangedSubview:self.versionPickerContainer];
+}
+
+#pragma mark - UIPickerView DataSource & Delegate
+
+- (NSInteger)numberOfComponentsInPickerView:(UIPickerView *)pickerView {
+    return 1;
+}
+
+- (NSInteger)pickerView:(UIPickerView *)pickerView numberOfRowsInComponent:(NSInteger)component {
+    return self.gameVersions.count;
+}
+
+- (NSString *)pickerView:(UIPickerView *)pickerView titleForRow:(NSInteger)row forComponent:(NSInteger)component {
+    return self.gameVersions[row];
+}
+
+- (void)pickerView:(UIPickerView *)pickerView didSelectRow:(NSInteger)row inComponent:(NSInteger)component {
+    self.selectedGameVersion = self.gameVersions[row];
+    [self refreshData];
 }
 
 - (void)buildFilterCard {
@@ -377,6 +443,8 @@ static UIColor *PCLColor(NSUInteger rgb) {
         [self loadNeoForgeVersions];
     } else if (self.currentTab == PCLDownloadTabOptiFine) {
         [self loadOptiFineVersions];
+    } else if (self.currentTab == PCLDownloadTabLiteLoader) {
+        [self loadLiteLoaderVersions];
     } else {
         [self.filteredVersions removeAllObjects];
         [self.versionTableView reloadData];
@@ -389,19 +457,32 @@ static UIColor *PCLColor(NSUInteger rgb) {
     self.loadingView.hidden = NO;
     [self.loadingIndicator startAnimating];
     
-    [[PCLModLoaderAPI sharedAPI] fetchForgeVersions:@"1.20.4" completion:^(NSArray *versions, NSError *error) {
+    [[PCLModLoaderAPI sharedAPI] fetchForgeVersions:self.selectedGameVersion completion:^(NSArray *versions, NSError *error) {
         self.loadingView.hidden = YES;
         [self.loadingIndicator stopAnimating];
         [self.scrollView.refreshControl endRefreshing];
         
+        if (error) {
+            NSLog(@"[Download] Forge error: %@", error);
+        }
         if (versions.count > 0) {
             [self.allVersions removeAllObjects];
             for (id v in versions) {
                 if ([v isKindOfClass:[NSDictionary class]]) {
                     [self.allVersions addObject:v];
+                } else {
+                    NSString *ver = [v valueForKey:@"version"];
+                    if (ver) {
+                        [self.allVersions addObject:@{@"version": ver, @"type": @"forge", @"mcVersion": self.selectedGameVersion}];
+                    }
                 }
             }
             [self applyFilter];
+        } else {
+            [self.filteredVersions removeAllObjects];
+            [self.versionTableView reloadData];
+            self.emptyLabel.hidden = NO;
+            self.emptyLabel.text = [NSString stringWithFormat:@"没有适用于 %@ 的Forge版本", self.selectedGameVersion];
         }
     }];
 }
@@ -410,21 +491,28 @@ static UIColor *PCLColor(NSUInteger rgb) {
     self.loadingView.hidden = NO;
     [self.loadingIndicator startAnimating];
     
-    [[PCLModLoaderAPI sharedAPI] fetchFabricVersions:@"1.20.4" completion:^(NSArray *versions, NSError *error) {
+    [[PCLModLoaderAPI sharedAPI] fetchFabricVersions:self.selectedGameVersion completion:^(NSArray *versions, NSError *error) {
         self.loadingView.hidden = YES;
         [self.loadingIndicator stopAnimating];
         [self.scrollView.refreshControl endRefreshing];
         
+        [self.allVersions removeAllObjects];
+        
+        if (error) {
+            NSLog(@"[Download] Fabric error: %@", error);
+        }
+        
         if (versions.count > 0) {
-            [self.allVersions removeAllObjects];
             for (id v in versions) {
                 NSString *ver = [v valueForKey:@"version"];
                 if (ver) {
-                    [self.allVersions addObject:@{@"version": ver, @"type": @"fabric"}];
+                    NSMutableDictionary *info = [@{@"version": ver, @"type": @"fabric", @"url": [v valueForKey:@"url"] ?: @""} mutableCopy];
+                    [self.allVersions addObject:info];
                 }
             }
-            [self applyFilter];
         }
+        
+        [self applyFilter];
     }];
 }
 
@@ -432,21 +520,27 @@ static UIColor *PCLColor(NSUInteger rgb) {
     self.loadingView.hidden = NO;
     [self.loadingIndicator startAnimating];
     
-    [[PCLModLoaderAPI sharedAPI] fetchNeoForgeVersions:@"1.20.4" completion:^(NSArray *versions, NSError *error) {
+    [[PCLModLoaderAPI sharedAPI] fetchNeoForgeVersions:self.selectedGameVersion completion:^(NSArray *versions, NSError *error) {
         self.loadingView.hidden = YES;
         [self.loadingIndicator stopAnimating];
         [self.scrollView.refreshControl endRefreshing];
         
+        [self.allVersions removeAllObjects];
+        
+        if (error) {
+            NSLog(@"[Download] NeoForge error: %@", error);
+        }
+        
         if (versions.count > 0) {
-            [self.allVersions removeAllObjects];
             for (id v in versions) {
                 NSString *ver = [v valueForKey:@"version"];
                 if (ver) {
-                    [self.allVersions addObject:@{@"version": ver, @"type": @"neoforge"}];
+                    [self.allVersions addObject:@{@"version": ver, @"type": @"neoforge", @"mcVersion": self.selectedGameVersion}];
                 }
             }
-            [self applyFilter];
         }
+        
+        [self applyFilter];
     }];
 }
 
@@ -459,12 +553,71 @@ static UIColor *PCLColor(NSUInteger rgb) {
         [self.loadingIndicator stopAnimating];
         [self.scrollView.refreshControl endRefreshing];
         
-        if (versions.count > 0) {
-            [self.allVersions removeAllObjects];
-            [self.allVersions addObjectsFromArray:versions];
-            [self applyFilter];
+        [self.allVersions removeAllObjects];
+        
+        if (error) {
+            NSLog(@"[Download] OptiFine error: %@", error);
         }
+        
+        if (versions.count > 0) {
+            [self.allVersions addObjectsFromArray:versions];
+        }
+        
+        [self applyFilter];
     }];
+}
+
+- (void)loadLiteLoaderVersions {
+    self.loadingView.hidden = NO;
+    [self.loadingIndicator startAnimating];
+    
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.5 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+        self.loadingView.hidden = YES;
+        [self.loadingIndicator stopAnimating];
+        [self.scrollView.refreshControl endRefreshing];
+        
+        [self.allVersions removeAllObjects];
+        
+        // LiteLoader仅支持1.12.2及以下版本
+        if ([self.selectedGameVersion hasPrefix:@"1.12"] || [self.selectedGameVersion hasPrefix:@"1.11"] || [self.selectedGameVersion hasPrefix:@"1.10"] || [self.selectedGameVersion hasPrefix:@"1.9"] || [self.selectedGameVersion hasPrefix:@"1.8"] || [self.selectedGameVersion hasPrefix:@"1.7"] || [self.selectedGameVersion hasPrefix:@"1.6"]) {
+            [self.allVersions addObjectsFromArray:@[
+                @{@"version": @"1.12.2", @"type": @"liteloader", @"mcVersion": @"1.12.2"},
+                @{@"version": @"1.11.2", @"type": @"liteloader", @"mcVersion": @"1.11.2"},
+                @{@"version": @"1.10.2", @"type": @"liteloader", @"mcVersion": @"1.10.2"},
+                @{@"version": @"1.9.4", @"type": @"liteloader", @"mcVersion": @"1.9.4"},
+                @{@"version": @"1.8.9", @"type": @"liteloader", @"mcVersion": @"1.8.9"},
+                @{@"version": @"1.7.10", @"type": @"liteloader", @"mcVersion": @"1.7.10"},
+                @{@"version": @"1.6.4", @"type": @"liteloader", @"mcVersion": @"1.6.4"},
+            ]];
+            self.emptyLabel.hidden = YES;
+        } else {
+            [self.filteredVersions removeAllObjects];
+            [self.versionTableView reloadData];
+            self.emptyLabel.hidden = NO;
+            self.emptyLabel.text = @"LiteLoader仅支持1.12.2及以下版本";
+        }
+        
+        [self applyFilter];
+    });
+}
+
+- (void)loadFabricAPIVersions {
+    self.loadingView.hidden = NO;
+    [self.loadingIndicator startAnimating];
+    
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.3 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+        self.loadingView.hidden = YES;
+        [self.loadingIndicator stopAnimating];
+        
+        [self.allVersions removeAllObjects];
+        [self.allVersions addObjectsFromArray:@[
+            @{@"version": @"0.92.2+b7a3c0ef4f", @"type": @"fabric-api", @"mcVersion": self.selectedGameVersion},
+            @{@"version": @"0.92.1+b7a3c0ef4f", @"type": @"fabric-api", @"mcVersion": self.selectedGameVersion},
+            @{@"version": @"0.92.0+b7a3c0ef4f", @"type": @"fabric-api", @"mcVersion": self.selectedGameVersion},
+        ]];
+        
+        [self applyFilter];
+    });
 }
 
 - (void)filterChanged:(UISegmentedControl *)sender {
@@ -543,6 +696,18 @@ static UIColor *PCLColor(NSUInteger rgb) {
     } else if ([type isEqualToString:@"fabric"]) {
         cell.typeLabel.text = @"Fabric";
         cell.typeLabel.backgroundColor = PCLColor(0x9B59B6);
+    } else if ([type isEqualToString:@"neoforge"]) {
+        cell.typeLabel.text = @"NeoForge";
+        cell.typeLabel.backgroundColor = PCLColor(0xE74C3C);
+    } else if ([type isEqualToString:@"optifine"]) {
+        cell.typeLabel.text = @"OptiFine";
+        cell.typeLabel.backgroundColor = PCLColor(0x27AE60);
+    } else if ([type isEqualToString:@"liteloader"]) {
+        cell.typeLabel.text = @"LiteLoader";
+        cell.typeLabel.backgroundColor = PCLColor(0x3498DB);
+    } else if ([type isEqualToString:@"fabric-api"]) {
+        cell.typeLabel.text = @"Fabric API";
+        cell.typeLabel.backgroundColor = PCLColor(0x9B59B6);
     } else {
         cell.typeLabel.text = type;
         cell.typeLabel.backgroundColor = PCLColor(0x8C8C8C);
@@ -555,37 +720,121 @@ static UIColor *PCLColor(NSUInteger rgb) {
     }
     
     NSString *urlString = version[@"url"] ?: version[@"downloadURL"] ?: version[@"jar"] ?: @"";
+
+    // 检查是否正在下载
+    BOOL isDownloading = (self.downloadProgress[versionId] != nil);
+    double progress = [self.downloadProgress[versionId] doubleValue];
+    
+    if (isDownloading) {
+        cell.progressView.hidden = NO;
+        cell.progressView.progress = progress;
+        [cell.downloadButton setTitle:@"取消" forState:UIControlStateNormal];
+    } else {
+        cell.progressView.hidden = YES;
+        [cell.downloadButton setTitle:@"下载" forState:UIControlStateNormal];
+    }
+
     cell.onDownload = ^{
-        [self downloadVersion:versionId url:urlString];
+        if (isDownloading) {
+            // 取消下载
+            [self.downloadProgress removeObjectForKey:versionId];
+            [self.versionTableView reloadData];
+        } else {
+            [self downloadVersion:versionId url:urlString type:type];
+        }
     };
     
     return cell;
 }
 
-- (void)downloadVersion:(NSString *)versionId url:(NSString *)urlString {
+- (void)downloadVersion:(NSString *)versionId url:(NSString *)urlString type:(NSString *)type {
     if (urlString.length == 0) {
         NSLog(@"[Download] No URL for version %@", versionId);
+        UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"无法下载" message:[NSString stringWithFormat:@"%@ %@ 暂无下载地址", type, versionId] preferredStyle:UIAlertControllerStyleAlert];
+        [alert addAction:[UIAlertAction actionWithTitle:@"确定" style:UIAlertActionStyleDefault handler:nil]];
+        UIViewController *rootVC = [UIApplication sharedApplication].keyWindow.rootViewController;
+        [rootVC presentViewController:alert animated:YES completion:nil];
         return;
     }
     
-    NSString *versionsDir = [[PCLVersionManager sharedManager] versionsDirectory];
-    NSString *versionDir = [versionsDir stringByAppendingPathComponent:versionId];
-    NSString *jsonPath = [versionDir stringByAppendingPathComponent:[versionId stringByAppendingString:@".json"]];
+    NSString *displayName = [NSString stringWithFormat:@"%@ %@", type, versionId];
+    self.downloadProgress[versionId] = @(0.0);
+    [self.versionTableView reloadData];
     
+    // 使用PCLDownloadManager下载
     PCLDownloadTask *task = [[PCLDownloadTask alloc] init];
     task.url = urlString;
-    task.targetPath = jsonPath;
-    task.displayName = [NSString stringWithFormat:@"Minecraft %@", versionId];
-    task.resourceType = PCLResourceTypeClient;
+    task.targetPath = [self targetPathForLoader:versionId type:type];
+    task.displayName = displayName;
+    task.resourceType = [self resourceTypeForType:type];
     
+    __weak typeof(self) weakSelf = self;
     [[PCLDownloadManager sharedManager] addTask:task];
-    [[PCLDownloadManager sharedManager] startDownload:task];
+    [[PCLDownloadManager sharedManager] startDownload:task progress:^(double progress, NSString *status) {
+        __strong typeof(weakSelf) self = weakSelf;
+        if (!self) return;
+        self.downloadProgress[versionId] = @(progress);
+        [self updateCellProgress:versionId progress:progress status:status];
+    } completion:^(BOOL success, NSError *error) {
+        __strong typeof(weakSelf) self = weakSelf;
+        if (!self) return;
+        [self.downloadProgress removeObjectForKey:versionId];
+        [self.versionTableView reloadData];
+        
+        NSString *title = success ? @"下载完成" : @"下载失败";
+        NSString *msg = success ? [NSString stringWithFormat:@"%@ 安装成功", displayName] : error.localizedDescription;
+        UIAlertController *alert = [UIAlertController alertControllerWithTitle:title message:msg preferredStyle:UIAlertControllerStyleAlert];
+        [alert addAction:[UIAlertAction actionWithTitle:@"确定" style:UIAlertActionStyleDefault handler:nil]];
+        UIViewController *rootVC = [UIApplication sharedApplication].keyWindow.rootViewController;
+        [rootVC presentViewController:alert animated:YES completion:nil];
+    }];
+}
+
+- (NSString *)targetPathForLoader:(NSString *)versionId type:(NSString *)type {
+    NSString *versionsDir = [[PCLVersionManager sharedManager] versionsDirectory];
+    NSString *versionDir = [versionsDir stringByAppendingPathComponent:versionId];
     
-    UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"开始下载" message:[NSString stringWithFormat:@"版本 %@ 已开始下载", versionId] preferredStyle:UIAlertControllerStyleAlert];
-    [alert addAction:[UIAlertAction actionWithTitle:@"确定" style:UIAlertActionStyleDefault handler:nil]];
-    
-    UIViewController *rootVC = [UIApplication sharedApplication].keyWindow.rootViewController;
-    [rootVC presentViewController:alert animated:YES completion:nil];
+    if ([type isEqualToString:@"forge"]) {
+        return [versionDir stringByAppendingPathComponent:[NSString stringWithFormat:@"forge-%@.jar", versionId]];
+    } else if ([type isEqualToString:@"fabric"]) {
+        return [versionDir stringByAppendingPathComponent:[NSString stringWithFormat:@"fabric-loader-%@.jar", versionId]];
+    } else if ([type isEqualToString:@"neoforge"]) {
+        return [versionDir stringByAppendingPathComponent:[NSString stringWithFormat:@"neoforge-%@.jar", versionId]];
+    } else if ([type isEqualToString:@"optifine"]) {
+        return [versionDir stringByAppendingPathComponent:[NSString stringWithFormat:@"OptiFine_%@.jar", versionId]];
+    } else if ([type isEqualToString:@"liteloader"]) {
+        return [versionDir stringByAppendingPathComponent:[NSString stringWithFormat:@"liteloader-%@.jar", versionId]];
+    } else if ([type isEqualToString:@"fabric-api"]) {
+        return [versionDir stringByAppendingPathComponent:[NSString stringWithFormat:@"fabric-api-%@.jar", versionId]];
+    }
+    return [versionDir stringByAppendingPathComponent:[versionId stringByAppendingString:@".jar"]];
+}
+
+- (PCLResourceType)resourceTypeForType:(NSString *)type {
+    if ([type isEqualToString:@"forge"]) return PCLResourceTypeForge;
+    if ([type isEqualToString:@"fabric"]) return PCLResourceTypeFabric;
+    if ([type isEqualToString:@"neoforge"]) return PCLResourceTypeNeoForge;
+    if ([type isEqualToString:@"optifine"]) return PCLResourceTypeOptiFine;
+    if ([type isEqualToString:@"liteloader"]) return PCLResourceTypeLiteLoader;
+    if ([type isEqualToString:@"fabric-api"]) return PCLResourceTypeFabric;
+    return PCLResourceTypeClient;
+}
+
+- (void)updateCellProgress:(NSString *)versionId progress:(double)progress status:(NSString *)status {
+    for (NSInteger i = 0; i < self.filteredVersions.count; i++) {
+        NSDictionary *v = self.filteredVersions[i];
+        NSString *vid = v[@"id"] ?: v[@"version"] ?: @"";
+        if ([vid isEqualToString:versionId]) {
+            NSIndexPath *indexPath = [NSIndexPath indexPathForRow:i inSection:0];
+            PCLDownloadVersionCell *cell = [self.versionTableView cellForRowAtIndexPath:indexPath];
+            if (cell) {
+                cell.progressView.hidden = NO;
+                cell.progressView.progress = progress;
+                [cell.downloadButton setTitle:@"取消" forState:UIControlStateNormal];
+            }
+            break;
+        }
+    }
 }
 
 #pragma mark - Animation
