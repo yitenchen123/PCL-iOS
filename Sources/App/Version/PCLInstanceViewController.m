@@ -477,7 +477,7 @@ static UIColor *PCLColor(NSUInteger rgb) {
 
 - (void)memorySliderChanged:(UISlider *)slider {
     NSInteger value = (NSInteger)(slider.value / 256) * 256;
-    self.memoryLabel.text = [NSString stringWithFormat:@"%ld MB", (long)value);
+    self.memoryLabel.text = [NSString stringWithFormat:@"%ld MB", (long)value];
     if (self.currentInstance) {
         self.currentInstance.memoryMaxMB = value;
         self.currentInstance.javaArgs = [NSString stringWithFormat:@"-Xmx%ldM -Xms512M", (long)value];
