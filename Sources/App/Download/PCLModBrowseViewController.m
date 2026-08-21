@@ -337,7 +337,7 @@ static NSString *PCLFormatDownloads(long long downloads) {
     self.view.backgroundColor = PCLColor(0xF5F7FA);
     
     self.searchBar = [[UISearchBar alloc] init];
-    self.searchBar.placeholder = "搜索 Mods...";
+    self.searchBar.placeholder = @"搜索 Mods...";
     self.searchBar.delegate = self;
     self.searchBar.searchBarStyle = UISearchBarStyleMinimal;
     self.searchBar.backgroundColor = [UIColor whiteColor];
@@ -566,7 +566,7 @@ static NSString *PCLFormatDownloads(long long downloads) {
 }
 
 - (void)loadVersionsForMod:(PCLModrinthProject *)mod {
-    [[PCLModrinthAPI sharedAPI] versionsForProject:mod.projectId
+    [[PCLModrinthAPI sharedAPI] versionsForProject:mod.projectID
                                            facets:@{@"gameVersion": self.currentGameVersion ?: @""}
                                        completion:^(NSArray<PCLModrinthVersion *> *versions, NSError *error) {
         if (error) {

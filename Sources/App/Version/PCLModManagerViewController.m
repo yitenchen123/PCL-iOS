@@ -194,7 +194,7 @@ static UIColor *PCLColor(NSUInteger rgb) {
 - (void)addModPressed {
     // 打开在线搜索
     self.sourceSegment.selectedSegmentIndex = 1;
-    [sourceChanged:self.sourceSegment];
+    [self sourceChanged:self.sourceSegment];
 }
 
 - (void)sourceChanged:(UISegmentedControl *)sender {
