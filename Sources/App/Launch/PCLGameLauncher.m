@@ -4,6 +4,7 @@
 #import "PCLRendererManager.h"
 #import "PCLJITManager.h"
 #import "PCLProfileStore.h"
+#import "PCLJavaManager.h"
 
 static NSString *const kErrorDomain = @"PCLGameLauncher";
 
@@ -141,23 +142,51 @@ static NSString *const kErrorDomain = @"PCLGameLauncher";
         return;
     }
     
-    // Step 2: Find Java
+    // Step 2: Find or Download Java
     [self log:@"Step 2/5: Locating Java runtime..."];
+    NSInteger requiredJava = [PCLJavaManager.sharedManager javaVersionFromMC:versionInfo.versionId];
     NSString *javaPath = instance.javaPathOverride.length > 0 ? instance.javaPathOverride :
-                        [PCLPathUtils javaExecutableForVersion:[PCLPathUtils recommendedJavaVersionForMC:versionInfo.versionId]];
+                        [PCLJavaManager.sharedManager javaExecutableForVersion:requiredJava];
     if (!javaPath) {
         for (NSNumber *ver in @[@8, @17, @21, @25]) {
-            javaPath = [PCLPathUtils javaExecutableForVersion:ver.integerValue];
-            if (javaPath) break;
+            javaPath = [PCLJavaManager.sharedManager javaExecutableForVersion:ver.integerValue];
+            if (javaPath) {
+                requiredJava = ver.integerValue;
+                break;
+            }
         }
     }
+    
     if (!javaPath) {
-        NSError *error = [self errorWithCode:PCLLaunchErrorJavaNotFound
-                                     message:@"No Java runtime found. JRE must be bundled at build time."];
-        if (completion) completion(NO, error);
+        // Need to download Java
+        [self log:[NSString stringWithFormat:@"  Java %ld not found, downloading...", (long)requiredJava]];
+        __weak typeof(self) weakSelf = self;
+        
+        [PCLJavaManager.sharedManager ensureJavaDownloaded:requiredJava
+                                                 progress:^(double progress) {
+            [weakSelf log:[NSString stringWithFormat:@"  下载 Java: %.0f%%", progress * 100]];
+        } completion:^(BOOL success, NSError *dlError) {
+            __strong typeof(weakSelf) self = weakSelf;
+            if (success) {
+                [self log:@"  Java 下载完成"];
+                [self proceedWithInstance:instance javaVersion:requiredJava versionInfo:versionInfo profile:profile completion:completion];
+            } else {
+                NSError *error = [self errorWithCode:PCLLaunchErrorJavaNotFound
+                                             message:[NSString stringWithFormat:@"下载 Java 失败: %@", dlError.localizedDescription ?: @"未知错误"]];
+                if (completion) completion(NO, error);
+            }
+        }];
         return;
     }
-    [self log:[NSString stringWithFormat:@"  Java found at: %@", javaPath]];
+    
+    [self proceedWithInstance:instance javaVersion:requiredJava versionInfo:versionInfo profile:profile completion:completion];
+}
+
+- (void)proceedWithInstance:(PCLInstance *)instance
+                 javaVersion:(NSInteger)javaVersion
+                  versionInfo:(PCLVersionInfo *)versionInfo
+                      profile:(NSDictionary *)profile
+                   completion:(PCLLaunchCompletion)completion {
     
     if (self.isCancelled) {
         if (completion) completion(NO, [self errorWithCode:PCLLaunchErrorCancelled message:@"Cancelled"]);
@@ -165,7 +194,7 @@ static NSString *const kErrorDomain = @"PCLGameLauncher";
     }
     
     // Step 3: Build arguments with instance (版本隔离)
-    [self log:@"Step 3/5: Building launch arguments with instance settings..."];
+    [self log:@"Step 3/5: 构建启动参数..."];
     NSDictionary *config = [self buildConfigFromInstance:instance profile:profile versionInfo:versionInfo];
     NSDictionary *args = [PCLLaunchArguments buildArgumentsForInstance:instance
                                                             versionInfo:versionInfo
