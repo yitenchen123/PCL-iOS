@@ -183,8 +183,6 @@
     __weak typeof(self) weakSelf = self;
     NSURLRequest *request = [NSURLRequest requestWithURL:url cachePolicy:NSURLRequestReloadIgnoringLocalCacheData timeoutInterval:30];
     
-    NSURLSessionDownloadOperation *operation = nil;
-    
     NSURLSessionDownloadTask *dlTask = [self.session downloadTaskWithRequest:request completionHandler:^(NSURL *location, NSURLResponse *response, NSError *error) {
         __strong typeof(weakSelf) self = weakSelf;
         if (error) {
