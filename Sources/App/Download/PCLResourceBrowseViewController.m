@@ -533,7 +533,6 @@ static NSString *PCLFormatSize(NSInteger bytes) {
 @property (nonatomic, strong) NSMutableArray<PCLDownloadTask *> *downloadTasks;
 
 - (NSArray<NSString *> *)tabTitles;
-- (void)installVersion:(PCLModrinthVersion *)version forResource:(PCLModrinthProject *)resource;
 
 @end
 
