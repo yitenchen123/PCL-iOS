@@ -1,0 +1,192 @@
+#import "PCLInstanceManager.h"
+
+NSString *const PCLCurrentInstanceNameKey = @"PCLCurrentInstanceName";
+
+@implementation PCLInstance
+
+- (NSDictionary *)toDictionary {
+    NSMutableDictionary *dict = [NSMutableDictionary dictionary];
+    if (self.name) dict[@"name"] = self.name;
+    if (self.versionId) dict[@"versionId"] = self.versionId;
+    if (self.gameDir) dict[@"gameDir"] = self.gameDir;
+    if (self.javaArgs) dict[@"javaArgs"] = self.javaArgs;
+    dict[@"resolutionWidth"] = @(self.resolutionWidth);
+    dict[@"resolutionHeight"] = @(self.resolutionHeight);
+    if (self.javaVersion) dict[@"javaVersion"] = self.javaVersion;
+    if (self.created) dict[@"created"] = self.created;
+    dict[@"memoryMaxMB"] = @(self.memoryMaxMB);
+    dict[@"autoSelectJava"] = @(self.autoSelectJava);
+    if (self.gameArguments) dict[@"gameArguments"] = self.gameArguments;
+    return dict;
+}
+
++ (instancetype)instanceFromDictionary:(NSDictionary *)dict {
+    PCLInstance *instance = [[PCLInstance alloc] init];
+    instance.name = dict[@"name"] ?: @"";
+    instance.versionId = dict[@"versionId"] ?: @"";
+    instance.gameDir = dict[@"gameDir"] ?: @"";
+    instance.javaArgs = dict[@"javaArgs"] ?: @"-Xmx2G -Xms512M";
+    instance.resolutionWidth = [dict[@"resolutionWidth"] integerValue] ?: 1280;
+    instance.resolutionHeight = [dict[@"resolutionHeight"] integerValue] ?: 720;
+    instance.javaVersion = dict[@"javaVersion"] ?: @"auto";
+    instance.created = dict[@"created"] ?: [[NSDate date] description];
+    instance.memoryMaxMB = [dict[@"memoryMaxMB"] integerValue] ?: 2048;
+    instance.autoSelectJava = dict[@"autoSelectJava"] ? [dict[@"autoSelectJava"] boolValue] : YES;
+    instance.gameArguments = dict[@"gameArguments"] ?: @"";
+    return instance;
+}
+
+- (NSString *)description {
+    return [NSString stringWithFormat:@"<PCLInstance: %@ version=%@>", self.name, self.versionId];
+}
+
+@end
+
+@interface PCLInstanceManager ()
+@property (nonatomic, strong) NSString *instancesDirectory;
+@end
+
+@implementation PCLInstanceManager
+
++ (instancetype)sharedManager {
+    static PCLInstanceManager *instance;
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        instance = [[PCLInstanceManager alloc] init];
+    });
+    return instance;
+}
+
+- (instancetype)init {
+    self = [super init];
+    if (self) {
+        NSString *docsDir = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES).firstObject;
+        _instancesDirectory = [docsDir stringByAppendingPathComponent:@"instances"];
+        [self ensureDirectory:_instancesDirectory];
+    }
+    return self;
+}
+
+- (void)ensureDirectory:(NSString *)path {
+    NSFileManager *fm = [NSFileManager defaultManager];
+    if (![fm fileExistsAtPath:path]) {
+        [fm createDirectoryAtPath:path withIntermediateDirectories:YES attributes:nil error:nil];
+    }
+}
+
+- (NSString *)instanceDirectoryForName:(NSString *)name {
+    return [self.instancesDirectory stringByAppendingPathComponent:name];
+}
+
+- (NSString *)configPathForName:(NSString *)name {
+    return [[self instanceDirectoryForName:name] stringByAppendingPathComponent:@"instance.json"];
+}
+
+- (NSArray<PCLInstance *> *)allInstances {
+    NSFileManager *fm = [NSFileManager defaultManager];
+    NSArray *contents = [fm contentsOfDirectoryAtPath:self.instancesDirectory error:nil];
+    NSMutableArray *instances = [NSMutableArray array];
+
+    for (NSString *name in contents) {
+        NSString *configPath = [self configPathForName:name];
+        if ([fm fileExistsAtPath:configPath]) {
+            NSData *data = [NSData dataWithContentsOfFile:configPath];
+            if (data) {
+                NSDictionary *dict = [NSJSONSerialization JSONObjectWithData:data options:0 error:nil];
+                if (dict) {
+                    PCLInstance *instance = [PCLInstance instanceFromDictionary:dict];
+                    [instances addObject:instance];
+                }
+            }
+        }
+    }
+
+    return [instances sortedArrayUsingComparator:^NSComparisonResult(PCLInstance *a, PCLInstance *b) {
+        return [a.name localizedCaseInsensitiveCompare:b.name];
+    }];
+}
+
+- (BOOL)createInstanceWithName:(NSString *)name versionId:(NSString *)versionId {
+    if (name.length == 0 || versionId.length == 0) return NO;
+
+    NSFileManager *fm = [NSFileManager defaultManager];
+    NSString *instanceDir = [self instanceDirectoryForName:name];
+
+    if ([fm fileExistsAtPath:instanceDir]) return NO;
+
+    BOOL created = [fm createDirectoryAtPath:instanceDir withIntermediateDirectories:YES attributes:nil error:nil];
+    if (!created) return NO;
+
+    PCLInstance *instance = [[PCLInstance alloc] init];
+    instance.name = name;
+    instance.versionId = versionId;
+    instance.gameDir = instanceDir;
+    instance.memoryMaxMB = 2048;
+    instance.autoSelectJava = YES;
+    instance.resolutionWidth = 1280;
+    instance.resolutionHeight = 720;
+    instance.javaArgs = [NSString stringWithFormat:@"-Xmx%ldM -Xms512M", (long)instance.memoryMaxMB];
+    instance.javaVersion = @"auto";
+    instance.created = [[NSDate date] description];
+
+    return [self saveInstance:instance];
+}
+
+- (BOOL)deleteInstanceWithName:(NSString *)name {
+    if (name.length == 0) return NO;
+
+    NSString *instanceDir = [self instanceDirectoryForName:name];
+    NSFileManager *fm = [NSFileManager defaultManager];
+
+    if (![fm fileExistsAtPath:instanceDir]) return NO;
+
+    NSError *error = nil;
+    BOOL removed = [fm removeItemAtPath:instanceDir error:&error];
+    if (!error && removed) {
+        PCLInstance *current = [self currentInstance];
+        if (current && [current.name isEqualToString:name]) {
+            [[NSUserDefaults standardUserDefaults] removeObjectForKey:PCLCurrentInstanceNameKey];
+        }
+        return YES;
+    }
+    return NO;
+}
+
+- (PCLInstance *)instanceWithName:(NSString *)name {
+    if (name.length == 0) return nil;
+
+    NSString *configPath = [self configPathForName:name];
+    NSData *data = [NSData dataWithContentsOfFile:configPath];
+    if (!data) return nil;
+
+    NSDictionary *dict = [NSJSONSerialization JSONObjectWithData:data options:0 error:nil];
+    if (!dict) return nil;
+
+    return [PCLInstance instanceFromDictionary:dict];
+}
+
+- (void)selectInstance:(PCLInstance *)instance {
+    if (!instance) return;
+    [[NSUserDefaults standardUserDefaults] setObject:instance.name forKey:PCLCurrentInstanceNameKey];
+    [[NSUserDefaults standardUserDefaults] synchronize];
+}
+
+- (PCLInstance *)currentInstance {
+    NSString *name = [[NSUserDefaults standardUserDefaults] stringForKey:PCLCurrentInstanceNameKey];
+    if (name.length == 0) return nil;
+    return [self instanceWithName:name];
+}
+
+- (BOOL)saveInstance:(PCLInstance *)instance {
+    if (!instance || instance.name.length == 0) return NO;
+
+    [self ensureDirectory:[self instanceDirectoryForName:instance.name]];
+    NSString *configPath = [self configPathForName:instance.name];
+    NSDictionary *dict = [instance toDictionary];
+    NSData *data = [NSJSONSerialization dataWithJSONObject:dict options:NSJSONWritingPrettyPrinted error:nil];
+    if (!data) return NO;
+
+    return [data writeToFile:configPath atomically:YES];
+}
+
+@end

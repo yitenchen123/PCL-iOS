@@ -16,7 +16,13 @@ typedef NS_ENUM(NSInteger, PCLResourceType) {
     PCLResourceTypeFabric,
     PCLResourceTypeNeoForge,
     PCLResourceTypeOptiFine,
-    PCLResourceTypeLiteLoader
+    PCLResourceTypeLiteLoader,
+    PCLResourceTypeMod,
+    PCLResourceTypeModpack,
+    PCLResourceTypeResourcePack,
+    PCLResourceTypeShader,
+    PCLResourceTypeDataPack,
+    PCLResourceTypeWorld
 };
 
 @interface PCLDownloadTask : NSObject

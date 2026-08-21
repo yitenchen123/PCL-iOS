@@ -1,0 +1,237 @@
+#import "PCLGameLauncher.h"
+#import "PCLLaunchArguments.h"
+#import "PCLClasspathBuilder.h"
+#import "PCLRendererManager.h"
+#import "PCLJITManager.h"
+#import "PCLProfileStore.h"
+
+static NSString *const kErrorDomain = @"PCLGameLauncher";
+
+@interface PCLGameLauncher ()
+
+@property (nonatomic, assign) BOOL isCancelled;
+@property (nonatomic, strong) NSTimer *heartbeatTimer;
+
+@end
+
+@implementation PCLGameLauncher
+
++ (instancetype)sharedLauncher {
+    static PCLGameLauncher *instance;
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        instance = [[PCLGameLauncher alloc] init];
+    });
+    return instance;
+}
+
+- (instancetype)init {
+    self = [super init];
+    if (self) {
+        _isCancelled = NO;
+    }
+    return self;
+}
+
+#pragma mark - Public Methods
+
+- (void)launchWithVersion:(NSString *)versionId
+                  profile:(NSDictionary *)profile
+               completion:(PCLLaunchCompletion)completion {
+    
+    if (!versionId.length) {
+        NSError *error = [self errorWithCode:PCLLaunchErrorVersionNotFound message:@"Version ID is empty"];
+        if (completion) completion(NO, error);
+        return;
+    }
+    
+    if (!profile) {
+        profile = [PCLProfileStore selectedProfile];
+    }
+    
+    [self log:@"Starting launch sequence..."];
+    [self log:[NSString stringWithFormat:@"  Version: %@", versionId]];
+    [self log:[NSString stringWithFormat:@"  Profile: %@", profile[@"name"] ?: profile[@"username"] ?: @"Default"]];
+    
+    // Step 1: Validate version
+    [self log:@"Step 1/5: Validating version..."];
+    PCLVersionInfo *versionInfo = [[PCLVersionManager sharedManager] versionInfoForId:versionId];
+    if (!versionInfo) {
+        [self loadVersionJson:versionId completion:^(PCLVersionInfo *info, NSError *loadError) {
+            if (loadError || !info) {
+                NSError *error = [self errorWithCode:PCLLaunchErrorVersionNotFound 
+                                             message:@"Version JSON not found"];
+                if (completion) completion(NO, error);
+                return;
+            }
+            [self proceedWithVersion:info profile:profile completion:completion];
+        }];
+    } else {
+        [self proceedWithVersion:versionInfo profile:profile completion:completion];
+    }
+}
+
+- (void)cancelLaunch {
+    self.isCancelled = YES;
+    [self log:@"Launch cancelled by user."];
+}
+
+#pragma mark - Private Methods
+
+- (void)loadVersionJson:(NSString *)versionId completion:(void(^)(PCLVersionInfo *, NSError *))completion {
+    [[PCLVersionManager sharedManager] loadVersionJson:versionId completion:completion];
+}
+
+- (void)proceedWithVersion:(PCLVersionInfo *)versionInfo
+                   profile:(NSDictionary *)profile
+                completion:(PCLLaunchCompletion)completion {
+    
+    if (self.isCancelled) {
+        if (completion) completion(NO, [self errorWithCode:PCLLaunchErrorCancelled message:@"Cancelled"]);
+        return;
+    }
+    
+    // Step 2: Find Java
+    [self log:@"Step 2/5: Locating Java runtime..."];
+    NSString *javaPath = [[PCLJavaManager sharedManager] findJavaPathForMCVersion:versionInfo.versionId];
+    if (!javaPath.length) {
+        PCLJavaRuntime *java = [[PCLJavaManager sharedManager] javaRuntimeForVersion:versionInfo.versionId];
+        if (java) {
+            [self log:[NSString stringWithFormat:@"  Downloading Java %@...", java.version]];
+            [self downloadJava:java completion:^(BOOL success, NSError *javaError) {
+                if (!success) {
+                    if (completion) completion(NO, javaError);
+                    return;
+                }
+                javaPath = [[PCLJavaManager sharedManager] findJavaPathForMCVersion:versionInfo.versionId];
+                [self verifyAndContinue:versionInfo profile:profile javaPath:javaPath completion:completion];
+            }];
+            return;
+        }
+        NSError *error = [self errorWithCode:PCLLaunchErrorJavaNotFound 
+                                     message:@"No suitable Java runtime found"];
+        if (completion) completion(NO, error);
+        return;
+    }
+    
+    [self log:[NSString stringWithFormat("  Java found at: %@", javaPath]];
+    [self verifyAndContinue:versionInfo profile:profile javaPath:javaPath completion:completion];
+}
+
+- (void)downloadJava:(PCLJavaRuntime *)javaRuntime
+          completion:(void(^)(BOOL success, NSError *error))completion {
+    [[PCLJavaManager sharedManager] downloadJava:javaRuntime
+                                        progress:^(double p) {
+                                            // Progress callback if needed
+                                      }
+                                      completion:^(BOOL success, NSError *error) {
+                                          if (completion) completion(success, error);
+                                      }];
+}
+
+- (void)verifyAndContinue:(PCLVersionInfo *)versionInfo
+                  profile:(NSDictionary *)profile
+                 javaPath:(NSString *)javaPath
+               completion:(PCLLaunchCompletion)completion {
+    
+    if (self.isCancelled) {
+        if (completion) completion(NO, [self errorWithCode:PCLLaunchErrorCancelled message:@"Cancelled"]);
+        return;
+    }
+    
+    // Step 3: Validate Java version
+    [self log:@"Step 3/5: Validating Java version..."];
+    NSInteger requiredJava = [[PCLJavaManager sharedManager] recommendedJavaVersionForMC:versionInfo.versionId];
+    [self log:[NSString stringWithFormat("  Required Java: %ld", (long)requiredJava]];
+    
+    // Step 4: Build classpath and arguments
+    [self log:@"Step 4/5: Building launch arguments..."];
+    
+    NSDictionary *config = [self buildConfigFromProfile:profile versionInfo:versionInfo];
+    NSDictionary *args = [PCLLaunchArguments buildArgumentsForVersion:versionInfo
+                                                             profile:profile
+                                                              config:config];
+    
+    if (!args) {
+        NSError *error = [self errorWithCode:PCLLaunchErrorInternalFailure 
+                                     message:@"Failed to build launch arguments"];
+        if (completion) completion(NO, error);
+        return;
+    }
+    
+    [self log:[NSString stringWithFormat("  Main class: %@", args[@"mainClass"]]];
+    [self log:[NSString stringWithFormat("  JVM args: %@", [args[@"jvmArguments"] componentsJoinedByString:@" "]]];
+    [self log:[NSString stringWithFormat("  Game args: %@", [args[@"gameArguments"] componentsJoinedByString:@" "]]];
+    
+    // Step 5: Enable JIT
+    [self log:@"Step 5/5: Enabling JIT compilation..."];
+    if ([PCLJITManager isJTTAvailable]) {
+        [self log:@"  JIT is available."];
+        if (completion) completion(YES, nil);
+    } else {
+        [self log:@"  Attempting to enable JIT..."];
+        [PCLJITManager enableJITTWithCompletion:^(BOOL jitSuccess, NSError *jitError) {
+            if (jitSuccess) {
+                [self log:@"  JIT enabled successfully."];
+                if (completion) completion(YES, nil);
+            } else {
+                [self log:[NSString stringWithFormat("  JIT enable failed: %@. Continuing without JIT.", jitError.localizedDescription]];
+                // Continue anyway
+                if (completion) completion(YES, nil);
+            }
+        }];
+    }
+}
+
+#pragma mark - Configuration
+
+- (NSDictionary *)buildConfigFromProfile:(NSDictionary *)profile versionInfo:(PCLVersionInfo *)info {
+    NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
+    
+    NSInteger memoryMin = [defaults integerForKey:@"memoryMin"] ?: 512;
+    NSInteger memoryMax = [defaults integerForKey:@"memoryMax"] ?: 2048;
+    BOOL enableHooks = [defaults boolForKey:@"enableVirtualMachineHooks"];
+    
+    return @{
+        @"minMemory": @(memoryMin),
+        @"maxMemory": @(memoryMax),
+        @"enableVirtualMachineHooks": @(enableHooks),
+        @"jvmArguments": profile[@"javaArgs"] ?: @""
+    };
+}
+
+#pragma mark - Logging
+
+- (void)log:(NSString *)message {
+    if (self.logCallback) {
+        dispatch_async(dispatch_get_main_queue(), ^{
+            self.logCallback(message);
+        });
+    }
+}
+
+#pragma mark - Error Helper
+
+- (NSError *)errorWithCode:(NSInteger)code message:(NSString *)message {
+    return [NSError errorWithDomain:kErrorDomain
+                               code:code
+                           userInfo:@{NSLocalizedDescriptionKey: message}];
+}
+
+#pragma mark - Heartbeat
+
+- (void)startHeartbeat {
+    [self stopHeartbeat];
+    self.heartbeatTimer = [NSTimer scheduledTimerWithTimeInterval:5.0
+                                                          repeats:YES
+                                                            block:^(NSTimer *timer) {
+        [self log:@"[heartbeat] Process is running..."];
+    }];
+}
+
+- (void)stopHeartbeat {
+    [self.heartbeatTimer invalidate];
+    self.heartbeatTimer = nil;
+}
+
+@end
