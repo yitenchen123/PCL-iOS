@@ -2,17 +2,11 @@
 #import "PCLRootViewController.h"
 #import "PCLMouseSupport.h"
 #import "PCLGlobalButtonHover.h"
-#import "PCLJavaRuntime.h"
 
 @implementation PCLAppDelegate
 
 - (BOOL)application:(UIApplication *)application
 didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
-    // 后台解压JRE（不阻塞主线程，首次启动耗时约10-30秒）
-    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-        [[PCLJavaRuntime sharedRuntime] ensureJREExtracted];
-    });
-    
     PCLStartMouseMonitoring();
     self.window = [[UIWindow alloc]
         initWithFrame:[UIScreen mainScreen].bounds];

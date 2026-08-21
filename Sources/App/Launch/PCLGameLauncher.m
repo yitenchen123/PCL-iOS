@@ -4,7 +4,7 @@
 #import "PCLRendererManager.h"
 #import "PCLJITManager.h"
 #import "PCLProfileStore.h"
-#import "PCLJavaRuntime.h"
+#import "PCLPathUtils.h"
 
 static NSString *const kErrorDomain = @"PCLGameLauncher";
 
@@ -142,28 +142,28 @@ static NSString *const kErrorDomain = @"PCLGameLauncher";
         return;
     }
     
-        // Step 2: Find Java (pre-bundled, extracted at first launch)
-    [self log:@"Step 2/5: Locating Java runtime..."];
-    NSInteger requiredJava = [PCLJavaRuntime.sharedRuntime recommendedJavaVersionForMC:versionInfo.versionId];
-    NSString *javaPath = instance.javaPathOverride.length > 0 ? instance.javaPathOverride :
-                        [PCLJavaRuntime.sharedRuntime javaExecutableForVersion:requiredJava];
-    if (!javaPath) {
-        [self log:[NSString stringWithFormat:@"  Java %ld not found, checking alternatives...", (long)requiredJava]];
-        for (NSNumber *ver in @[@8, @17, @21, @25]) {
-            javaPath = [PCLJavaRuntime.sharedRuntime javaExecutableForVersion:ver.integerValue];
-            if (javaPath) {
-                requiredJava = ver.integerValue;
-                break;
+        // Step 2: Find Java (pre-bundled in .app, like Amethyst)
+        [self log:@"Step 2/5: Locating Java runtime..."];
+        NSInteger requiredJava = [PCLPathUtils recommendedJavaVersionForMC:versionInfo.versionId];
+        NSString *javaPath = instance.javaPathOverride.length > 0 ? instance.javaPathOverride :
+                                [PCLPathUtils javaExecutableForVersion:requiredJava];
+        if (!javaPath) {
+            [self log:[NSString stringWithFormat:@"  Java %ld not found, checking alternatives...", (long)requiredJava]];
+            for (NSNumber *ver in @[@8, @17, @21, @25]) {
+                javaPath = [PCLPathUtils javaExecutableForVersion:ver.integerValue];
+                if (javaPath) {
+                    requiredJava = ver.integerValue;
+                    break;
+                }
             }
         }
-    }
-    if (!javaPath) {
-        NSError *error = [self errorWithCode:PCLLaunchErrorJavaNotFound
-                                     message:@"No Java runtime found. JRE must be installed first."];
-        if (completion) completion(NO, error);
-        return;
-    }
-    [self log:[NSString stringWithFormat:@"  Java found at: %@", javaPath]];
+        if (!javaPath) {
+            NSError *error = [self errorWithCode:PCLLaunchErrorJavaNotFound
+                                         message:@"No Java runtime found. JRE must be bundled in .app."];
+            if (completion) completion(NO, error);
+            return;
+        }
+        [self log:[NSString stringWithFormat:@"  Java found at: %@", javaPath]];
     
     if (self.isCancelled) {
         if (completion) completion(NO, [self errorWithCode:PCLLaunchErrorCancelled message:@"Cancelled"]);
@@ -250,20 +250,20 @@ static NSString *const kErrorDomain = @"PCLGameLauncher";
         return;
     }
     
-    // Step 2: Find Java (pre-bundled, extracted at first launch)
+    // Step 2: Find Java (pre-bundled in .app)
     [self log:@"Step 2/5: Locating Java runtime..."];
-    NSString *javaPath = [PCLJavaRuntime.sharedRuntime javaExecutableForVersion:[PCLJavaRuntime.sharedRuntime recommendedJavaVersionForMC:versionInfo.versionId]];
+    NSString *javaPath = [PCLPathUtils javaExecutableForVersion:[PCLPathUtils recommendedJavaVersionForMC:versionInfo.versionId]];
     if (!javaPath) {
-        NSInteger reqVer = [PCLJavaRuntime.sharedRuntime recommendedJavaVersionForMC:versionInfo.versionId];
+        NSInteger reqVer = [PCLPathUtils recommendedJavaVersionForMC:versionInfo.versionId];
         [self log:[NSString stringWithFormat:@"  Java %ld not found, checking alternatives...", (long)reqVer]];
         for (NSNumber *ver in @[@8, @17, @21, @25]) {
-            javaPath = [PCLJavaRuntime.sharedRuntime javaExecutableForVersion:ver.integerValue];
+            javaPath = [PCLPathUtils javaExecutableForVersion:ver.integerValue];
             if (javaPath) break;
         }
     }
     if (!javaPath) {
         NSError *error = [self errorWithCode:PCLLaunchErrorJavaNotFound
-                                     message:@"No Java runtime found. JRE must be installed first."];
+                                     message:@"No Java runtime found. JRE must be bundled in .app."];
         if (completion) completion(NO, error);
         return;
     }

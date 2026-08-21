@@ -1,5 +1,4 @@
 #import "PCLPathUtils.h"
-#import "PCLJavaRuntime.h"
 
 @implementation PCLPathUtils
 
@@ -35,15 +34,32 @@
 }
 
 + (NSString *)javaHomeForVersion:(NSInteger)version {
-    return [PCLJavaRuntime.sharedRuntime javaHomeForVersion:version];
+    // 优先从.app中的java_runtimes目录查找（参考Amethyst）
+    NSString *appJavaDir = [[NSBundle mainBundle].resourcePath stringByAppendingPathComponent:
+        [NSString stringWithFormat:@"java_runtimes/java-%ld-openjdk", (long)version]];
+    if ([[NSFileManager defaultManager] fileExistsAtPath:[appJavaDir stringByAppendingPathComponent:@"release"]]) {
+        return appJavaDir;
+    }
+    // 回退到depends目录
+    NSString *path = [[self dependsDir] stringByAppendingPathComponent:[NSString stringWithFormat:@"java-%ld-openjdk", (long)version]];
+    if ([[NSFileManager defaultManager] fileExistsAtPath:[path stringByAppendingPathComponent:@"release"]]) return path;
+    return nil;
 }
 
 + (NSString *)javaExecutableForVersion:(NSInteger)version {
-    return [PCLJavaRuntime.sharedRuntime javaExecutableForVersion:version];
+    NSString *home = [self javaHomeForVersion:version];
+    if (home) return [home stringByAppendingPathComponent:@"bin/java"];
+    return nil;
 }
 
 + (NSInteger)recommendedJavaVersionForMC:(NSString *)mcVersion {
-    return [PCLJavaRuntime.sharedRuntime recommendedJavaVersionForMC:mcVersion];
+    if (!mcVersion) return 17;
+    NSArray *parts = [mcVersion componentsSeparatedByString:@"."];
+    if (parts.count < 2) return 17;
+    NSInteger minor = [parts[1] integerValue];
+    if (minor >= 17) return 21;
+    if (minor >= 16) return 17;
+    return 8;
 }
 
 + (NSString *)lwjglJarPath:(NSString *)jarName {

@@ -41,7 +41,6 @@ targets:
       - sdk: Metal.framework
       - sdk: MetalKit.framework
       - sdk: UIKit.framework
-      - sdk: Compression.framework
     settings:
       base:
         INFOPLIST_FILE: Resources/Info.plist
