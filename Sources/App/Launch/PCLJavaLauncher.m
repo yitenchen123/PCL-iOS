@@ -48,12 +48,12 @@
     
    [_environment addEntriesFromDictionary:env];
     
-    if (gameVersion) _environment["POJAV_GAME_VERSION"] = gameVersion;
-    
+    if (gameVersion) _environment[@"POJAV_GAME_VERSION"] = gameVersion;
+
     NSInteger javaVer = [PCLPathUtils recommendedJavaVersionForMC:mcVersion];
     NSString *javaHome = [PCLPathUtils javaHomeForVersion:javaVer];
     if (javaHome) {
-        _environment["JAVA_HOME"] = javaHome;
+        _environment[@"JAVA_HOME"] = javaHome;
     }
 }
 
@@ -84,7 +84,7 @@
     NSLog(@"[PCLJavaLauncher] Main class: %@", mainClass);
     NSLog(@"[PCLJavaLauncher] Classpath: %@", classpath);
     
-    long long physMem = [[NSProcessInfo processInfo].physicalMemory / (1024 * 1024);
+    long long physMem = [NSProcessInfo processInfo].physicalMemory / (1024 * 1024);
     long long maxMem = physMem > 4096 ? 2048 : physMem / 2;
     
     NSMutableArray *argv = [NSMutableArray arrayWithObjects:
@@ -115,7 +115,10 @@
     NSLog(@"[PCLJavaLauncher] argv: %@", argv);
     
     for (NSString *key in _environment) {
-        setenv(key.UTF8String, _environment[key].UTF8String, 1);
+        NSString *value = _environment[key];
+        if ([value isKindOfClass:[NSString class]]) {
+            setenv(key.UTF8String, value.UTF8String, 1);
+        }
     }
     
     NSMutableDictionary *launchInfo = [@{
