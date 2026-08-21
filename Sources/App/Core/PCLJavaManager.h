@@ -1,8 +1,10 @@
 #import <Foundation/Foundation.h>
 
 typedef NS_ENUM(NSInteger, PCLJavaVersion) {
+    PCLJavaVersion7 = 7,
     PCLJavaVersion8 = 8,
     PCLJavaVersion11 = 11,
+    PCLJavaVersion16 = 16,
     PCLJavaVersion17 = 17,
     PCLJavaVersion21 = 21,
     PCLJavaVersion25 = 25
@@ -17,6 +19,8 @@ typedef void(^PCLJavaDownloadCompletion)(BOOL success, NSError *error);
 
 @property (nonatomic, readonly) BOOL isDownloading;
 @property (nonatomic, assign) PCLJavaVersion downloadingVersion;
+@property (nonatomic, readonly) NSString *currentJavaHome;
+@property (nonatomic, readonly) NSInteger currentJavaVersion;
 
 - (NSString *)javaHomeForVersion:(NSInteger)version;
 - (NSString *)javaExecutableForVersion:(NSInteger)version;
@@ -28,5 +32,6 @@ typedef void(^PCLJavaDownloadCompletion)(BOOL success, NSError *error);
 
 - (NSString *)downloadURLForJava:(NSInteger)version;
 - (BOOL)isJavaAvailable:(NSInteger)version;
+- (NSString *)javaDisplayName:(NSInteger)version;
 
 @end
