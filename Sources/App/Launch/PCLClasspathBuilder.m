@@ -1,4 +1,6 @@
 #import "PCLClasspathBuilder.h"
+#import <UIKit/UIKit.h>
+#import <sys/utsname.h>
 
 @implementation PCLClasspathBuilder
 
