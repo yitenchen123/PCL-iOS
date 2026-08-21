@@ -1170,22 +1170,4 @@ static NSString *PCLFormatSize(NSInteger bytes) {
     }
 }
 
-- (void)installVersion:(PCLModrinthVersion *)version forResource:(PCLModrinthProject *)resource {
-    if (version.fileURL.length == 0) return;
-    
-    NSString *modsDir = [self modsDirectory];
-    NSString *fileName = version.fileName ?: [NSString stringWithFormat:@"%@.jar", version.versionNumber];
-    NSString *targetPath = [modsDir stringByAppendingPathComponent:fileName];
-    
-    [[PCLDownloadManager sharedManager] downloadFile:version.fileURL
-                                              toPath:targetPath
-                                                sha1:version.sha1
-                                             success:^{
-        NSLog(@"[ResourceBrowse] Downloaded: %@", fileName);
-    } failure:^(NSError *error) {
-        NSLog(@"[ResourceBrowse] Download failed: %@", error);
-    }];
-    [self hideDetailView];
-}
-
 @end
