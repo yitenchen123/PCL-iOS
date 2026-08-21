@@ -16,6 +16,7 @@ typedef NS_ENUM(NSInteger, PCLInstanceTab) {
 
 @property (nonatomic, assign) CGFloat leftPanelWidth;
 @property (nonatomic) PCLInstanceTab currentTab;
+@property (nonatomic, copy) void (^onComplete)(void);
 
 - (void)switchToTab:(PCLInstanceTab)tab;
 - (void)dismissTransientUI;

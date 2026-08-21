@@ -23,6 +23,7 @@ typedef void(^PCLLaunchCompletion)(BOOL success, NSError *error);
 
 @property (nonatomic, copy) PCLLogCallback logCallback;
 
++ (instancetype)sharedLauncher;
 - (void)launchWithVersion:(NSString *)versionId
                   profile:(NSDictionary *)profile
                completion:(PCLLaunchCompletion)completion;
