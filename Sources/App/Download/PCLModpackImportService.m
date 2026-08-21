@@ -181,13 +181,13 @@
     
     progress(0.1, @"获取 Modrinth 信息...");
     
-    [[PCLModrinthAPI sharedAPI] getVersion:versionID completion:^(NSDictionary *versionInfo, NSError *error) {
-        if (error || !versionInfo) {
+    [[PCLModrinthAPI sharedAPI] getVersion:versionID completion:^(PCLModrinthVersion *version, NSError *error) {
+        if (error || !version) {
             completion(NO, nil, error ?: [NSError errorWithDomain:@"PCLModpackImport" code:-1 userInfo:@{NSLocalizedDescriptionKey: @"无法获取版本信息"}]);
             return;
         }
         
-        NSArray *files = versionInfo[@"files"];
+        NSArray *files = version.files;
         NSDictionary *primaryFile = nil;
         for (NSDictionary *f in files) {
             if ([f[@"primary"] boolValue]) {
