@@ -3,6 +3,7 @@
 #import "PCLInstanceEditViewController.h"
 #import "PCLVersionManager.h"
 #import "PCLCEPageAnimator.h"
+#import <objc/runtime.h>
 
 static UIColor *PCLColor(NSUInteger rgb) {
     return [UIColor colorWithRed:((rgb >> 16) & 255) / 255.0
@@ -890,7 +891,8 @@ static UIColor *PCLColor(NSUInteger rgb) {
         if (name.length == 0) return;
 
         NSArray *versions = [[PCLVersionManager sharedManager] localVersions];
-        NSString *versionId = versions.firstObject.versionId ?: @"1.20.4";
+        PCLVersionInfo *firstVersion = [versions firstObject];
+        NSString *versionId = firstVersion.versionId ?: @"1.20.4";
 
         if ([[PCLInstanceManager sharedManager] createInstanceWithName:name versionId:versionId]) {
             [self refreshInstanceList];
