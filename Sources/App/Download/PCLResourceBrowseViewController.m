@@ -532,6 +532,9 @@ static NSString *PCLFormatSize(NSInteger bytes) {
 
 @property (nonatomic, strong) NSMutableArray<PCLDownloadTask *> *downloadTasks;
 
+- (NSArray<NSString *> *)tabTitles;
+- (void)installVersion:(PCLModrinthVersion *)version forResource:(PCLModrinthProject *)resource;
+
 @end
 
 @implementation PCLResourceBrowseViewController
@@ -568,6 +571,10 @@ static NSString *PCLFormatSize(NSInteger bytes) {
         case PCLResourceTabShader: return @"光影";
         case PCLResourceTabDataPack: return @"数据包";
     }
+}
+
+- (NSArray<NSString *> *)tabTitles {
+    return @[@"模组", @"整合包", @"资源包", @"光影", @"数据包"];
 }
 
 - (PCLModrinthProjectType)projectTypeForTab:(PCLResourceTab)tab {
@@ -922,7 +929,7 @@ static NSString *PCLFormatSize(NSInteger bytes) {
 - (void)loadVersionsForResource:(PCLModrinthProject *)resource {
     [[PCLModrinthAPI sharedAPI] versionsForProject:resource.projectID
                                            facets:@{@"gameVersion": self.currentGameVersion ?: @"",
-                                                    @"loader": [[PCLModrinthAPI loaderString:self.currentLoader] stringByReplacingOccurrencesOfString:@" \"withString:@""]}
+                                                    @"loader": [[PCLModrinthAPI loaderString:self.currentLoader] stringByReplacingOccurrencesOfString:@"\"" withString:@""]}
                                        completion:^(NSArray<PCLModrinthVersion *> *versions, NSError *error) {
         if (error) {
             NSLog(@"[ResourceBrowse] Failed to load versions: %@", error);
@@ -1161,6 +1168,24 @@ static NSString *PCLFormatSize(NSInteger bytes) {
         self.currentQuery = @"";
         [self reloadResources];
     }
+}
+
+- (void)installVersion:(PCLModrinthVersion *)version forResource:(PCLModrinthProject *)resource {
+    if (version.fileURL.length == 0) return;
+    
+    NSString *modsDir = [self modsDirectory];
+    NSString *fileName = version.fileName ?: [NSString stringWithFormat:@"%@.jar", version.versionNumber];
+    NSString *targetPath = [modsDir stringByAppendingPathComponent:fileName];
+    
+    [[PCLDownloadManager sharedManager] downloadFile:version.fileURL
+                                              toPath:targetPath
+                                                sha1:version.sha1
+                                             success:^{
+        NSLog(@"[ResourceBrowse] Downloaded: %@", fileName);
+    } failure:^(NSError *error) {
+        NSLog(@"[ResourceBrowse] Download failed: %@", error);
+    }];
+    [self hideDetailView];
 }
 
 @end
