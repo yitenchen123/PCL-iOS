@@ -147,24 +147,33 @@ gen:
 	$(XCODEGEN) generate
 	@echo "[PCL-iOS] 项目生成完成"
 
-# ===== LWJGL和Caciocavallo说明 =====
+# ===== LWJGL下载 (来自Amethyst) =====
+AMETHYST_BASE := https://raw.githubusercontent.com/herbrine8403/Amethyst-iOS-MyRemastered/main/JavaApp/libs
+
 lwjgl:
-	@echo "[PCL-iOS] LWJGL库 (PojavLauncherTeam定制版)"
-	@echo "需要以下JAR文件放在 depends/libs/ 目录:"
-	@echo "  lwjgl.jar, lwjgl-opengl.jar, lwjgl-openal.jar, lwjgl-glfw.jar"
-	@echo "  lwjgl-stb.jar, lwjgl-nanovg.jar, lwjgl-jemalloc.jar"
-	@echo "  lwjgl-tinyfd.jar, lwjgl-vulkan.jar, lwjgl-callback-descriptor.jar"
-	@echo "  lwjgl-input.jar, lwjgl-system.jar, lwjgl-util.jar"
-	@echo "  gson-2.13.1.jar, jsr305.jar, arc_dns_injector.jar"
-	@echo ""
-	@echo "Caciocavallo (AWT桥接):"
-	@echo "  depends/libs_caciocavallo/ (Java 8)"
-	@echo "  depends/libs_caciocavallo17/ (Java 17+)"
-	@echo ""
-	@echo "Native dylib (Frameworks/):"
-	@echo "  libglfw.dylib, libgl4es_114.dylib, libtinygl4angle.dylib"
-	@echo "  libmobileglues.dylib, libMoltenVK.dylib, libopenal.dylib"
-	@echo "  libOSMesa.8.dylib, libawt_headless.dylib, libawt_xawt.dylib"
+	@echo "[PCL-iOS] 下载LWJGL JARs (来自 Amethyst JavaApp/libs)..."
+	mkdir -p $(DEPENDS_DIR)/libs/lwjgl $(DEPENDS_DIR)/libs/others $(DEPENDS_DIR)/libs/caciocavallo $(DEPENDS_DIR)/libs/caciocavallo17
+	@# LWJGL JARs
+	for jar in lwjgl.jar lwjgl-opengl.jar lwjgl-openal.jar lwjgl-glfw.jar lwjgl-stb.jar lwjgl-nanovg.jar lwjgl-vulkan.jar lwjgl-callback-descriptor.jar lwjgl-input.jar lwjgl-system.jar lwjgl-util.jar; do \
+		echo "  下载 $$jar..."; \
+	 curl -sL -o $(DEPENDS_DIR)/libs/lwjgl/$$jar "$(AMETHYST_BASE)/lwjgl/$$jar" || wget -q -O $(DEPENDS_DIR)/libs/lwjgl/$$jar "$(AMETHYST_BASE)/lwjgl/$$jar"; \
+	done
+	@# 其他依赖
+	for jar in gson-2.13.1.jar jsr305.jar arc_dns_injector.jar; do \
+		echo "  下载 $$jar..."; \
+	 curl -sL -o $(DEPENDS_DIR)/libs/others/$$jar "$(AMETHYST_BASE)/others/$$jar" || wget -q -O $(DEPENDS_DIR)/libs/others/$$jar "$(AMETHYST_BASE)/others/$$jar"; \
+	done
+	@# Caciocavallo (Java 8)
+	for jar in ResConfHack.jar cacio-androidnw-1.10-SNAPSHOT.jar cacio-shared-1.10-SNAPSHOT.jar; do \
+		echo "  下载 $$jar..."; \
+	 curl -sL -o $(DEPENDS_DIR)/libs/caciocavallo/$$jar "$(AMETHYST_BASE)/caciocavallo/$$jar" || wget -q -O $(DEPENDS_DIR)/libs/caciocavallo/$$jar "$(AMETHYST_BASE)/caciocavallo/$$jar"; \
+	done
+	@# Caciocavallo17 (Java 17+)
+	for jar in cacio-shared-1.18-SNAPSHOT.jar cacio-tta-1.18-SNAPSHOT.jar; do \
+		echo "  下载 $$jar..."; \
+	 curl -sL -o $(DEPENDS_DIR)/libs/caciocavallo17/$$jar "$(AMETHYST_BASE)/caciocavallo17/$$jar" || wget -q -O $(DEPENDS_DIR)/libs/caciocavallo17/$$jar "$(AMETHYST_BASE)/caciocavallo17/$$jar"; \
+	done
+	@echo "[PCL-iOS] LWJGL下载完成"
 
 # ===== 清理 =====
 clean:

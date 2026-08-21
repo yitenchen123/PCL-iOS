@@ -30,23 +30,30 @@ depends/
 ├── java-17-openjdk/     # JRE 17 (MC 1.17-1.20.x)
 ├── java-21-openjdk/     # JRE 21 (MC 1.21+)
 ├── java-25-openjdk/     # JRE 25 (未来版本)
-├── libs/                # LWJGL3 JARs (PojavLauncherTeam定制版)
-│   ├── lwjgl.jar
-│   ├── lwjgl-opengl.jar
-│   ├── lwjgl-openal.jar
-│   ├── lwjgl-glfw.jar       # GLFW窗口/输入
-│   ├── lwjgl-stb.jar
-│   ├── lwjgl-nanovg.jar
-│   ├── lwjgl-jemalloc.jar
-│   ├── lwjgl-tinyfd.jar
-│   ├── lwjgl-vulkan.jar     # Vulkan支持
-│   ├── lwjgl-callback-descriptor.jar
-│   ├── lwjgl-input.jar
-│   ├── lwjgl-system.jar
-│   ├── lwjgl-util.jar
-│   ├── gson-2.13.1.jar
-│   ├── jsr305.jar
-│   └── arc_dns_injector.jar
+├── libs/
+│   ├── lwjgl/           # LWJGL3 JARs (来自 Amethyst JavaApp/libs/lwjgl)
+│   │   ├── lwjgl.jar
+│   │   ├── lwjgl-opengl.jar
+│   │   ├── lwjgl-openal.jar
+│   │   ├── lwjgl-glfw.jar       # GLFW窗口/输入
+│   │   ├── lwjgl-stb.jar
+│   │   ├── lwjgl-nanovg.jar
+│   │   ├── lwjgl-vulkan.jar     # Vulkan支持
+│   │   ├── lwjgl-callback-descriptor.jar
+│   │   ├── lwjgl-input.jar
+│   │   ├── lwjgl-system.jar
+│   │   └── lwjgl-util.jar
+│   ├── others/          # 其他依赖 (来自 Amethyst JavaApp/libs/others)
+│   │   ├── gson-2.13.1.jar
+│   │   ├── jsr305.jar
+│   │   └── arc_dns_injector.jar
+│   ├── caciocavallo/    # Java 8 AWT桥接 (来自 Amethyst JavaApp/libs/caciocavallo)
+│   │   ├── ResConfHack.jar
+│   │   ├── cacio-androidnw-1.10-SNAPSHOT.jar
+│   │   └── cacio-shared-1.10-SNAPSHOT.jar
+│   └── caciocavallo17/  # Java 17+ AWT桥接 (来自 Amethyst JavaApp/libs/caciocavallo17)
+│       ├── cacio-shared-1.18-SNAPSHOT.jar
+│       └── cacio-tta-1.18-SNAPSHOT.jar
 ├── libs_caciocavallo/   # Java 8 AWT桥接
 │   ├── cacio-shared-1.10-SNAPSHOT.jar
 │   ├── cacio-androidnw-1.10-SNAPSHOT.jar
