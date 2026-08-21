@@ -10,7 +10,7 @@ typedef NS_ENUM(NSInteger, PCLJavaVersion) {
     PCLJavaVersion25 = 25
 };
 
-typedef void(^PCLJavaDownloadProgress)(double progress);
+typedef void(^PCLJavaDownloadProgress)(double progress, NSString *status);
 typedef void(^PCLJavaDownloadCompletion)(BOOL success, NSError *error);
 
 @interface PCLJavaManager : NSObject
@@ -30,8 +30,10 @@ typedef void(^PCLJavaDownloadCompletion)(BOOL success, NSError *error);
                     progress:(PCLJavaDownloadProgress)progress
                   completion:(PCLJavaDownloadCompletion)completion;
 
-- (NSString *)downloadURLForJava:(NSInteger)version;
+- (NSArray<NSString *> *)allDownloadURLsForJava:(NSInteger)version;
 - (BOOL)isJavaAvailable:(NSInteger)version;
 - (NSString *)javaDisplayName:(NSInteger)version;
+
++ (NSString *)defaultJavaURLForVersion:(NSInteger)version;
 
 @end
