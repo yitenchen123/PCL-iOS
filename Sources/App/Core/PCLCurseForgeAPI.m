@@ -1,20 +1,14 @@
 #import "PCLCurseForgeAPI.h"
-#import "PCLNetworkUtils.h"
-
-static NSString * const kCurseForgeBaseURL = @"https://api.curseforge.com/v1";
-static NSString * const kCurseForgeAPIKeyKey = @"PCLCurseForgeAPIKey";
-static NSString * const kCurseForgeGameVersionTypeID = @"68441";
-
-@implementation PCLCurseForgeMod
-@end
 
 @implementation PCLCurseForgeFile
 @end
 
-@implementation PCLCurseForgeCategory
+@implementation PCLCurseForgeMod
 @end
 
-@implementation PCLCurseForgeSearchResult
+@interface PCLCurseForgeAPI ()
+@property (nonatomic, strong) NSURLSession *session;
+@property (nonatomic, strong) dispatch_queue_t callbackQueue;
 @end
 
 @implementation PCLCurseForgeAPI
@@ -31,395 +25,182 @@ static NSString * const kCurseForgeGameVersionTypeID = @"68441";
 - (instancetype)init {
     self = [super init];
     if (self) {
-        _gameId = PCLCurseForgeGameIdMinecraft;
-        _apiKey = [[NSUserDefaults standardUserDefaults] stringForKey:kCurseForgeAPIKeyKey] ?: @"";
+        _gameId = 432;
+        _callbackQueue = dispatch_get_main_queue();
+        NSURLSessionConfiguration *config = [NSURLSessionConfiguration defaultSessionConfiguration];
+        config.timeoutIntervalForRequest = 30;
+        _session = [NSURLSession sessionWithConfiguration:config];
+        _apiKey = [[NSUserDefaults standardUserDefaults] stringForKey:@"CurseForgeAPIKey"];
     }
     return self;
 }
 
-#pragma mark - API Key Management
-
-+ (void)setAPIKey:(NSString *)apiKey {
-    [[NSUserDefaults standardUserDefaults] setObject:apiKey forKey:kCurseForgeAPIKeyKey];
+- (void)setAPIKey:(NSString *)key {
+    self.apiKey = key;
+    [[NSUserDefaults standardUserDefaults] setObject:key forKey:@"CurseForgeAPIKey"];
     [[NSUserDefaults standardUserDefaults] synchronize];
-    [PCLCurseForgeAPI sharedAPI].apiKey = apiKey;
 }
 
-+ (NSString *)apiKey {
-    return [[NSUserDefaults standardUserDefaults] stringForKey:kCurseForgeAPIKeyKey] ?: @"";
-}
-
-#pragma mark - Headers
-
-- (NSDictionary *)requestHeaders {
-    NSMutableDictionary *headers = [NSMutableDictionary dictionary];
-    headers[@"Accept"] = @"application/json";
-    headers[@"x-api-key"] = self.apiKey ?: @"";
-    return headers;
-}
-
-#pragma mark - Search
-
-- (void)searchMods:(NSString *)query
-      gameVersion:(NSString *)gameVersion
-         modLoader:(PCLCurseForgeModLoader)modLoader
-          category:(NSString *)categoryName
-              sort:(PCLCurseForgeSortField)sortField
-         sortOrder:(PCLCurseForgeSortOrder)sortOrder
-             limit:(NSInteger)limit
-            offset:(NSInteger)offset
-        completion:(void (^)(PCLCurseForgeSearchResult *, NSError *))completion {
-    
-    NSMutableDictionary *params = [NSMutableDictionary dictionary];
-    params[@"gameId"] = @(self.gameId);
-    params[@"pageSize"] = @(limit > 0 ? limit : 20);
-    params[@"index"] = @(offset);
-    params[@"sortField"] = @(sortField);
-    params[@"sortOrder"] = sortOrder == PCLCurseForgeSortOrderAsc ? @"asc" : @"desc";
-    params[@"gameVersionTypeId"] = kCurseForgeGameVersionTypeID;
-    
-    if (query.length > 0) {
-        params[@"searchFilter"] = query;
+- (nullable NSString *)currentAPIKey {
+    if (self.apiKey) return self.apiKey;
+    NSString *stored = [[NSUserDefaults standardUserDefaults] stringForKey:@"CurseForgeAPIKey"];
+    if (stored) {
+        self.apiKey = stored;
+        return stored;
     }
-    if (gameVersion.length > 0) {
-        params[@"gameVersion"] = gameVersion;
-    }
-    if (modLoader != PCLCurseForgeModLoaderAny) {
-        params[@"modLoaderType"] = @(modLoader);
-    }
-    if (categoryName.length > 0) {
-        params[@"classId"] = categoryName;
-    }
-    
-    NSString *url = [kCurseForgeBaseURL stringByAppendingString:@"/mods/search"];
-    
-    [PCLNetworkUtils GET:url parameters:params headers:[self requestHeaders] completion:^(NSData *data, NSURLResponse *response, NSError *error) {
-        [self handleCurseSearchResponse:data response:response error:error completion:completion];
-    }];
+    return nil;
 }
 
-- (void)searchMods:(NSString *)query
-      gameVersion:(NSString *)gameVersion
-         modLoader:(PCLCurseForgeModLoader)modLoader
-          category:(NSString *)categoryId
-              sort:(PCLCurseForgeSortField)sortField
-             limit:(NSInteger)limit
-            offset:(NSInteger)offset
-        completion:(void (^)(PCLCurseForgeSearchResult *, NSError *))completion {
-    [self searchMods:query gameVersion:gameVersion modLoader:modLoader category:categoryId sort:sortField sortOrder:PCLCurseForgeSortOrderDesc limit:limit offset:offset completion:completion];
+- (NSMutableURLRequest *)requestWithPath:(NSString *)path query:(NSDictionary *)query {
+    NSString *base = @"https://api.curseforge.com";
+    NSString *urlString = [base stringByAppendingPathComponent:path];
+    if (query.count > 0) {
+        NSMutableArray *pairs = [NSMutableArray array];
+        for (NSString *key in query) {
+            NSString *val = [query[key] stringValue];
+            NSString *encoded = [val stringByAddingPercentEncodingWithAllowedCharacters:[NSCharacterSet URLQueryAllowedCharacterSet]];
+            [pairs addObject:[NSString stringWithFormat:@"%@=%@", key, encoded]];
+        }
+        urlString = [urlString stringByAppendingFormat:@"?%@", [pairs componentsJoinedByString:@"&"]];
+    }
+    NSMutableURLRequest *req = [NSMutableURLRequest requestWithURL:[NSURL URLWithString:urlString]];
+    [req setValue:@"application/json" forHTTPHeaderField:@"Accept"];
+    [req setValue:@"application/json" forHTTPHeaderField:@"Content-Type"];
+    NSString *key = [self currentAPIKey];
+    if (key) {
+        [req setValue:key forHTTPHeaderField:@"x-api-key"];
+    }
+    return req;
 }
 
-- (void)handleCurseSearchResponse:(NSData *)data
-                         response:(NSURLResponse *)response
-                           error:(NSError *)error
-                      completion:(void (^)(PCLCurseForgeSearchResult *, NSError *))completion {
-    if (error) {
-        if (completion) completion(nil, error);
+- (void)searchModsWithQuery:(NSString *)query
+                gameVersion:(NSString *)gameVersion
+                   category:(NSString *)category
+                       page:(NSInteger)page
+                   pageSize:(NSInteger)pageSize
+                 completion:(void(^)(NSArray<PCLCurseForgeMod *> *mods, NSError *error))completion {
+    
+    if (![self currentAPIKey]) {
+        dispatch_async(self.callbackQueue, ^{
+            completion(nil, [NSError errorWithDomain:@"PCLCurseForgeAPI" code:401 userInfo:@{NSLocalizedDescriptionKey: @"CurseForge API Key not set. Please configure in Settings."}]);
+        });
         return;
     }
     
-    NSError *jsonError = nil;
-    NSDictionary *json = [NSJSONSerialization JSONObjectWithData:data options:0 error:&jsonError];
-    if (jsonError) {
-        if (completion) completion(nil, jsonError);
-        return;
-    }
+    NSMutableDictionary *params = [@{
+        @"gameId": @(self.gameId),
+        @"classId": @(6), // Mods
+        @"pageSize": @(pageSize),
+        @"index": @(page * pageSize),
+    } mutableCopy];
     
-    PCLCurseForgeSearchResult *result = [[PCLCurseForgeSearchResult alloc] init];
-    result.pagination = json[@"pagination"];
-    NSDictionary *pagination = json[@"pagination"];
-    if (pagination) {
-        result.index = [pagination[@"index"] integerValue];
-        result.pageSize = [pagination[@"pageSize"] integerValue];
-        result.resultCount = [pagination[@"resultCount"] integerValue];
-        result.totalCount = [pagination[@"totalCount"] integerValue];
-    }
+    if (query.length > 0) params[@"searchFilter"] = query;
+    if (gameVersion) params[@"gameVersion"] = gameVersion;
+    if (category) params[@"classId"] = category;
     
-    NSArray *dataArray = json[@"data"] ?: @[];
-    NSMutableArray *mods = [NSMutableArray array];
+    NSMutableURLRequest *req = [self requestWithPath:@"/v1/mods/search" query:params];
     
-    for (NSDictionary *dict in dataArray) {
-        PCLCurseForgeMod *mod = [self parseModFromDict:dict];
-        if (mod) {
+    NSURLSessionDataTask *task = [self.session dataTaskWithRequest:req completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
+        if (error) {
+            dispatch_async(self.callbackQueue, ^{ completion(nil, error); });
+            return;
+        }
+        NSError *jsonError;
+        NSDictionary *json = [NSJSONSerialization JSONObjectWithData:data options:0 error:&jsonError];
+        if (jsonError) {
+            dispatch_async(self.callbackQueue, ^{ completion(nil, jsonError); });
+            return;
+        }
+        NSArray *dataArr = json[@"data"];
+        NSMutableArray *mods = [NSMutableArray array];
+        for (NSDictionary *modDict in dataArr) {
+            PCLCurseForgeMod *mod = [[PCLCurseForgeMod alloc] init];
+            mod.modId = [modDict[@"id"] integerValue];
+            mod.name = modDict[@"name"] ?: @"";
+            mod.summary = modDict[@"summary"] ?: @"";
+            mod.downloadCount = [modDict[@"downloadCount"] integerValue];
+            NSDictionary *logo = modDict[@"logo"];
+            mod.iconUrl = logo[@"url"] ?: @"";
+            mod.websiteUrl = modDict[@"links"][@"websiteUrl"] ?: @"";
             [mods addObject:mod];
         }
-    }
-    
-    result.data = mods;
-    if (completion) completion(result, nil);
-}
-
-#pragma mark - Mod Details
-
-- (void)modWithId:(NSInteger)modId
-       completion:(void (^)(PCLCurseForgeMod *, NSError *))completion {
-    
-    NSString *url = [NSString stringWithFormat:@"%@/mods/%ld", kCurseForgeBaseURL, (long)modId];
-    
-    [PCLNetworkUtils GET:url parameters:nil headers:[self requestHeaders] completion:^(NSData *data, NSURLResponse *response, NSError *error) {
-        if (error) {
-            if (completion) completion(nil, error);
-            return;
-        }
-        
-        NSError *jsonError = nil;
-        NSDictionary *json = [NSJSONSerialization JSONObjectWithData:data options:0 error:&jsonError];
-        if (jsonError) {
-            if (completion) completion(nil, jsonError);
-            return;
-        }
-        
-        NSDictionary *dict = json[@"data"];
-        PCLCurseForgeMod *mod = dict ? [self parseModFromDict:dict] : nil;
-        if (completion) completion(mod, nil);
+        dispatch_async(self.callbackQueue, ^{ completion(mods, nil); });
     }];
+    [task resume];
 }
 
-#pragma mark - Files
-
-- (void)filesForMod:(NSInteger)modId
-     gameVersion:(NSString *)gameVersion
-       modLoader:(PCLCurseForgeModLoader)modLoader
-      completion:(void (^)(NSArray<PCLCurseForgeFile *> *, NSError *))completion {
+- (void)getModWithId:(NSInteger)modId completion:(void(^)(PCLCurseForgeMod *mod, NSError *error))completion {
+    NSString *path = [NSString stringWithFormat:@"/v1/mods/%ld", (long)modId];
+    NSMutableURLRequest *req = [self requestWithPath:path query:nil];
     
-    NSMutableString *url = [NSMutableString stringWithFormat:@"%@/mods/%ld/files", kCurseForgeBaseURL, (long)modId];
-    
-    NSMutableArray *queryParams = [NSMutableArray array];
-    if (gameVersion.length > 0) {
-        [queryParams addObject:[NSString stringWithFormat:@"gameVersion=%@", gameVersion]];
-    }
-    if (modLoader != PCLCurseForgeModLoaderAny) {
-        [queryParams addObject:[NSString stringWithFormat:@"modLoaderType=%ld", (long)modLoader]];
-    }
-    
-    if (queryParams.count > 0) {
-        [url appendString:@"?"];
-        [url appendString:[queryParams componentsJoinedByString:@"&"]];
-    }
-    
-    [PCLNetworkUtils GET:url parameters:nil headers:[self requestHeaders] completion:^(NSData *data, NSURLResponse *response, NSError *error) {
+    NSURLSessionDataTask *task = [self.session dataTaskWithRequest:req completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
         if (error) {
-            if (completion) completion(nil, error);
+            dispatch_async(self.callbackQueue, ^{ completion(nil, error); });
             return;
         }
-        
-        NSError *jsonError = nil;
-        NSDictionary *json = [NSJSONSerialization JSONObjectWithData:data options:0 error:&jsonError];
-        if (jsonError) {
-            if (completion) completion(nil, jsonError);
+        NSDictionary *json = [NSJSONSerialization JSONObjectWithData:data options:0 error:nil];
+        NSDictionary *modDict = json[@"data"];
+        PCLCurseForgeMod *mod = [[PCLCurseForgeMod alloc] init];
+        mod.modId = [modDict[@"id"] integerValue];
+        mod.name = modDict[@"name"] ?: @"";
+        mod.summary = modDict[@"summary"] ?: @"";
+        mod.downloadCount = [modDict[@"downloadCount"] integerValue];
+        NSDictionary *logo = modDict[@"logo"];
+        mod.iconUrl = logo[@"url"] ?: @"";
+        mod.websiteUrl = modDict[@"links"][@"websiteUrl"] ?: @"";
+        dispatch_async(self.callbackQueue, ^{ completion(mod, nil); });
+    }];
+    [task resume];
+}
+
+- (void)getFilesForMod:(NSInteger)modId completion:(void(^)(NSArray<PCLCurseForgeFile *> *files, NSError *error))completion {
+    NSString *path = [NSString stringWithFormat:@"/v1/mods/%ld/files", (long)modId];
+    NSMutableURLRequest *req = [self requestWithPath:path query:nil];
+    
+    NSURLSessionDataTask *task = [self.session dataTaskWithRequest:req completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
+        if (error) {
+            dispatch_async(self.callbackQueue, ^{ completion(nil, error); });
             return;
         }
-        
-        NSArray *dataArray = json[@"data"] ?: @[];
+        NSDictionary *json = [NSJSONSerialization JSONObjectWithData:data options:0 error:nil];
+        NSArray *dataArr = json[@"data"];
         NSMutableArray *files = [NSMutableArray array];
-        
-        for (NSDictionary *dict in dataArray) {
-            PCLCurseForgeFile *file = [self parseFileFromDict:dict];
-            if (file) {
-                [files addObject:file];
-            }
+        for (NSDictionary *fileDict in dataArr) {
+            PCLCurseForgeFile *file = [[PCLCurseForgeFile alloc] init];
+            file.fileId = [fileDict[@"id"] integerValue];
+            file.fileName = fileDict[@"fileName"] ?: @"";
+            file.downloadUrl = fileDict[@"downloadUrl"] ?: @"";
+            file.fileSize = [fileDict[@"fileLength"] integerValue];
+            NSArray *gameVersions = fileDict[@"gameVersions"];
+            file.gameVersion = gameVersions.firstObject ?: @"";
+            [files addObject:file];
         }
-        
-        if (completion) completion(files, nil);
+        dispatch_async(self.callbackQueue, ^{ completion(files, nil); });
     }];
+    [task resume];
 }
-
-- (void)downloadUrlForFile:(NSInteger)modId
-                   fileId:(NSInteger)fileId
-               completion:(void (^)(NSString *, NSError *))completion {
-    
-    NSString *url = [NSString stringWithFormat:@"%@/mods/%ld/files/%ld/download-url", kCurseForgeBaseURL, (long)modId, (long)fileId];
-    
-    [PCLNetworkUtils GET:url parameters:nil headers:[self requestHeaders] completion:^(NSData *data, NSURLResponse *response, NSError *error) {
-        if (error) {
-            if (completion) completion(nil, error);
-            return;
-        }
-        
-        NSError *jsonError = nil;
-        NSDictionary *json = [NSJSONSerialization JSONObjectWithData:data options:0 error:&jsonError];
-        if (jsonError) {
-            if (completion) completion(nil, jsonError);
-            return;
-        }
-        
-        NSString *downloadUrl = json[@"data"] ?: @"";
-        if (completion) completion(downloadUrl, nil);
-    }];
-}
-
-#pragma mark - Categories
-
-- (void)categoriesForGameId:(PCLCurseForgeGameId)gameId
-                 completion:(void (^)(NSArray<PCLCurseForgeCategory *> *, NSError *))completion {
-    
-    NSString *url = [NSString stringWithFormat:@"%@/categories?gameId=%ld", kCurseForgeBaseURL, (long)gameId];
-    
-    [PCLNetworkUtils GET:url parameters:nil headers:[self requestHeaders] completion:^(NSData *data, NSURLResponse *response, NSError *error) {
-        if (error) {
-            if (completion) completion(nil, error);
-            return;
-        }
-        
-        NSError *jsonError = nil;
-        NSDictionary *json = [NSJSONSerialization JSONObjectWithData:data options:0 error:&jsonError];
-        if (jsonError) {
-            if (completion) completion(nil, jsonError);
-            return;
-        }
-        
-        NSArray *dataArray = json[@"data"] ?: @[];
-        NSMutableArray *categories = [NSMutableArray array];
-        
-        for (NSDictionary *dict in dataArray) {
-            PCLCurseForgeCategory *cat = [self parseCategoryFromDict:dict];
-            if (cat) {
-                [categories addObject:cat];
-            }
-        }
-        
-        if (completion) completion(categories, nil);
-    }];
-}
-
-#pragma mark - Download
 
 - (void)downloadFile:(PCLCurseForgeFile *)file
               toPath:(NSString *)path
-            progress:(void (^)(double))progress
-          completion:(void (^)(BOOL, NSError *))completion {
+            progress:(void(^)(double progress))progress
+          completion:(void(^)(BOOL success, NSError *error))completion {
     
-    if (file.downloadUrl.length == 0) {
-        if (completion) completion(NO, [NSError errorWithDomain:@"PCLCurseForge" code:-1 userInfo:@{NSLocalizedDescriptionKey: @"Empty download URL"}]);
+    if (!file.downloadUrl) {
+        completion(NO, [NSError errorWithDomain:@"PCLCurseForgeAPI" code:-1 userInfo:@{NSLocalizedDescriptionKey: @"No download URL"}]);
         return;
     }
     
-    NSURL *url = [NSURL URLWithString:file.downloadUrl];
-    NSFileManager *fm = [NSFileManager defaultManager];
-    NSString *dir = [path stringByDeletingLastPathComponent];
-    [fm createDirectoryAtPath:dir withIntermediateDirectories:YES attributes:nil error:nil];
-    
-    NSURLRequest *request = [NSURLRequest requestWithURL:url cachePolicy:NSURLRequestReloadIgnoringLocalCacheData timeoutInterval:60];
-    
-    NSURLSession *session = [NSURLSession sharedSession];
-    NSURLSessionDownloadTask *downloadTask = [session downloadTaskWithRequest:request completionHandler:^(NSURL *location, NSURLResponse *response, NSError *error) {
-        dispatch_async(dispatch_get_main_queue(), ^{
-            if (error) {
-                if (completion) completion(NO, error);
-                return;
-            }
-            
-            NSHTTPURLResponse *httpResponse = (NSHTTPURLResponse *)response;
-            if (httpResponse.statusCode != 200) {
-                if (completion) completion(NO, [NSError errorWithDomain:@"PCLCurseForge" code:httpResponse.statusCode userInfo:@{NSLocalizedDescriptionKey: [NSString stringWithFormat:@"HTTP %ld", (long)httpResponse.statusCode]}]);
-                return;
-            }
-            
-            [fm removeItemAtPath:path error:nil];
-            NSError *moveError = nil;
-            [fm moveItemAtURL:location toURL:[NSURL fileURLWithPath:path] error:&moveError];
-            
-            if (moveError) {
-                if (completion) completion(NO, moveError);
-                return;
-            }
-            
-            if (completion) completion(YES, nil);
-        });
-    }];
-    
-    [downloadTask resume];
-}
-
-#pragma mark - Parsing Helpers
-
-- (PCLCurseForgeMod *)parseModFromDict:(NSDictionary *)dict {
-    PCLCurseForgeMod *mod = [[PCLCurseForgeMod alloc] init];
-    mod.modId = [dict[@"id"] integerValue];
-    mod.name = dict[@"name"] ?: @"";
-    mod.slug = dict[@"slug"] ?: @"";
-    mod.summary = dict[@"summary"] ?: @"";
-    mod.downloadCount = [dict[@"downloadCount"] longLongValue];
-    mod.popularityScore = [dict[@"popularityScore"] doubleValue];
-    mod.isFeatured = [dict[@"isFeatured"] boolValue];
-    mod.dateModified = dict[@"dateModified"] ?: @"";
-    mod.dateCreated = dict[@"dateCreated"] ?: @"";
-    mod.dateReleased = dict[@"dateReleased"] ?: @"";
-    
-    NSDictionary *latestFile = [dict[@"latestFiles"] firstObject];
-    if (latestFile) {
-        mod.latestFileDate = latestFile[@"fileDate"] ?: @"";
-    }
-    
-    NSArray *authors = dict[@"authors"] ?: @[];
-    NSDictionary *firstAuthor = [authors firstObject];
-    if (firstAuthor) {
-        mod.authorName = firstAuthor[@"name"] ?: @"";
-        mod.authorUrl = firstAuthor[@"url"] ?: @"";
-    }
-    
-    NSDictionary *logo = dict[@"logo"];
-    if (logo) {
-        mod.iconUrl = logo[@"url"] ?: @"";
-        mod.logoThumbnailUrl = logo[@"thumbnailUrl"] ?: @"";
-    } else {
-        mod.iconUrl = @"";
-        mod.logoThumbnailUrl = @"";
-    }
-    
-    NSMutableArray *categories = [NSMutableArray array];
-    for (NSDictionary *cat in (dict[@"categories"] ?: @[])) {
-        NSString *catName = cat[@"name"];
-        if (catName) [categories addObject:catName];
-    }
-    mod.categories = categories;
-    
-    NSMutableArray *gameVersions = [NSMutableArray array];
-    for (NSDictionary *file in (dict[@"latestFiles"] ?: @[])) {
-        for (NSString *gv in (file[@"gameVersions"] ?: @[])) {
-            if (![gameVersions containsObject:gv]) {
-                [gameVersions addObject:gv];
-            }
+    NSURLRequest *req = [NSURLRequest requestWithURL:[NSURL URLWithString:file.downloadUrl]];
+    NSURLSessionDownloadTask *task = [self.session downloadTaskWithRequest:req completionHandler:^(NSURL *location, NSURLResponse *response, NSError *error) {
+        if (error) {
+            completion(NO, error);
+            return;
         }
-    }
-    mod.gameVersions = gameVersions;
-    
-    return mod;
-}
-
-- (PCLCurseForgeFile *)parseFileFromDict:(NSDictionary *)dict {
-    PCLCurseForgeFile *file = [[PCLCurseForgeFile alloc] init];
-    file.fileId = [dict[@"id"] integerValue];
-    file.fileName = dict[@"fileName"] ?: @"";
-    file.displayName = dict[@"displayName"] ?: @"";
-    file.downloadUrl = dict[@"downloadUrl"] ?: @"";
-    file.fileLength = [dict[@"fileLength"] longLongValue];
-    file.dateModified = dict[@"fileDate"] ?: dict[@"dateModified"] ?: @"";
-    file.fileFingerprint = [NSString stringWithFormat:@"%ld", (long)[dict[@"fileFingerprint"] integerValue ?: 0]];
-    file.isAvailable = [dict[@"isAvailable"] boolValue];
-    file.isRequired = NO;
-    file.gameVersions = dict[@"gameVersions"] ?: @[];
-    
-    if (file.gameVersions.count > 0) {
-        file.gameVersion = file.gameVersions[0];
-    } else {
-        file.gameVersion = @"";
-    }
-    
-    return file;
-}
-
-- (PCLCurseForgeCategory *)parseCategoryFromDict:(NSDictionary *)dict {
-    PCLCurseForgeCategory *cat = [[PCLCurseForgeCategory alloc] init];
-    cat.categoryId = [dict[@"id"] integerValue];
-    cat.name = dict[@"name"] ?: @"";
-    cat.slug = dict[@"slug"] ?: @"";
-    cat.iconUrl = dict[@"iconUrl"] ?: @"";
-    cat.dateModified = dict[@"dateModified"] ?: @"";
-    cat.parentCategoryId = [dict[@"parentCategoryId"] integerValue];
-    cat.classId = [dict[@"classId"] integerValue];
-    cat.isClass = [dict[@"isClass"] boolValue];
-    return cat;
+        NSError *moveError;
+        [[NSFileManager defaultManager] moveItemAtURL:location toURL:[NSURL fileURLWithPath:path] error:&moveError];
+        completion(moveError == nil, moveError);
+    }];
+    [task resume];
 }
 
 @end

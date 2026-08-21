@@ -124,7 +124,7 @@ static NSString *const kErrorDomain = @"PCLGameLauncher";
     
     // Step 3: Validate Java version
     [self log:@"Step 3/5: Validating Java version..."];
-    NSInteger requiredJava = [[PCLJavaManager sharedManager] recommendedJavaVersionForMC:versionInfo.versionId];
+    NSInteger requiredJava = [PCLPathUtils recommendedJavaVersionForMC:versionInfo.versionId];
     [self log:[NSString stringWithFormat("  Required Java: %ld", (long)requiredJava]];
     
     // Step 4: Build classpath and arguments
