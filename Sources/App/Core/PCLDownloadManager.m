@@ -92,6 +92,99 @@
     [self startDownload:task];
 }
 
+- (void)startDownload:(PCLDownloadTask *)task
+             progress:(void (^)(double progress, NSString *status))progress
+           completion:(void (^)(BOOL success, NSError *error))completion {
+    if (!task.url.length) {
+        if (completion) completion(NO, [NSError errorWithDomain:@"PCLDownload" code:-1 userInfo:@{NSLocalizedDescriptionKey: @"Empty URL"}]);
+        return;
+    }
+    
+    task.state = PCLDownloadStateDownloading;
+    NSString *urlString = [self replaceURLWithDownloadSource:task.url];
+    NSURL *url = [NSURL URLWithString:urlString];
+    if (!url) {
+        task.state = PCLDownloadStateFailed;
+        if (completion) completion(NO, [NSError errorWithDomain:@"PCLDownload" code:-2 userInfo:@{NSLocalizedDescriptionKey: @"Invalid URL"}]);
+        return;
+    }
+    
+    // Ensure target directory
+    NSString *dir = [task.targetPath stringByDeletingLastPathComponent];
+    [[NSFileManager defaultManager] createDirectoryAtPath:dir withIntermediateDirectories:YES attributes:nil error:nil];
+    
+    __weak typeof(self) weakSelf = self;
+    __weak PCLDownloadTask *weakTask = task;
+    
+    NSURLRequest *request = [NSURLRequest requestWithURL:url cachePolicy:NSURLRequestReloadIgnoringLocalCacheData timeoutInterval:60];
+    
+    NSURLSessionDownloadTask *dlTask = [self.session downloadTaskWithRequest:request completionHandler:^(NSURL *location, NSURLResponse *response, NSError *error) {
+        __strong typeof(weakSelf) self = weakSelf;
+        PCLDownloadTask *strongTask = weakTask;
+        if (!self || !strongTask) return;
+        
+        if (error) {
+            strongTask.state = PCLDownloadStateFailed;
+            strongTask.error = error;
+            dispatch_async(dispatch_get_main_queue(), ^{
+                if (completion) completion(NO, error);
+            });
+            return;
+        }
+        
+        // Verify SHA1 if provided
+        if (strongTask.sha1.length > 0 && location) {
+            NSData *data = [NSData dataWithContentsOfURL:location];
+            NSString *sha1 = [self sha1ForData:data];
+            if (![sha1 isEqualToString:strongTask.sha1]) {
+                strongTask.state = PCLDownloadStateFailed;
+                strongTask.error = [NSError errorWithDomain:@"PCLDownload" code:-3 userInfo:@{NSLocalizedDescriptionKey: @"SHA1 mismatch"}];
+                dispatch_async(dispatch_get_main_queue(), ^{
+                    if (completion) completion(NO, strongTask.error);
+                });
+                return;
+            }
+        }
+        
+        // Move file
+        NSError *moveError = nil;
+        if (location) {
+            [[NSFileManager defaultManager] removeItemAtPath:strongTask.targetPath error:nil];
+            [[NSFileManager defaultManager] moveItemAtURL:location toURL:[NSURL fileURLWithPath:strongTask.targetPath] error:&moveError];
+        }
+        
+        if (moveError) {
+            strongTask.state = PCLDownloadStateFailed;
+            dispatch_async(dispatch_get_main_queue(), ^{
+                if (completion) completion(NO, moveError);
+            });
+            return;
+        }
+        
+        strongTask.state = PCLDownloadStateCompleted;
+        strongTask.progress = 1.0;
+        dispatch_async(dispatch_get_main_queue(), ^{
+            if (progress) progress(1.0, @"完成");
+            if (completion) completion(YES, nil);
+        });
+    }];
+    
+    // Progress observation via KVO would go here, simplified for now
+    if (progress) progress(0.0, @"下载中...");
+    
+    [dlTask resume];
+}
+
+- (NSString *)sha1ForData:(NSData *)data {
+    unsigned char digest[CC_SHA1_DIGEST_LENGTH];
+    CC_SHA1(data.bytes, (CC_LONG)data.length, digest);
+    NSMutableString *output = [NSMutableString stringWithCapacity:CC_SHA1_DIGEST_LENGTH * 2];
+    for (int i = 0; i < CC_SHA1_DIGEST_LENGTH; i++) {
+        [output appendFormat:@"%02x", digest[i]];
+    }
+    return output;
+}
+
 - (NSString *)replaceURLWithDownloadSource:(NSString *)urlString {
     if (!urlString) return urlString;
     

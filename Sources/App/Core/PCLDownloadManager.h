@@ -62,6 +62,9 @@ typedef NS_ENUM(NSInteger, PCLResourceType) {
 - (void)retryTask:(PCLDownloadTask *)task;
 
 - (void)startDownload:(PCLDownloadTask *)task;
+- (void)startDownload:(PCLDownloadTask *)task
+             progress:(void (^)(double progress, NSString *status))progress
+           completion:(void (^)(BOOL success, NSError *error))completion;
 - (void)downloadFile:(NSString *)urlString
           toPath:(NSString *)path
              sha1:(NSString *)sha1
