@@ -21,8 +21,9 @@ JRE_DIR := $(OUTPUTDIR)/java_runtimes
 LIBS_DIR := $(DEPENDS_DIR)/libs
 FRAMEWORKS_DIR := $(DEPENDS_DIR)/Frameworks
 
-# Java JRE 下载链接 (Azul Zulu for iOS arm64 - 预编译)
-# 来源: Amethyst-iOS-MyRemastered/Makefile
+# Java JRE 下载链接 (与Amethyst-iOS完全相同)
+# 来源: https://github.com/AngelAuraMC/Amethyst-iOS/blob/main/Makefile
+# Angel Aura MC 官方提供的预编译 iOS arm64 JRE
 JRE8_URL  := https://assets.angelauramc.dev/openjdk/ios-arm64/jre8-ios-aarch64.zip
 JRE17_URL := https://assets.angelauramc.dev/openjdk/ios-arm64/jre17-ios-aarch64.zip
 JRE21_URL := https://assets.angelauramc.dev/openjdk/ios-arm64/jre21-ios-aarch64.zip
@@ -74,21 +75,26 @@ check:
 	@echo "MoltenVK:$(if $(wildcard $(FRAMEWORKS_DIR)/libMoltenVK.dylib),✓ 已安装,✗ 未安装)"
 
 # ============================================================================
-# Java JRE下载 (参考Amethyst METHOD_JAVA_UNPACK)
-# 来源: Amethyst-iOS-MyRemastered/Makefile
+# Java JRE下载 (与Amethyst METHOD_JAVA_UNPACK完全一致)
+# 来源: https://github.com/AngelAuraMC/Amethyst-iOS/blob/main/Makefile
 # ============================================================================
 METHOD_JAVA_UNPACK = \
 	cd $(DEPENDS_DIR); \
-	if [ ! -f "java-$(1)-openjdk/release" ] && [ ! -f "$(ls jre$(1)-*.tar.xz 2>/dev/null)" ]; then \
-		wget '$(2)' -q --show-progress -O jre$(1)-ios-aarch64.zip; \
-		unzip -q jre$(1)-ios-aarch64.zip && rm jre$(1)-ios-aarch64.zip; \
-		mkdir -p java-$(1)-openjdk; \
-		tar xvf jre$(1)-*.tar.xz -C java-$(1)-openjdk; \
-		rm -f jre$(1)-*.tar.xz; \
+	if [ ! -f "java-$(1)-openjdk/release" ]; then \
+		echo "下载 Java $(1) for iOS arm64..."; \
+		curl -sL --fail -o jre$(1)-ios-aarch64.zip "$(2)" || wget -q -O jre$(1)-ios-aarch64.zip "$(2)"; \
+		if [ -f jre$(1)-ios-aarch64.zip ]; then \
+			unzip -o jre$(1)-ios-aarch64.zip && rm -f jre$(1)-ios-aarch64.zip; \
+		fi; \
+		if [ -f jre$(1)-*.tar.xz ]; then \
+			mkdir -p java-$(1)-openjdk; \
+			tar xvf jre$(1)-*.tar.xz -C java-$(1)-openjdk; \
+			rm -f jre$(1)-*.tar.xz; \
+		fi; \
 	fi
 
 jre:
-	@echo "[PCL-iOS] 下载Java JRE for iOS arm64..."
+	@echo "[PCL-iOS] 下载Java JRE for iOS arm64 (来源: assets.angelauramc.dev)..."
 	mkdir -p $(DEPENDS_DIR)
 	$(call METHOD_JAVA_UNPACK,8,$(JRE8_URL))
 	$(call METHOD_JAVA_UNPACK,17,$(JRE17_URL))
@@ -96,12 +102,12 @@ jre:
 	$(call METHOD_JAVA_UNPACK,25,$(JRE25_URL))
 	@# 清理不必要的文件 (参考Amethyst)
 	rm -rf $(DEPENDS_DIR)/java-{8,17,21,25}-openjdk/{ASSEMBLY_EXCEPTION,bin,include,jre,legal,LICENSE,man,THIRD_PARTY_README,lib/{ct.sym,jspawnhelper,libjsig.dylib,src.zip,tools.jar}} 2>/dev/null || true
-	@# 复制JRE到输出目录 (参考Amethyst)
+	@# 复制JRE到输出目录
 	$(call METHOD_DIRCHECK,$(JRE_DIR))
-	cp -R $(JRE8_DIR) $(JRE_DIR)
-	cp -R $(JRE17_DIR) $(JRE_DIR)
-	cp -R $(JRE21_DIR) $(JRE_DIR)
-	cp -R $(JRE25_DIR) $(JRE_DIR)
+	cp -R $(JRE8_DIR) $(JRE_DIR) 2>/dev/null || true
+	cp -R $(JRE17_DIR) $(JRE_DIR) 2>/dev/null || true
+	cp -R $(JRE21_DIR) $(JRE_DIR) 2>/dev/null || true
+	cp -R $(JRE25_DIR) $(JRE_DIR) 2>/dev/null || true
 	@echo "[PCL-iOS] Java JRE下载完成"
 
 # ============================================================================

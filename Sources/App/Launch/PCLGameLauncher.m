@@ -4,7 +4,7 @@
 #import "PCLRendererManager.h"
 #import "PCLJITManager.h"
 #import "PCLProfileStore.h"
-#import "PCLJavaManager.h"
+#import "PCLPathUtils.h"
 
 static NSString *const kErrorDomain = @"PCLGameLauncher";
 
@@ -142,14 +142,15 @@ static NSString *const kErrorDomain = @"PCLGameLauncher";
         return;
     }
     
-    // Step 2: Find or Download Java
+    // Step 2: Find Java (pre-bundled at build time, like Amethyst)
     [self log:@"Step 2/5: Locating Java runtime..."];
-    NSInteger requiredJava = [PCLJavaManager.sharedManager javaVersionFromMC:versionInfo.versionId];
+    NSInteger requiredJava = [PCLPathUtils recommendedJavaVersionForMC:versionInfo.versionId];
     NSString *javaPath = instance.javaPathOverride.length > 0 ? instance.javaPathOverride :
-                        [PCLJavaManager.sharedManager javaExecutableForVersion:requiredJava];
+                        [PCLPathUtils javaExecutableForVersion:requiredJava];
     if (!javaPath) {
+        [self log:[NSString stringWithFormat:@"  Java %ld not found, checking alternatives...", (long)requiredJava]];
         for (NSNumber *ver in @[@8, @17, @21, @25]) {
-            javaPath = [PCLJavaManager.sharedManager javaExecutableForVersion:ver.integerValue];
+            javaPath = [PCLPathUtils javaExecutableForVersion:ver.integerValue];
             if (javaPath) {
                 requiredJava = ver.integerValue;
                 break;
@@ -158,35 +159,12 @@ static NSString *const kErrorDomain = @"PCLGameLauncher";
     }
     
     if (!javaPath) {
-        // Need to download Java
-        [self log:[NSString stringWithFormat:@"  Java %ld not found, downloading...", (long)requiredJava]];
-        __weak typeof(self) weakSelf = self;
-        
-        [PCLJavaManager.sharedManager ensureJavaDownloaded:requiredJava
-                                                 progress:^(double progress) {
-            [weakSelf log:[NSString stringWithFormat:@"  下载 Java: %.0f%%", progress * 100]];
-        } completion:^(BOOL success, NSError *dlError) {
-            __strong typeof(weakSelf) self = weakSelf;
-            if (success) {
-                [self log:@"  Java 下载完成"];
-                [self proceedWithInstance:instance javaVersion:requiredJava versionInfo:versionInfo profile:profile completion:completion];
-            } else {
-                NSError *error = [self errorWithCode:PCLLaunchErrorJavaNotFound
-                                             message:[NSString stringWithFormat:@"下载 Java 失败: %@", dlError.localizedDescription ?: @"未知错误"]];
-                if (completion) completion(NO, error);
-            }
-        }];
+        NSError *error = [self errorWithCode:PCLLaunchErrorJavaNotFound
+                                     message:@"No Java runtime found. JRE must be bundled at build time."];
+        if (completion) completion(NO, error);
         return;
     }
-    
-    [self proceedWithInstance:instance javaVersion:requiredJava versionInfo:versionInfo profile:profile completion:completion];
-}
-
-- (void)proceedWithInstance:(PCLInstance *)instance
-                 javaVersion:(NSInteger)javaVersion
-                  versionInfo:(PCLVersionInfo *)versionInfo
-                      profile:(NSDictionary *)profile
-                   completion:(PCLLaunchCompletion)completion {
+    [self log:[NSString stringWithFormat:@"  Java found at: %@", javaPath]];
     
     if (self.isCancelled) {
         if (completion) completion(NO, [self errorWithCode:PCLLaunchErrorCancelled message:@"Cancelled"]);

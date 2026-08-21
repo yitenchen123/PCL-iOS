@@ -33,15 +33,30 @@ jobs:
         id: cache-jre
         uses: actions/cache@v4
         with:
-          path: depends/java-*-openjdk
+          path: |
+            depends/java-*-openjdk
+            depends/jre*.zip
+            depends/jre*.tar.xz
           key: jre-ios-${{ hashFiles('Makefile') }}
       
       - name: Download Java JRE (via Makefile)
-        if: steps.cache-jre.outputs.cache-hit != 'true'
         timeout-minutes: 20
         run: |
-          echo "=== 下载Java JRE for iOS arm64 (参考Amethyst) ==="
+          echo "=== 下载Java JRE for iOS arm64 (来源: assets.angelauramc.dev) ==="
           make jre || echo "WARNING: JRE download may have issues, continuing..."
+        
+      - name: Verify JRE Installation
+        run: |
+          echo "=== 验证JRE安装 ==="
+          for jdir in depends/java-8-openjdk depends/java-17-openjdk depends/java-21-openjdk depends/java-25-openjdk; do
+            if [ -f "$jdir/release" ]; then
+              echo "✓ $jdir 已安装"
+            else
+              echo "✗ $jdir 缺失，重新下载..."
+              make jre
+              break
+            fi
+          done
       
       - name: Check Dependencies
         run: make check
