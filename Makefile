@@ -92,6 +92,20 @@ jre:
 	@# 清理不必要的文件 (参考Amethyst - 这些文件会触发ldid签名错误)
 	@echo "[PCL-iOS] 清理JRE中不必要的文件..."
 	rm -rf $(DEPENDS_DIR)/java-*-openjdk/{ASSEMBLY_EXCEPTION,bin,include,jre,legal,LICENSE,man,THIRD_PARTY_README,lib/{ct.sym,jspawnhelper,libjsig.dylib,src.zip,tools.jar}} 2>/dev/null || true
+	@# 关键修复：处理JRE中的dylib文件，移除fat binary中的非arm64架构，避免ldid "end <= size"错误
+	@echo "[PCL-iOS] 处理JRE中的dylib文件（移除fat binary中的非arm64架构）..."
+	@find $(DEPENDS_DIR)/java-*-openjdk -name "*.dylib" -type f 2>/dev/null | while read dylib; do \
+		if file "$$dylib" 2>/dev/null | grep -q "Mach-O"; then \
+			archs=$$(lipo -info "$$dylib" 2>/dev/null | grep -o "arm64\|x86_64\|i386\|armv7" | tr '\n' ' '); \
+			if echo "$$archs" | grep -q " "; then \
+				echo "  处理fat binary: $$(basename $$dylib) [$$archs]"; \
+				lipo -extract arm64 "$$dylib" -output "$$dylib.tmp" 2>/dev/null && mv "$$dylib.tmp" "$$dylib"; \
+			fi; \
+		fi; \
+	done
+	@# 删除所有非Mach-O文件（避免ldid误解析）
+	@echo "[PCL-iOS] 删除JRE中非Mach-O文件..."
+	@find $(DEPENDS_DIR)/java-*-openjdk -type f \( -name "*.sh" -o -name "*.txt" -o -name "*.properties" -o -name "*.policy" -o -name "*.security" -o -name "*.cfg" -o -name "*.dat" \) -delete 2>/dev/null || true
 	@# 复制JRE到输出目录
 	$(call METHOD_DIRCHECK,$(JRE_DIR))
 	cp -R $(JRE8_DIR) $(JRE_DIR) 2>/dev/null || true
