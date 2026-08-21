@@ -450,16 +450,9 @@ static NSString *PCLFormatDownloads(long long downloads) {
         [self.loadingIndicator startAnimating];
     }
     
-    PCLModrinthModLoader loaders[] = {
-        PCLModrinthModLoaderForge,
-        PCLModrinthModLoaderFabric,
-        PCLModrinthModLoaderNeoForge,
-        PCLModrinthModLoaderQuilt
-    };
-    
     [[PCLModrinthAPI sharedAPI] searchProjects:self.currentQuery
                                     projectType:PCLModrinthProjectTypeMod
-                                         loader:loaders[self.loaderFilter.selectedSegmentIndex]
+                                         loader:self.currentLoader
                                     gameVersion:self.currentGameVersion
                                        category:nil
                                        sortType:self.currentSort

@@ -5,6 +5,10 @@
 + (NSString *)resourcePath:(NSString *)name;
 + (NSString *)resourcePath:(NSString *)name ofType:(NSString *)ext;
 
++ (NSString *)gameDirectory;
++ (NSString *)versionsDirectory;
++ (NSString *)instancesDirectory;
+
 + (NSString *)javaHomeForVersion:(NSInteger)version;
 + (NSString *)javaExecutableForVersion:(NSInteger)version;
 + (NSInteger)recommendedJavaVersionForMC:(NSString *)mcVersion;

@@ -21,9 +21,5 @@ typedef NS_ENUM(NSInteger, PCLSettingsTab) {
 
 - (void)switchToTab:(PCLSettingsTab)tab;
 - (void)dismissTransientUI;
-- (void)prepareCEEnterAnimation;
-- (void)playCEEnterAnimation;
-- (void)playCEExitWithCompletion:(dispatch_block_t)completion;
-- (void)reloadState;
 
 @end

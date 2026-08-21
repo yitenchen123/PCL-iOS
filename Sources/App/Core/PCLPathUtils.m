@@ -14,6 +14,25 @@
     return [[NSBundle mainBundle].resourcePath stringByAppendingPathComponent:@"depends"];
 }
 
++ (NSString *)gameDirectory {
+    NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
+    NSString *docsDir = paths.firstObject;
+    NSString *gameDir = [docsDir stringByAppendingPathComponent:@".minecraft"];
+    NSFileManager *fm = [NSFileManager defaultManager];
+    if (![fm fileExistsAtPath:gameDir]) {
+        [fm createDirectoryAtPath:gameDir withIntermediateDirectories:YES attributes:nil error:nil];
+    }
+    return gameDir;
+}
+
++ (NSString *)versionsDirectory {
+    return [[self gameDirectory] stringByAppendingPathComponent:@"versions"];
+}
+
++ (NSString *)instancesDirectory {
+    return [[self gameDirectory] stringByAppendingPathComponent:@"instances"];
+}
+
 + (NSString *)javaHomeForVersion:(NSInteger)version {
     NSString *path = [[self dependsDir] stringByAppendingPathComponent:[NSString stringWithFormat:@"java-%ld-openjdk", (long)version]];
     if ([[NSFileManager defaultManager] fileExistsAtPath:[path stringByAppendingPathComponent:@"bin/java"]]) return path;

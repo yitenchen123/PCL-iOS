@@ -1,334 +1,186 @@
 #import "PCLRootViewController.h"
-#import "PCLTopBarView.h"
 #import "PCLLaunchViewController.h"
 #import "PCLDownloadViewController.h"
 #import "PCLSettingsViewController.h"
 
-@interface PCLRootViewController () <PCLTopBarViewDelegate>
+@interface PCLRootViewController () <PCLSidebarViewDelegate>
 
-@property (nonatomic, strong) PCLTopBarView *topBar;
+@property (nonatomic, strong) PCLSidebarView *sidebar;
 @property (nonatomic, strong) UIView *contentView;
-@property (nonatomic, strong) UILabel *pageLabel;
 @property (nonatomic, strong) PCLLaunchViewController *launchVC;
 @property (nonatomic, strong) PCLDownloadViewController *downloadVC;
 @property (nonatomic, strong) PCLSettingsViewController *settingsVC;
 
-@property (nonatomic) PCLPageType currentPage;
+@property (nonatomic) PCLSidebarPage currentPage;
 @property (nonatomic) BOOL isPageTransitioning;
-
-- (void)transitionToPage:(PCLPageType)page;
 
 @end
 
 @implementation PCLRootViewController
+
 - (void)viewDidLoad {
     [super viewDidLoad];
-
-    self.view.backgroundColor =
-        [UIColor systemBackgroundColor];
-
-    [self setupTopBar];
+    
+    self.view.backgroundColor = [UIColor colorWithRed:0.97 green:0.97 blue:0.98 alpha:1.0];
+    
+    [self setupSidebar];
     [self setupContentView];
-
-    self.topBar.alpha = 0.0;
-    self.contentView.alpha = 0.0;
-
-    self.currentPage=PCLPageTypeLaunch;
-    self.isPageTransitioning=NO;
-
-    [self showPage:PCLPageTypeLaunch];
+    
+    self.currentPage = PCLSidebarPageLaunch;
+    self.isPageTransitioning = NO;
+    
+    [self showPage:PCLSidebarPageLaunch];
 }
 
-- (void)setupTopBar {
-    self.topBar = [[PCLTopBarView alloc] init];
-    self.topBar.delegate = self;
-    self.topBar.translatesAutoresizingMaskIntoConstraints = NO;
-
-    [self.view addSubview:self.topBar];
-
+- (void)setupSidebar {
+    self.sidebar = [[PCLSidebarView alloc] init];
+    self.sidebar.delegate = self;
+    self.sidebar.translatesAutoresizingMaskIntoConstraints = NO;
+    
+    [self.view addSubview:self.sidebar];
+    
     [NSLayoutConstraint activateConstraints:@[
-        [self.topBar.topAnchor
-            constraintEqualToAnchor:self.view.topAnchor],
-
-        [self.topBar.leadingAnchor
-            constraintEqualToAnchor:self.view.leadingAnchor],
-        [self.topBar.trailingAnchor
-            constraintEqualToAnchor:self.view.trailingAnchor],
-
-        [self.topBar.heightAnchor
-            constraintEqualToConstant:56.0]
+        [self.sidebar.topAnchor constraintEqualToAnchor:self.view.topAnchor],
+        [self.sidebar.leadingAnchor constraintEqualToAnchor:self.view.leadingAnchor],
+        [self.sidebar.bottomAnchor constraintEqualToAnchor:self.view.bottomAnchor],
+        [self.sidebar.widthAnchor constraintEqualToConstant:72]
     ]];
 }
 
 - (void)setupContentView {
     self.contentView = [[UIView alloc] init];
-    self.contentView.clipsToBounds=YES;
+    self.contentView.clipsToBounds = YES;
     self.contentView.translatesAutoresizingMaskIntoConstraints = NO;
-
+    
     [self.view addSubview:self.contentView];
-
+    
     [NSLayoutConstraint activateConstraints:@[
-        [self.contentView.topAnchor
-            constraintEqualToAnchor:self.topBar.bottomAnchor],
-
-        [self.contentView.leadingAnchor
-            constraintEqualToAnchor:self.view.leadingAnchor],
-        [self.contentView.trailingAnchor
-            constraintEqualToAnchor:self.view.trailingAnchor],
-
-        [self.contentView.bottomAnchor
-            constraintEqualToAnchor:self.view.bottomAnchor]
+        [self.contentView.topAnchor constraintEqualToAnchor:self.view.topAnchor],
+        [self.contentView.leadingAnchor constraintEqualToAnchor:self.sidebar.trailingAnchor],
+        [self.contentView.trailingAnchor constraintEqualToAnchor:self.view.trailingAnchor],
+        [self.contentView.bottomAnchor constraintEqualToAnchor:self.view.bottomAnchor]
     ]];
-
-    self.pageLabel = [[UILabel alloc] init];
-    self.pageLabel.translatesAutoresizingMaskIntoConstraints = NO;
-    self.pageLabel.font =
-        [UIFont systemFontOfSize:30.0
-                          weight:UIFontWeightSemibold];
-
-    self.pageLabel.textColor = [UIColor labelColor];
-
-    [self.contentView addSubview:self.pageLabel];
-
+    
+    // 初始化子视图控制器
     self.launchVC = [[PCLLaunchViewController alloc] init];
-
-    __weak typeof(self) weakSelf = self;
-    self.launchVC.onOpenDownload = ^{
-        [weakSelf.topBar selectPage:PCLPageTypeDownload animated:YES];
-        [weakSelf transitionToPage:PCLPageTypeDownload];
-    };
-
     [self addChildViewController:self.launchVC];
     self.launchVC.view.translatesAutoresizingMaskIntoConstraints = NO;
     [self.contentView addSubview:self.launchVC.view];
     [self.launchVC didMoveToParentViewController:self];
-
+    
     self.downloadVC = [[PCLDownloadViewController alloc] init];
     [self addChildViewController:self.downloadVC];
     self.downloadVC.view.translatesAutoresizingMaskIntoConstraints = NO;
     self.downloadVC.view.hidden = YES;
     [self.contentView addSubview:self.downloadVC.view];
     [self.downloadVC didMoveToParentViewController:self];
-
+    
     self.settingsVC = [[PCLSettingsViewController alloc] init];
     [self addChildViewController:self.settingsVC];
     self.settingsVC.view.translatesAutoresizingMaskIntoConstraints = NO;
     self.settingsVC.view.hidden = YES;
     [self.contentView addSubview:self.settingsVC.view];
     [self.settingsVC didMoveToParentViewController:self];
-
-    [self.view bringSubviewToFront:self.topBar];
-
+    
+    // 设置约束
     [NSLayoutConstraint activateConstraints:@[
         [self.launchVC.view.topAnchor constraintEqualToAnchor:self.contentView.topAnchor],
         [self.launchVC.view.leadingAnchor constraintEqualToAnchor:self.contentView.leadingAnchor],
         [self.launchVC.view.trailingAnchor constraintEqualToAnchor:self.contentView.trailingAnchor],
         [self.launchVC.view.bottomAnchor constraintEqualToAnchor:self.contentView.bottomAnchor]
     ]];
-
+    
     [NSLayoutConstraint activateConstraints:@[
         [self.downloadVC.view.topAnchor constraintEqualToAnchor:self.contentView.topAnchor],
         [self.downloadVC.view.leadingAnchor constraintEqualToAnchor:self.contentView.leadingAnchor],
         [self.downloadVC.view.trailingAnchor constraintEqualToAnchor:self.contentView.trailingAnchor],
         [self.downloadVC.view.bottomAnchor constraintEqualToAnchor:self.contentView.bottomAnchor]
     ]];
-
+    
     [NSLayoutConstraint activateConstraints:@[
         [self.settingsVC.view.topAnchor constraintEqualToAnchor:self.contentView.topAnchor],
         [self.settingsVC.view.leadingAnchor constraintEqualToAnchor:self.contentView.leadingAnchor],
         [self.settingsVC.view.trailingAnchor constraintEqualToAnchor:self.contentView.trailingAnchor],
         [self.settingsVC.view.bottomAnchor constraintEqualToAnchor:self.contentView.bottomAnchor]
     ]];
-
-    [NSLayoutConstraint activateConstraints:@[
-        [self.pageLabel.centerXAnchor
-            constraintEqualToAnchor:self.contentView.centerXAnchor],
-        [self.pageLabel.centerYAnchor
-            constraintEqualToAnchor:self.contentView.centerYAnchor]
-    ]];
 }
 
-- (void)topBarView:(PCLTopBarView *)topBar
-     didSelectPage:(PCLPageType)page {
+#pragma mark - PCLSidebarViewDelegate
 
+- (void)sidebarView:(PCLSidebarView *)sidebar didSelectPage:(PCLSidebarPage)page {
     [self transitionToPage:page];
 }
-- (void)transitionToPage:(PCLPageType)page {
-    if (page == self.currentPage)
-        return;
 
-    if (self.isPageTransitioning) {
-        [self.topBar selectPage:self.currentPage animated:YES];
-        return;
-    }
+#pragma mark - Page Transition
 
+- (void)transitionToPage:(PCLSidebarPage)page {
+    if (page == self.currentPage) return;
+    if (self.isPageTransitioning) return;
+    
     self.isPageTransitioning = YES;
-    __weak typeof(self) weakSelf = self;
-
-    if (self.currentPage == PCLPageTypeLaunch) {
-        [self.launchVC playCEExitWithCompletion:^{
-            [weakSelf showPage:page];
-            weakSelf.currentPage = page;
-
-            if (page == PCLPageTypeDownload) {
-                [weakSelf.downloadVC prepareCEEnterAnimation];
-                [weakSelf.downloadVC playCEEnterAnimation];
-                dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(.400 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-                    weakSelf.isPageTransitioning = NO;
-                });
-            } else if (page == PCLPageTypeSettings) {
-                [weakSelf.settingsVC prepareCEEnterAnimation];
-                [weakSelf.settingsVC playCEEnterAnimation];
-                dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(.400 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-                    weakSelf.isPageTransitioning = NO;
-                });
-            } else {
-                weakSelf.pageLabel.alpha = 0;
-                dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(.030 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-                    [UIView animateWithDuration:.10 animations:^{
-                        weakSelf.pageLabel.alpha = 1;
-                    } completion:^(BOOL done) {
-                        weakSelf.isPageTransitioning = NO;
-                    }];
-                });
-            }
-        }];
-        return;
-    }
-
-    if (page == PCLPageTypeLaunch) {
-        void (^exitCurrent)(dispatch_block_t) = nil;
-        if (self.currentPage == PCLPageTypeDownload) {
-            exitCurrent = ^(dispatch_block_t completion) {
-                [weakSelf.downloadVC playCEExitWithCompletion:completion];
-            };
-        } else if (self.currentPage == PCLPageTypeSettings) {
-            exitCurrent = ^(dispatch_block_t completion) {
-                [weakSelf.settingsVC playCEExitWithCompletion:completion];
-            };
-        } else {
-            exitCurrent = ^(dispatch_block_t completion) {
-                weakSelf.pageLabel.alpha = 0;
-                if (completion) completion();
-            };
-        }
-
-        exitCurrent(^{
-            [weakSelf.launchVC prepareCEEnterAnimation];
-            [weakSelf showPage:PCLPageTypeLaunch];
-            weakSelf.currentPage = PCLPageTypeLaunch;
-
-            dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(.030 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-                [weakSelf.launchVC playCEEnterAnimation];
-                dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(.400 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-                    weakSelf.isPageTransitioning = NO;
-                });
-            });
-        });
-        return;
-    }
-
-    if (page == PCLPageTypeDownload) {
-        [weakSelf.downloadVC prepareCEEnterAnimation];
-        [weakSelf showPage:PCLPageTypeDownload];
-        weakSelf.currentPage = PCLPageTypeDownload;
-        [weakSelf.downloadVC playCEEnterAnimation];
-        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(.400 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-            weakSelf.isPageTransitioning = NO;
-        });
-        return;
-    }
-
-    if (page == PCLPageTypeSettings) {
-        [weakSelf.settingsVC prepareCEEnterAnimation];
-        [weakSelf showPage:PCLPageTypeSettings];
-        weakSelf.currentPage = PCLPageTypeSettings;
-        [weakSelf.settingsVC playCEEnterAnimation];
-        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(.400 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-            weakSelf.isPageTransitioning = NO;
-        });
-        return;
-    }
-
-    [UIView animateWithDuration:.110 animations:^{
-        weakSelf.pageLabel.alpha = 0;
-    } completion:^(BOOL done) {
-        [weakSelf showPage:page];
-        weakSelf.currentPage = page;
-
-        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(.030 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-            [UIView animateWithDuration:.10 animations:^{
-                weakSelf.pageLabel.alpha = 1;
-            } completion:^(BOOL finished) {
-                weakSelf.isPageTransitioning = NO;
-            }];
-        });
+    
+    PCLSidebarPage fromPage = self.currentPage;
+    self.currentPage = page;
+    
+    // 执行页面切换动画
+    [self performTransitionFrom:fromPage to:page completion:^{
+        self.isPageTransitioning = NO;
     }];
 }
 
-- (void)showPage:(PCLPageType)page {
+- (void)performTransitionFrom:(PCLSidebarPage)fromPage to:(PCLSidebarPage)toPage completion:(void(^)(void))completion {
+    UIViewController *fromVC = [self viewControllerForPage:fromPage];
+    UIViewController *toVC = [self viewControllerForPage:toPage];
+    
+    if (!fromVC || !toVC) {
+        [self showPage:toPage];
+        if (completion) completion();
+        return;
+    }
+    
+    toVC.view.alpha = 0;
+    toVC.view.hidden = NO;
+    
+    [UIView animateWithDuration:0.25
+                          delay:0
+                        options:UIViewAnimationOptionCurveEaseOut
+                     animations:^{
+        fromVC.view.alpha = 0;
+        toVC.view.alpha = 1;
+    } completion:^(BOOL finished) {
+        fromVC.view.hidden = YES;
+        fromVC.view.alpha = 1;
+        if (completion) completion();
+    }];
+}
 
-    [self.launchVC dismissTransientUI];
-    [self.downloadVC dismissTransientUI];
-    [self.settingsVC dismissTransientUI];
-
+- (void)showPage:(PCLSidebarPage)page {
     self.launchVC.view.hidden = YES;
     self.downloadVC.view.hidden = YES;
     self.settingsVC.view.hidden = YES;
-    self.pageLabel.hidden = YES;
-
-    switch (page) {
-        case PCLPageTypeLaunch:
-            self.launchVC.view.hidden = NO;
-            break;
-
-        case PCLPageTypeDownload:
-            self.downloadVC.view.hidden = NO;
-            break;
-
-        case PCLPageTypeSettings:
-            self.settingsVC.view.hidden = NO;
-            break;
-
-        case PCLPageTypeTools:
-            self.pageLabel.hidden = NO;
-            self.pageLabel.text = @"工具";
-            break;
+    
+    UIViewController *vc = [self viewControllerForPage:page];
+    if (vc) {
+        vc.view.hidden = NO;
     }
 }
-- (void)viewDidLayoutSubviews {
-    [super viewDidLayoutSubviews];
-    [self.topBar layoutIfNeeded];
-    CGFloat panelWidth = [self.topBar launchButtonCenterX];
-    self.launchVC.leftPanelWidth = panelWidth;
-    self.downloadVC.leftPanelWidth = panelWidth;
-    self.settingsVC.leftPanelWidth = panelWidth;
-    [self.launchVC.view setNeedsLayout];
-    [self.downloadVC.view setNeedsLayout];
-    [self.settingsVC.view setNeedsLayout];
+
+- (UIViewController *)viewControllerForPage:(PCLSidebarPage)page {
+    switch (page) {
+        case PCLSidebarPageLaunch:
+            return self.launchVC;
+        case PCLSidebarPageDownload:
+            return self.downloadVC;
+        case PCLSidebarPageSettings:
+            return self.settingsVC;
+        case PCLSidebarPageTools:
+            return nil; // Tools页面暂未实现
+    }
+    return nil;
 }
 
 - (BOOL)prefersStatusBarHidden {
-    return YES;
-}
-
-- (void)playEntranceAnimation {
-    [UIView animateWithDuration:0.30
-                          delay:0.0
-         usingSpringWithDamping:0.86
-          initialSpringVelocity:0.25
-                        options:UIViewAnimationOptionCurveEaseOut
-                     animations:^{
-
-        self.topBar.alpha = 1.0;
-        self.topBar.transform =
-            CGAffineTransformIdentity;
-
-        self.contentView.alpha = 1.0;
-        self.contentView.transform =
-            CGAffineTransformIdentity;
-
-    } completion:nil];
+    return NO;
 }
 
 @end
