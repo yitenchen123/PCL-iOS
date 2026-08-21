@@ -1,6 +1,8 @@
 #import "PCLRootViewController.h"
 #import "PCLTopBarView.h"
 #import "PCLLaunchViewController.h"
+#import "PCLDownloadViewController.h"
+#import "PCLSettingsViewController.h"
 
 @interface PCLRootViewController () <PCLTopBarViewDelegate>
 
@@ -8,6 +10,8 @@
 @property (nonatomic, strong) UIView *contentView;
 @property (nonatomic, strong) UILabel *pageLabel;
 @property (nonatomic, strong) PCLLaunchViewController *launchVC;
+@property (nonatomic, strong) PCLDownloadViewController *downloadVC;
+@property (nonatomic, strong) PCLSettingsViewController *settingsVC;
 
 @property (nonatomic) PCLPageType currentPage;
 @property (nonatomic) BOOL isPageTransitioning;
@@ -86,36 +90,54 @@
 
     [self.contentView addSubview:self.pageLabel];
 
-    self.launchVC =
-        [[PCLLaunchViewController alloc] init];
+    self.launchVC = [[PCLLaunchViewController alloc] init];
 
     __weak typeof(self) weakSelf = self;
     self.launchVC.onOpenDownload = ^{
-        [weakSelf.topBar
-            selectPage:PCLPageTypeDownload
-              animated:YES];
-
-        [weakSelf transitionToPage:
-            PCLPageTypeDownload];
+        [weakSelf.topBar selectPage:PCLPageTypeDownload animated:YES];
+        [weakSelf transitionToPage:PCLPageTypeDownload];
     };
 
     [self addChildViewController:self.launchVC];
     self.launchVC.view.translatesAutoresizingMaskIntoConstraints = NO;
-
     [self.contentView addSubview:self.launchVC.view];
     [self.launchVC didMoveToParentViewController:self];
+
+    self.downloadVC = [[PCLDownloadViewController alloc] init];
+    [self addChildViewController:self.downloadVC];
+    self.downloadVC.view.translatesAutoresizingMaskIntoConstraints = NO;
+    self.downloadVC.view.hidden = YES;
+    [self.contentView addSubview:self.downloadVC.view];
+    [self.downloadVC didMoveToParentViewController:self];
+
+    self.settingsVC = [[PCLSettingsViewController alloc] init];
+    [self addChildViewController:self.settingsVC];
+    self.settingsVC.view.translatesAutoresizingMaskIntoConstraints = NO;
+    self.settingsVC.view.hidden = YES;
+    [self.contentView addSubview:self.settingsVC.view];
+    [self.settingsVC didMoveToParentViewController:self];
 
     [self.view bringSubviewToFront:self.topBar];
 
     [NSLayoutConstraint activateConstraints:@[
-        [self.launchVC.view.topAnchor
-            constraintEqualToAnchor:self.contentView.topAnchor],
-        [self.launchVC.view.leadingAnchor
-            constraintEqualToAnchor:self.contentView.leadingAnchor],
-        [self.launchVC.view.trailingAnchor
-            constraintEqualToAnchor:self.contentView.trailingAnchor],
-        [self.launchVC.view.bottomAnchor
-            constraintEqualToAnchor:self.contentView.bottomAnchor]
+        [self.launchVC.view.topAnchor constraintEqualToAnchor:self.contentView.topAnchor],
+        [self.launchVC.view.leadingAnchor constraintEqualToAnchor:self.contentView.leadingAnchor],
+        [self.launchVC.view.trailingAnchor constraintEqualToAnchor:self.contentView.trailingAnchor],
+        [self.launchVC.view.bottomAnchor constraintEqualToAnchor:self.contentView.bottomAnchor]
+    ]];
+
+    [NSLayoutConstraint activateConstraints:@[
+        [self.downloadVC.view.topAnchor constraintEqualToAnchor:self.contentView.topAnchor],
+        [self.downloadVC.view.leadingAnchor constraintEqualToAnchor:self.contentView.leadingAnchor],
+        [self.downloadVC.view.trailingAnchor constraintEqualToAnchor:self.contentView.trailingAnchor],
+        [self.downloadVC.view.bottomAnchor constraintEqualToAnchor:self.contentView.bottomAnchor]
+    ]];
+
+    [NSLayoutConstraint activateConstraints:@[
+        [self.settingsVC.view.topAnchor constraintEqualToAnchor:self.contentView.topAnchor],
+        [self.settingsVC.view.leadingAnchor constraintEqualToAnchor:self.contentView.leadingAnchor],
+        [self.settingsVC.view.trailingAnchor constraintEqualToAnchor:self.contentView.trailingAnchor],
+        [self.settingsVC.view.bottomAnchor constraintEqualToAnchor:self.contentView.bottomAnchor]
     ]];
 
     [NSLayoutConstraint activateConstraints:@[
@@ -132,128 +154,114 @@
     [self transitionToPage:page];
 }
 - (void)transitionToPage:(PCLPageType)page {
-    if (page==self.currentPage)
+    if (page == self.currentPage)
         return;
 
     if (self.isPageTransitioning) {
-        [self.topBar
-            selectPage:self.currentPage
-              animated:YES];
+        [self.topBar selectPage:self.currentPage animated:YES];
         return;
     }
 
-    self.isPageTransitioning=YES;
+    self.isPageTransitioning = YES;
+    __weak typeof(self) weakSelf = self;
 
-    __weak typeof(self) weakSelf=self;
-
-    if (self.currentPage==PCLPageTypeLaunch) {
-        [self.launchVC
-            playCEExitWithCompletion:^{
-
+    if (self.currentPage == PCLPageTypeLaunch) {
+        [self.launchVC playCEExitWithCompletion:^{
             [weakSelf showPage:page];
-            weakSelf.currentPage=page;
+            weakSelf.currentPage = page;
 
-            weakSelf.pageLabel.alpha=0;
-
-            dispatch_after(
-                dispatch_time(
-                    DISPATCH_TIME_NOW,
-                    (int64_t)(.030*NSEC_PER_SEC)),
-                dispatch_get_main_queue(), ^{
-
-                [UIView animateWithDuration:.10
-                    animations:^{
-                        weakSelf.pageLabel.alpha=1;
-                    }
-                    completion:^(BOOL done) {
-                        weakSelf.isPageTransitioning=NO;
+            if (page == PCLPageTypeDownload) {
+                [weakSelf.downloadVC prepareCEEnterAnimation];
+                [weakSelf.downloadVC playCEEnterAnimation];
+                dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(.400 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+                    weakSelf.isPageTransitioning = NO;
+                });
+            } else if (page == PCLPageTypeSettings) {
+                [weakSelf.settingsVC prepareCEEnterAnimation];
+                [weakSelf.settingsVC playCEEnterAnimation];
+                dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(.400 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+                    weakSelf.isPageTransitioning = NO;
+                });
+            } else {
+                weakSelf.pageLabel.alpha = 0;
+                dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(.030 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+                    [UIView animateWithDuration:.10 animations:^{
+                        weakSelf.pageLabel.alpha = 1;
+                    } completion:^(BOOL done) {
+                        weakSelf.isPageTransitioning = NO;
                     }];
-            });
-        }];
-
-        return;
-    }
-
-    if (page==PCLPageTypeLaunch) {
-
-        [UIView animateWithDuration:.110
-
-            animations:^{
-
-                weakSelf.pageLabel.alpha=0;
-
+                });
             }
-
-            completion:^(BOOL done) {
-
-            [weakSelf.launchVC
-
-                prepareCEEnterAnimation];
-
-            [weakSelf showPage:
-
-                PCLPageTypeLaunch];
-
-            weakSelf.pageLabel.alpha=1;
-
-            weakSelf.currentPage=PCLPageTypeLaunch;
-
-            dispatch_after(
-
-                dispatch_time(
-
-                    DISPATCH_TIME_NOW,
-
-                    (int64_t)(.030*NSEC_PER_SEC)),                dispatch_get_main_queue(), ^{
-
-                [weakSelf.launchVC
-
-                    playCEEnterAnimation];
-
-                dispatch_after(
-
-                    dispatch_time(
-
-                        DISPATCH_TIME_NOW,
-
-                        (int64_t)(.400*NSEC_PER_SEC)),
-
-                    dispatch_get_main_queue(), ^{
-
-                        weakSelf.isPageTransitioning=NO;
-
-                    });
-
-            });
-
         }];
-
         return;
-
     }
 
-    [UIView animateWithDuration:.110
-        animations:^{
-            weakSelf.pageLabel.alpha=0;
+    if (page == PCLPageTypeLaunch) {
+        void (^exitCurrent)(dispatch_block_t) = nil;
+        if (self.currentPage == PCLPageTypeDownload) {
+            exitCurrent = ^(dispatch_block_t completion) {
+                [weakSelf.downloadVC playCEExitWithCompletion:completion];
+            };
+        } else if (self.currentPage == PCLPageTypeSettings) {
+            exitCurrent = ^(dispatch_block_t completion) {
+                [weakSelf.settingsVC playCEExitWithCompletion:completion];
+            };
+        } else {
+            exitCurrent = ^(dispatch_block_t completion) {
+                weakSelf.pageLabel.alpha = 0;
+                if (completion) completion();
+            };
         }
-        completion:^(BOOL done) {
 
+        exitCurrent(^{
+            [weakSelf.launchVC prepareCEEnterAnimation];
+            [weakSelf showPage:PCLPageTypeLaunch];
+            weakSelf.currentPage = PCLPageTypeLaunch;
+
+            dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(.030 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+                [weakSelf.launchVC playCEEnterAnimation];
+                dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(.400 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+                    weakSelf.isPageTransitioning = NO;
+                });
+            });
+        });
+        return;
+    }
+
+    if (page == PCLPageTypeDownload) {
+        [weakSelf.downloadVC prepareCEEnterAnimation];
+        [weakSelf showPage:PCLPageTypeDownload];
+        weakSelf.currentPage = PCLPageTypeDownload;
+        [weakSelf.downloadVC playCEEnterAnimation];
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(.400 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+            weakSelf.isPageTransitioning = NO;
+        });
+        return;
+    }
+
+    if (page == PCLPageTypeSettings) {
+        [weakSelf.settingsVC prepareCEEnterAnimation];
+        [weakSelf showPage:PCLPageTypeSettings];
+        weakSelf.currentPage = PCLPageTypeSettings;
+        [weakSelf.settingsVC playCEEnterAnimation];
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(.400 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+            weakSelf.isPageTransitioning = NO;
+        });
+        return;
+    }
+
+    [UIView animateWithDuration:.110 animations:^{
+        weakSelf.pageLabel.alpha = 0;
+    } completion:^(BOOL done) {
         [weakSelf showPage:page];
-        weakSelf.currentPage=page;
+        weakSelf.currentPage = page;
 
-        dispatch_after(
-            dispatch_time(
-                DISPATCH_TIME_NOW,
-                (int64_t)(.030*NSEC_PER_SEC)),
-            dispatch_get_main_queue(), ^{
-
-            [UIView animateWithDuration:.10
-                animations:^{
-                    weakSelf.pageLabel.alpha=1;
-                }
-                completion:^(BOOL finished) {
-                    weakSelf.isPageTransitioning=NO;
-                }];
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(.030 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+            [UIView animateWithDuration:.10 animations:^{
+                weakSelf.pageLabel.alpha = 1;
+            } completion:^(BOOL finished) {
+                weakSelf.isPageTransitioning = NO;
+            }];
         });
     }];
 }
@@ -261,54 +269,43 @@
 - (void)showPage:(PCLPageType)page {
 
     [self.launchVC dismissTransientUI];
+    [self.downloadVC dismissTransientUI];
+    [self.settingsVC dismissTransientUI];
+
+    self.launchVC.view.hidden = YES;
+    self.downloadVC.view.hidden = YES;
+    self.settingsVC.view.hidden = YES;
+    self.pageLabel.hidden = YES;
 
     switch (page) {
-
         case PCLPageTypeLaunch:
-
-            self.launchVC.view.hidden=NO;
-
-            self.pageLabel.hidden=YES;
-
+            self.launchVC.view.hidden = NO;
             break;
 
         case PCLPageTypeDownload:
-
-            self.launchVC.view.hidden=YES;
-
-            self.pageLabel.hidden=NO;
-
-            self.pageLabel.text=@"下载";
-
+            self.downloadVC.view.hidden = NO;
             break;
 
         case PCLPageTypeSettings:
-
-            self.launchVC.view.hidden=YES;
-
-            self.pageLabel.hidden=NO;
-
-            self.pageLabel.text=@"设置";
-
+            self.settingsVC.view.hidden = NO;
             break;
 
         case PCLPageTypeTools:
-
-            self.launchVC.view.hidden=YES;
-
-            self.pageLabel.hidden=NO;
-
-            self.pageLabel.text=@"工具";
-
+            self.pageLabel.hidden = NO;
+            self.pageLabel.text = @"工具";
             break;
-
     }
 }
 - (void)viewDidLayoutSubviews {
     [super viewDidLayoutSubviews];
     [self.topBar layoutIfNeeded];
-    self.launchVC.leftPanelWidth = [self.topBar launchButtonCenterX];
+    CGFloat panelWidth = [self.topBar launchButtonCenterX];
+    self.launchVC.leftPanelWidth = panelWidth;
+    self.downloadVC.leftPanelWidth = panelWidth;
+    self.settingsVC.leftPanelWidth = panelWidth;
     [self.launchVC.view setNeedsLayout];
+    [self.downloadVC.view setNeedsLayout];
+    [self.settingsVC.view setNeedsLayout];
 }
 
 - (BOOL)prefersStatusBarHidden {
