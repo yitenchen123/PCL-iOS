@@ -81,7 +81,7 @@ jobs:
             exit 1
           fi
       
-      - name: Package IPA (with JRE bundled)
+      - name: Package IPA (不含JRE，避免ldid签名错误)
         run: |
           mkdir -p artifacts/Payload
           if [ -d "build/Build/Products/Debug-iphoneos/PCL-iOS.app" ]; then
@@ -91,21 +91,33 @@ jobs:
             find build -name "*.app" -type d 2>/dev/null
             exit 1
           fi
-          # 内置JRE (压缩为zip，运行时解压到Documents，避免ldid签名JRE二进制文件导致安装失败)
-          if [ -d "depends/java-8-openjdk" ]; then
-            echo "=== 打包JRE为zip压缩包 ==="
-            cd depends
-            zip -r -9 ../artifacts/Payload/PCL-iOS.app/java_runtimes.zip java-*-openjdk
-            cd ..
-            echo "JRE压缩包大小:"
-            ls -lh artifacts/Payload/PCL-iOS.app/java_runtimes.zip
-          fi
+          # 不打包JRE到IPA中 - 参考Amethyst的slimmed版本
+          # JRE将在首次启动时从网络下载
           cd artifacts
           zip -r ../PCL-iOS.ipa Payload
           cd ..
           ls -lh PCL-iOS.ipa
           echo "=== IPA内容 ==="
-          unzip -l PCL-iOS.ipa | head -40
+          unzip -l PCL-iOS.ipa | head -30
+          
+      - name: Package JRE as standalone artifact
+        run: |
+          echo "=== 打包JRE为独立压缩包 ==="
+          mkdir -p jre_package
+          if [ -d "depends/java-8-openjdk" ]; then
+            cp -r depends/java-*-openjdk jre_package/
+            cd jre_package
+            zip -r ../PCL-iOS-JRE.zip java-*-openjdk
+            cd ..
+            ls -lh PCL-iOS-JRE.zip
+          fi
+          
+      - name: Upload JRE
+        uses: actions/upload-artifact@v4
+        with:
+          name: PCL-iOS-JRE.zip
+          path: PCL-iOS-JRE.zip
+          retention-days: 7
       
       - name: Upload IPA
         uses: actions/upload-artifact@v4

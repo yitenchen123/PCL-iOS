@@ -35,25 +35,11 @@
 }
 
 + (NSString *)javaHomeForVersion:(NSInteger)version {
-    // 优先从解压目录查找
-    NSString *path = [[PCLJavaRuntime.sharedRuntime.javaRuntimesDir] stringByAppendingPathComponent:[NSString stringWithFormat:@"java-%ld-openjdk", (long)version]];
-    if ([[NSFileManager defaultManager] fileExistsAtPath:[path stringByAppendingPathComponent:@"release"]]) return path;
-    
-    // 回退到bundle资源路径（旧方式）
-    path = [[self dependsDir] stringByAppendingPathComponent:[NSString stringWithFormat:@"java-%ld-openjdk", (long)version]];
-    if ([[NSFileManager defaultManager] fileExistsAtPath:[path stringByAppendingPathComponent:@"bin/java"]]) return path;
-    return nil;
+    return [PCLJavaRuntime.sharedRuntime javaHomeForVersion:version];
 }
 
 + (NSString *)javaExecutableForVersion:(NSInteger)version {
-    // 优先使用PCLJavaRuntime
-    NSString *result = [PCLJavaRuntime.sharedRuntime javaExecutableForVersion:version];
-    if (result) return result;
-    
-    // 回退到bundle资源路径
-    NSString *home = [self javaHomeForVersion:version];
-    if (home) return [home stringByAppendingPathComponent:@"bin/java"];
-    return nil;
+    return [PCLJavaRuntime.sharedRuntime javaExecutableForVersion:version];
 }
 
 + (NSInteger)recommendedJavaVersionForMC:(NSString *)mcVersion {
@@ -61,16 +47,13 @@
 }
 
 + (NSString *)lwjglJarPath:(NSString *)jarName {
-    // Amethyst 布局: libs/lwjgl/
     NSString *path = [[[self dependsDir] stringByAppendingPathComponent:@"libs/lwjgl"] stringByAppendingPathComponent:jarName];
     if ([[NSFileManager defaultManager] fileExistsAtPath:path]) return path;
-    // 兼容旧布局
     path = [[[self dependsDir] stringByAppendingPathComponent:@"libs"] stringByAppendingPathComponent:jarName];
     return [[NSFileManager defaultManager] fileExistsAtPath:path] ? path : nil;
 }
 
 + (NSArray<NSString *> *)allLwjglJars {
-    // Amethyst 布局: libs/lwjgl/ + libs/others/
     NSString *lwjglDir = [[self dependsDir] stringByAppendingPathComponent:@"libs/lwjgl"];
     NSString *othersDir = [[self dependsDir] stringByAppendingPathComponent:@"libs/others"];
     NSArray *lwjglJars = @[
@@ -93,11 +76,9 @@
 }
 
 + (NSString *)caciocavalloJarDir:(NSInteger)javaVersion {
-    // Amethyst 布局: libs/caciocavallo/ (Java 8) 或 libs/caciocavallo17/ (Java 17+)
     NSString *folder = javaVersion >= 17 ? @"libs/caciocavallo17" : @"libs/caciocavallo";
     NSString *path = [[self dependsDir] stringByAppendingPathComponent:folder];
     if ([[NSFileManager defaultManager] fileExistsAtPath:path]) return path;
-    // 兼容旧布局
     folder = javaVersion >= 17 ? @"libs_caciocavallo17" : @"libs_caciocavallo";
     path = [[self dependsDir] stringByAppendingPathComponent:folder];
     return [[NSFileManager defaultManager] fileExistsAtPath:path] ? path : nil;
