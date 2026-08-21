@@ -77,9 +77,9 @@ jobs:
           fi
       
       # 参考Amethyst: 构建两个版本
-      # 1. 完整版（含JRE）
-      # 2. Slimmed版（不含JRE，用于TrollStore）
-      - name: Package IPA (完整版，含JRE)
+      # 1. .ipa (普通安装)
+      # 2. .tipa (TrollStore安装，只是扩展名不同)
+      - name: Package IPA (含JRE)
         run: |
           mkdir -p artifacts/Payload
           if [ -d "build/Build/Products/Debug-iphoneos/PCL-iOS.app" ]; then
@@ -100,24 +100,15 @@ jobs:
           cd ..
           ls -lh PCL-iOS.ipa
           
-      - name: Package Slimmed IPA (不含JRE，用于TrollStore)
+      - name: Create TIPA (TrollStore用)
         run: |
-          mkdir -p artifacts_slimmed/Payload
-          if [ -d "build/Build/Products/Debug-iphoneos/PCL-iOS.app" ]; then
-            cp -r build/Build/Products/Debug-iphoneos/PCL-iOS.app artifacts_slimmed/Payload/
-          else
-            echo "ERROR: Build product not found"
-            exit 1
-          fi
-          # 不复制JRE（参考Amethyst slimmed版本）
-          cd artifacts_slimmed
-          zip -r ../PCL-iOS.slimmed.ipa Payload
-          cd ..
-          ls -lh PCL-iOS.slimmed.ipa
-          echo "=== Slimmed IPA内容（不含JRE）==="
-          unzip -l PCL-iOS.slimmed.ipa | head -20
-      
-      - name: Upload 完整版 IPA
+          # 参考Amethyst: .tipa只是.ipa的副本，扩展名不同
+          cp PCL-iOS.ipa PCL-iOS.tipa
+          ls -lh PCL-iOS.tipa
+          echo "=== IPA/TIPA内容 ==="
+          unzip -l PCL-iOS.ipa | head -30
+          
+      - name: Upload IPA
         uses: actions/upload-artifact@v4
         with:
           name: PCL-iOS.ipa
@@ -125,10 +116,10 @@ jobs:
           if-no-files-found: error
           retention-days: 7
       
-      - name: Upload Slimmed IPA (TrollStore用)
+      - name: Upload TIPA (TrollStore用)
         uses: actions/upload-artifact@v4
         with:
-          name: PCL-iOS.slimmed.ipa
-          path: PCL-iOS.slimmed.ipa
+          name: PCL-iOS.tipa
+          path: PCL-iOS.tipa
           if-no-files-found: error
           retention-days: 7
