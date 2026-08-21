@@ -1,6 +1,7 @@
 #import <Foundation/Foundation.h>
 
 typedef NS_ENUM(NSInteger, PCLRenderRenderer) {
+    PCLRenderRendererNone = -1,
     PCLRenderRendererGL4ES = 0,
     PCLRenderRendererMetalANGLE,
     PCLRenderRendererMobileGlues,
