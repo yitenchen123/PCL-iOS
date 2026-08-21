@@ -1,10 +1,11 @@
 #import "PCLJavaRuntime.h"
-#include <sys/stat.h>
+#import "PCLZipExtractor.h"
 
-static NSString *const kJREExtractedFlag = @"PCL(JavaRuntimesExtracted-v2)";
+static NSString *const kJREExtractedFlag = @"PCL(JavaRuntimesExtracted-v3)";
 
 @interface PCLJavaRuntime ()
 @property (nonatomic, strong) NSString *cachedRuntimesDir;
+@property (nonatomic, assign) BOOL isExtracting;
 @end
 
 @implementation PCLJavaRuntime
@@ -21,10 +22,10 @@ static NSString *const kJREExtractedFlag = @"PCL(JavaRuntimesExtracted-v2)";
 - (instancetype)init {
     self = [super init];
     if (self) {
-        // JRE解压到 Documents/Java 目录（持久化，不会被系统清理）
-        NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
-        NSString *docsDir = paths.firstObject;
-        _cachedRuntimesDir = [docsDir stringByAppendingPathComponent:@"Java"];
+        // JRE解压到 Library/Caches/Java 目录（持久化存储）
+        NSArray *paths = NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES);
+        NSString *cachesDir = paths.firstObject;
+        _cachedRuntimesDir = [cachesDir stringByAppendingPathComponent:@"Java"];
     }
     return self;
 }
@@ -34,34 +35,31 @@ static NSString *const kJREExtractedFlag = @"PCL(JavaRuntimesExtracted-v2)";
 }
 
 - (void)ensureJREExtracted {
+    if (self.isExtracting) return;
+    
     NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
     NSString *zipPath = [[NSBundle mainBundle] pathForResource:@"java_runtimes" ofType:@"zip"];
     
     if (!zipPath) {
-        NSLog(@"[PCLJavaRuntime] 未找到JRE压缩包，跳过解压");
+        NSLog(@"[PCLJavaRuntime] 未找到JRE压缩包");
         return;
     }
     
-    // 检查是否需要解压（首次启动或解压失败）
+    // 检查是否需要解压
     BOOL needsExtract = ![defaults boolForKey:kJREExtractedFlag];
     if (!needsExtract) {
-        // 验证解压后的文件是否存在
-        for (NSNumber *ver in @[@8, @17, @21, @25]) {
-            NSString *releasePath = [self.javaRuntimesDir stringByAppendingPathComponent:
-                [NSString stringWithFormat:@"java-%ld-openjdk/release", (long)ver.integerValue]];
-            if (![[NSFileManager defaultManager] fileExistsAtPath:releasePath]) {
-                needsExtract = YES;
-                break;
-            }
+        // 验证关键文件是否存在
+        NSString *releasePath = [self.javaRuntimesDir stringByAppendingPathComponent:@"java-8-openjdk/release"];
+        if ([[NSFileManager defaultManager] fileExistsAtPath:releasePath]) {
+            NSLog(@"[PCLJavaRuntime] JRE已安装，跳过解压");
+            return;
         }
+        needsExtract = YES;
     }
     
-    if (!needsExtract) {
-        NSLog(@"[PCLJavaRuntime] JRE已解压，跳过");
-        return;
-    }
+    NSLog(@"[PCLJavaRuntime] 开始解压JRE到: %@", self.javaRuntimesDir);
     
-    NSLog(@"[PCLJavaRuntime] 开始解压JRE...");
+    self.isExtracting = YES;
     
     // 清理旧目录
     [[NSFileManager defaultManager] removeItemAtPath:self.javaRuntimesDir error:nil];
@@ -70,106 +68,25 @@ static NSString *const kJREExtractedFlag = @"PCL(JavaRuntimesExtracted-v2)";
                                               attributes:nil
                                                    error:nil];
     
-    // 使用unzip命令解压（TrollStore越狱环境中可用）
-    NSString *cmd = [NSString stringWithFormat:@"/usr/bin/unzip -q -o '%@' -d '%@'", zipPath, self.javaRuntimesDir];
-    int ret = system(cmd.UTF8String);
-    
-    if (ret != 0) {
-        NSLog(@"[PCLJavaRuntime] system(unzip)失败(ret=%d)，尝试busybox unzip...", ret);
-        // 尝试busybox
-        cmd = [NSString stringWithFormat:@"/var/jb/usr/bin/unzip -q -o '%@' -d '%@'", zipPath, self.javaRuntimesDir];
-        ret = system(cmd.UTF8String);
-    }
-    
-    if (ret != 0) {
-        NSLog(@"[PCLJavaRuntime] 所有unzip尝试失败，尝试procursus路径...");
-        // 尝试dopamine/procursus路径
-        NSArray *unzipPaths = @[
-            @"/private/preboot/*/procursus/usr/bin/unzip",
-            @"/usr/local/bin/unzip",
-            @"/usr/bin/unzip",
-            @"/bin/unzip"
-        ];
-        for (NSString *unzipPath in unzipPaths) {
-            // 处理通配符
-            if ([unzipPath containsString:@"*"]) {
-                NSArray *matches = [self globExpand:unzipPath];
-                if (matches.count > 0) {
-                    unzipPath = matches.firstObject;
-                } else {
-                    continue;
-                }
-            }
-            if ([[NSFileManager defaultManager] fileExistsAtPath:unzipPath]) {
-                cmd = [NSString stringWithFormat:@"%@ -q -o '%@' -d '%@'", unzipPath, zipPath, self.javaRuntimesDir];
-                ret = system(cmd.UTF8String);
-                if (ret == 0) break;
-            }
+    // 使用内置ZIP解压器（不需要外部命令）
+    NSError *error = nil;
+    BOOL success = [PCLZipExtractor extractZipAtPath:zipPath
+                                            toPath:self.javaRuntimesDir
+                                          progress:^(NSString *file, NSInteger cur, NSInteger total) {
+        if (cur % 100 == 0 || cur == total) {
+            NSLog(@"[PCLJavaRuntime] 解压进度: %ld/%ld (%@)", (long)cur, (long)total, file);
         }
-    }
+    } error:&error];
     
-    // 检查解压是否成功
-    BOOL success = NO;
-    for (NSNumber *ver in @[@8, @17, @21, @25]) {
-        NSString *releasePath = [self.javaRuntimesDir stringByAppendingPathComponent:
-            [NSString stringWithFormat:@"java-%ld-openjdk/release", (long)ver.integerValue]];
-        if ([[NSFileManager defaultManager] fileExistsAtPath:releasePath]) {
-            success = YES;
-            break;
-        }
-    }
+    self.isExtracting = NO;
     
     if (success) {
         [defaults setBool:YES forKey:kJREExtractedFlag];
         [defaults synchronize];
         NSLog(@"[PCLJavaRuntime] JRE解压完成");
     } else {
-        NSLog(@"[PCLJavaRuntime] JRE解压失败！");
+        NSLog(@"[PCLJavaRuntime] JRE解压失败: %@", error.localizedDescription);
     }
-}
-
-- (NSArray<NSString *> *)globExpand:(NSString *)pattern {
-    // 简单的glob展开
-    NSMutableArray *results = [NSMutableArray array];
-    NSString *dir = [pattern stringByDeletingLastPathComponent];
-    NSString *filename = [pattern lastPathComponent];
-    
-    // 处理**通配符
-    NSArray *dirComponents = [dir pathComponents];
-    NSString *basePath = @"/";
-    NSInteger wildcardIndex = -1;
-    for (NSInteger i = 0; i < dirComponents.count; i++) {
-        NSString *component = dirComponents[i];
-        if ([component containsString:@"*"]) {
-            wildcardIndex = i;
-            break;
-        }
-        basePath = [basePath stringByAppendingPathComponent:component];
-    }
-    
-    if (wildcardIndex == -1) {
-        return @[pattern];
-    }
-    
-    // 扫描目录
-    NSError *error;
-    NSArray *entries = [[NSFileManager defaultManager] contentsOfDirectoryAtPath:basePath error:&error];
-    for (NSString *entry in entries) {
-        NSString *candidate = [basePath stringByAppendingPathComponent:entry];
-        // 构建剩余路径
-        NSString *remaining = @"";
-        for (NSInteger i = wildcardIndex + 1; i < dirComponents.count; i++) {
-            remaining = [remaining stringByAppendingPathComponent:dirComponents[i]];
-        }
-        if (remaining.length > 0) {
-            candidate = [candidate stringByAppendingPathComponent:remaining];
-        }
-        if ([[NSFileManager defaultManager] fileExistsAtPath:candidate]) {
-            [results addObject:candidate];
-        }
-    }
-    
-    return results;
 }
 
 - (NSString *)javaHomeForVersion:(NSInteger)version {
@@ -178,11 +95,15 @@ static NSString *const kJREExtractedFlag = @"PCL(JavaRuntimesExtracted-v2)";
     if ([[NSFileManager defaultManager] fileExistsAtPath:[path stringByAppendingPathComponent:@"release"]]) {
         return path;
     }
+    // 回退到bundle资源路径
+    NSString *bundlePath = [[NSBundle mainBundle] pathForResource:[NSString stringWithFormat:@"java-%ld-openjdk", (long)version] ofType:nil];
+    if (bundlePath && [[NSFileManager defaultManager] fileExistsAtPath:[path stringByAppendingPathComponent:@"bin/java"]]) {
+        return bundlePath;
+    }
     return nil;
 }
 
 - (NSString *)javaExecutableForVersion:(NSInteger)version {
-    // 先检查自定义解压目录
     NSString *home = [self javaHomeForVersion:version];
     if (home) {
         NSString *javaPath = [home stringByAppendingPathComponent:@"bin/java"];
@@ -190,14 +111,6 @@ static NSString *const kJREExtractedFlag = @"PCL(JavaRuntimesExtracted-v2)";
             return javaPath;
         }
     }
-    
-    // 回退到旧路径（兼容）
-    NSString *resourcePath = [[NSBundle mainBundle] pathForResource:[NSString stringWithFormat:@"java-%ld-openjdk", (long)version] ofType:nil];
-    if (resourcePath) {
-        NSString *javaPath = [resourcePath stringByAppendingPathComponent:@"bin/java"];
-        if ([[NSFileManager defaultManager] fileExistsAtPath:javaPath]) return javaPath;
-    }
-    
     return nil;
 }
 
