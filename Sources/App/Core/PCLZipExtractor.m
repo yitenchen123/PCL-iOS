@@ -178,32 +178,21 @@ static const uint16_t kZipCompressionDeflate = 8;
     }
     
     // 分配解压缓冲区
-    uint8_t *outBuffer = malloc(uncompressedSize + 1); // +1 防止溢出
+    size_t bufferSize = uncompressedSize > 0 ? uncompressedSize + 1 : compressedSize * 10;
+    uint8_t *outBuffer = malloc(bufferSize);
     if (!outBuffer) return nil;
     
-    // 使用compression_decode_buffer解压 (deflate -> raw)
+    // 使用compression_decode_buffer解压 (zlib/deflate格式)
     size_t decodedSize = compression_decode_buffer(
-        outBuffer, uncompressedSize + 1,
+        outBuffer, bufferSize,
         compressedBytes, compressedSize,
         NULL,
         COMPRESSION_ZLIB
     );
     
     NSData *result = nil;
-    if (decodedSize > 0 && decodedSize == uncompressedSize) {
+    if (decodedSize > 0) {
         result = [NSData dataWithBytes:outBuffer length:decodedSize];
-    } else {
-        // 尝试使用COMPRESSION_ZLIB_RAW (不带头)
-        memset(outBuffer, 0, uncompressedSize + 1);
-        decodedSize = compression_decode_buffer(
-            outBuffer, uncompressedSize + 1,
-            compressedBytes, compressedSize,
-            NULL,
-            COMPRESSION_ZLIB_FSE  // 回退选项
-        );
-        if (decodedSize > 0 && decodedSize == uncompressedSize) {
-            result = [NSData dataWithBytes:outBuffer length:decodedSize];
-        }
     }
     
     free(outBuffer);
