@@ -146,13 +146,13 @@ static NSString *const kErrorDomain = @"PCLGameLauncher";
     NSString *javaPath = instance.javaPathOverride.length > 0 ? instance.javaPathOverride :
                         [PCLPathUtils javaExecutableForVersion:[PCLPathUtils recommendedJavaVersionForMC:versionInfo.versionId]];
     if (!javaPath) {
-        for (NSInteger ver in @[@8, @17, @21, @25]) {
-            javaPath = [PCLPathUtils javaExecutableForVersion:ver];
+        for (NSNumber *ver in @[@8, @17, @21, @25]) {
+            javaPath = [PCLPathUtils javaExecutableForVersion:ver.integerValue];
             if (javaPath) break;
         }
     }
     if (!javaPath) {
-        NSError *error = [self errorWithCode:PCLLaunchErrorJavaNotFound 
+        NSError *error = [self errorWithCode:PCLLaunchErrorJavaNotFound
                                      message:@"No Java runtime found. JRE must be bundled at build time."];
         if (completion) completion(NO, error);
         return;
@@ -215,8 +215,9 @@ static NSString *const kErrorDomain = @"PCLGameLauncher";
     
     // 合并JVM参数: instance自定义 + profile自定义
     NSString *jvmArgs = instance.javaArgs ?: @"";
-    if (profile[@"javaArgs"].length > 0) {
-        jvmArgs = [jvmArgs length] > 0 ? [jvmArgs stringByAppendingFormat:@" %@", profile[@"javaArgs"]] : profile[@"javaArgs"];
+    NSString *profileJavaArgs = profile[@"javaArgs"];
+    if ([profileJavaArgs isKindOfClass:[NSString class]] && profileJavaArgs.length > 0) {
+        jvmArgs = [jvmArgs length] > 0 ? [jvmArgs stringByAppendingFormat:@" %@", profileJavaArgs] : profileJavaArgs;
     }
     
     return @{
@@ -249,8 +250,8 @@ static NSString *const kErrorDomain = @"PCLGameLauncher";
     if (!javaPath) {
         NSInteger reqVer = [PCLPathUtils recommendedJavaVersionForMC:versionInfo.versionId];
         [self log:[NSString stringWithFormat:@"  Java %ld not found, checking alternatives...", (long)reqVer]];
-        for (NSInteger ver in @[@8, @17, @21, @25]) {
-            javaPath = [PCLPathUtils javaExecutableForVersion:ver];
+        for (NSNumber *ver in @[@8, @17, @21, @25]) {
+            javaPath = [PCLPathUtils javaExecutableForVersion:ver.integerValue];
             if (javaPath) break;
         }
     }
@@ -277,7 +278,7 @@ static NSString *const kErrorDomain = @"PCLGameLauncher";
     // Step 3: Validate Java version
     [self log:@"Step 3/5: Validating Java version..."];
     NSInteger requiredJava = [PCLPathUtils recommendedJavaVersionForMC:versionInfo.versionId];
-    [self log:[NSString stringWithFormat("  Required Java: %ld", (long)requiredJava]];
+    [self log:[NSString stringWithFormat(@"  Required Java: %ld", (long)requiredJava]];
     
     // Step 4: Build classpath and arguments
     [self log:@"Step 4/5: Building launch arguments..."];
@@ -294,9 +295,9 @@ static NSString *const kErrorDomain = @"PCLGameLauncher";
         return;
     }
     
-    [self log:[NSString stringWithFormat("  Main class: %@", args[@"mainClass"]]];
-    [self log:[NSString stringWithFormat("  JVM args: %@", [args[@"jvmArguments"] componentsJoinedByString:@" "]]];
-    [self log:[NSString stringWithFormat("  Game args: %@", [args[@"gameArguments"] componentsJoinedByString:@" "]]];
+    [self log:[NSString stringWithFormat(@"  Main class: %@", args[@"mainClass"]]];
+    [self log:[NSString stringWithFormat(@"  JVM args: %@", [args[@"jvmArguments"] componentsJoinedByString:@" "]]];
+    [self log:[NSString stringWithFormat(@"  Game args: %@", [args[@"gameArguments"] componentsJoinedByString:@" "]]];
     
     // Step 5: Enable JIT
     [self log:@"Step 5/5: Enabling JIT compilation..."];
@@ -310,7 +311,7 @@ static NSString *const kErrorDomain = @"PCLGameLauncher";
                 [self log:@"  JIT enabled successfully."];
                 if (completion) completion(YES, nil);
             } else {
-                [self log:[NSString stringWithFormat("  JIT enable failed: %@. Continuing without JIT.", jitError.localizedDescription]];
+                [self log:[NSString stringWithFormat(@"  JIT enable failed: %@. Continuing without JIT.", jitError.localizedDescription]];
                 // Continue anyway
                 if (completion) completion(YES, nil);
             }
