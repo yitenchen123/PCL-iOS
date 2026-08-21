@@ -278,7 +278,7 @@ static NSString *const kErrorDomain = @"PCLGameLauncher";
     // Step 3: Validate Java version
     [self log:@"Step 3/5: Validating Java version..."];
     NSInteger requiredJava = [PCLPathUtils recommendedJavaVersionForMC:versionInfo.versionId];
-    [self log:[NSString stringWithFormat(@"  Required Java: %ld", (long)requiredJava]];
+    [self log:[NSString stringWithFormat:@"  Required Java: %ld", (long)requiredJava]];
     
     // Step 4: Build classpath and arguments
     [self log:@"Step 4/5: Building launch arguments..."];
@@ -295,9 +295,9 @@ static NSString *const kErrorDomain = @"PCLGameLauncher";
         return;
     }
     
-    [self log:[NSString stringWithFormat(@"  Main class: %@", args[@"mainClass"]]];
-    [self log:[NSString stringWithFormat(@"  JVM args: %@", [args[@"jvmArguments"] componentsJoinedByString:@" "]]];
-    [self log:[NSString stringWithFormat(@"  Game args: %@", [args[@"gameArguments"] componentsJoinedByString:@" "]]];
+    [self log:[NSString stringWithFormat:@"  Main class: %@", args[@"mainClass"]]];
+    [self log:[NSString stringWithFormat:@"  JVM args: %@", [args[@"jvmArguments"] componentsJoinedByString:@" "]]];
+    [self log:[NSString stringWithFormat:@"  Game args: %@", [args[@"gameArguments"] componentsJoinedByString:@" "]]];
     
     // Step 5: Enable JIT
     [self log:@"Step 5/5: Enabling JIT compilation..."];
@@ -311,7 +311,7 @@ static NSString *const kErrorDomain = @"PCLGameLauncher";
                 [self log:@"  JIT enabled successfully."];
                 if (completion) completion(YES, nil);
             } else {
-                [self log:[NSString stringWithFormat(@"  JIT enable failed: %@. Continuing without JIT.", jitError.localizedDescription]];
+                [self log:[NSString stringWithFormat:@"  JIT enable failed: %@. Continuing without JIT.", jitError.localizedDescription]];
                 // Continue anyway
                 if (completion) completion(YES, nil);
             }
