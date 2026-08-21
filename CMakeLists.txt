@@ -1,6 +1,8 @@
 # PCL-iOS Native dylib Cross-Compilation
 # Based on Amethyst-iOS-MyRemastered CMakeLists.txt
 # Targets iOS arm64 (iPhone/iPad)
+#
+# MobileGlues源码内置在仓库中，构建时编译 (参考Amethyst)
 
 cmake_minimum_required(VERSION 3.21)
 project(PCLiOS-Native C CXX ASM)
@@ -32,22 +34,51 @@ configure_file(
     ${CMAKE_BINARY_DIR}/include/config.h
 )
 
-# === AWT/Caciocavallo (from PojavLauncherTeam) ===
-# These are stub libraries for Java AWT headless support
+# ============================================================================
+# MobileGlues (GL/Vulkan wrapper) - 源码内置，构建时编译 (参考Amethyst)
+# 来源: Amethyst-iOS-MyRemastered/external/MobileGlues
+# ============================================================================
+set(MOBILEGLUES_DIR ${CMAKE_CURRENT_SOURCE_DIR}/Sources/Native/mobileglues/src/main/cpp)
 
-add_library(awt_headless
+add_library(mobileglues SHARED
+    ${MOBILEGLUES_DIR}/src/mobileglues.c
+    ${MOBILEGLUES_DIR}/src/ltw.c
+)
+
+target_include_directories(mobileglues PRIVATE
+    ${MOBILEGLUES_DIR}/include
+)
+
+target_compile_definitions(mobileglues PRIVATE
+    MOBILEGLUES_BUILD=1
+    LTW_BUILD=1
+)
+
+set_target_properties(mobileglues PROPERTIES
+    C_STANDARD 11
+    C_STANDARD_REQUIRED ON
+    FRAMEWORK FALSE
+)
+
+# ============================================================================
+# AWT/Caciocavallo (from PojavLauncherTeam)
+# ============================================================================
+
+add_library(awt_headless SHARED
    Sources/Native/cacio/cacio-dim.c
 )
 
-add_library(awt_xawt
+add_library(awt_xawt SHARED
     Sources/Native/cacio/cacio.c
     Sources/Native/cacio/cacio_awt_pivot.c
 )
 
-# === GL4ES (OpenGL ES 1.1.4 wrapper) ===
-# Source: https://github.com/PojavLauncherTeam/gl4es
+# ============================================================================
+# GL4ES (OpenGL ES 1.1.4 wrapper)
+# 来源: https://github.com/PojavLauncherTeam/gl4es
+# ============================================================================
 
-add_library(gl4es_114
+add_library(gl4es_114 SHARED
     Sources/Native/gl4es/src/gl/build_info.c
     Sources/Native/gl4es/src/gl/gl4es.c
     Sources/Native/gl4es/src/gl/matvec.c
@@ -63,35 +94,26 @@ target_compile_definitions(gl4es_114 PRIVATE
     NO_OMIT_FRAMEBUFFER
 )
 
-# === MetalANGLE wrapper ===
-# Provides OpenGL ES via Metal
+# ============================================================================
+# MetalANGLE wrapper (OpenGL ES via Metal)
+# ============================================================================
 
-add_library(tinygl4angle
-    Sources/Native/metalangle_wrapper.mm
+add_library(tinygl4angle SHARED
+    Sources/Native/gl4es/string_utils.c
+    Sources/Native/gl4es/tinygl4angle.c
+    ${MOBILEGLUES_DIR}/src/mobileglues.c
 )
 
-target_link_libraries(tinygl4angle
-    "-framework Metal"
-    "-framework MetalKit"
-    "-framework QuartzCore"
-    "-framework UIKit"
-    "-framework Foundation"
+target_include_directories(tinygl4angle PRIVATE
+    Sources/Native/gl4es/include
+    ${MOBILEGLUES_DIR}/include
 )
 
-# === MobileGlues (GL/Vulkan wrapper) ===
+# ============================================================================
+# OSMesa (Software rendering)
+# ============================================================================
 
-add_library(mobileglues
-    Sources/Native/mobileglues/bridge.c
-    Sources/Native/mobileglues/config.c
-)
-
-target_include_directories(mobileglues PRIVATE
-    Sources/Native/mobileglues/include
-)
-
-# === OSMesa (Software rendering) ===
-
-add_library(OSMesa
+add_library(OSMesa SHARED
     Sources/Native/osmesa/src/api.c
     Sources/Native/osmesa/src/render.c
 )
@@ -100,39 +122,57 @@ target_include_directories(OSMesa PRIVATE
     Sources/Native/osmesa/include
 )
 
-# === LTW (LWJGL Toolkit Wrapper) ===
+# ============================================================================
+# LTW (Large Thin Wrapper) - OpenGL Core 3.3 → OpenGL ES 3
+# 复刻自MojoLauncher/LTW，iOS移植
+# ============================================================================
 
-add_library(ltw
-    Sources/Native/ltw/ltw.c
+add_library(ltw SHARED
+    ${MOBILEGLUES_DIR}/src/ltw.c
+    ${MOBILEGLUES_DIR}/src/mobileglues.c
 )
 
 target_include_directories(ltw PRIVATE
-    Sources/Native/ltw
+    ${MOBILEGLUES_DIR}/include
 )
 
-# === GLFW (bundled for iOS) ===
-# Source: https://github.com/glfw/glfw (iOS port)
+target_compile_definitions(ltw PRIVATE
+    LTW_BUILD=1
+)
+
+set_target_properties(ltw PROPERTIES
+    C_STANDARD 11
+    C_STANDARD_REQUIRED ON
+)
+
+# ============================================================================
+# GLFW (bundled for iOS)
+# 来源: https://github.com/glfw/glfw (iOS port)
+# ============================================================================
 
 find_package(glfw3 QUIET)
 if (NOT glfw3_FOUND)
     add_subdirectory(Sources/Native/glfw)
 endif()
 
-# === MoltenVK (Vulkan-to-Metal) ===
+# ============================================================================
+# MoltenVK (Vulkan-to-Metal)
 # dylib placed in Frameworks, not built from source
+# 使用yitenchen123预构建的1.4.3真机arm64版本
+# ============================================================================
 
-# === CurseForge API Key ===
+# ============================================================================
+# CurseForge API Key
 # Defined in config.h.in, set from Makefile
+# ============================================================================
 
-# === LWJGL Natives (not built, bundled as dylib) ===
-# Sources:
-# - lwjgl.dylib
-# - lwjgl_opengl.dylib
-# - lwjgl_stb.dylib
-# - lwjgl_openal.dylib
-# - lwjgl_tinyfd.dylib
+# ============================================================================
+# LWJGL Natives (not built, bundled as dylib)
+# ============================================================================
 
-# === Install rules ===
+# ============================================================================
+# Install rules
+# ============================================================================
 install(TARGETS
     awt_headless
     awt_xawt
@@ -144,12 +184,14 @@ install(TARGETS
     DESTINATION Frameworks
 )
 
-# === Summary ===
+# ============================================================================
+# Summary
+# ============================================================================
 message(STATUS "")
 message(STATUS "=== PCL-iOS Native Build Configuration ===")
 message(STATUS "  System:           iOS arm64")
 message(STATUS "  Deployment target: 14.0")
 message(STATUS "  Build type:       ${CMAKE_BUILD_TYPE}")
+message(STATUS "  MobileGlues:      内置源码 (${MOBILEGLUES_DIR})")
 message(STATUS "  Output:           ${CMAKE_BINARY_DIR}/lib")
-message(STATUS "  CurseForge Key:   ${CONFIG_CURSEFORGE_API_KEY}")
 message(STATUS "")
