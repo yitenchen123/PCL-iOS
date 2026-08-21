@@ -2,6 +2,7 @@
 #import "PCLModpackImportService.h"
 #import "PCLCurseForgeAPI.h"
 #import "PCLModrinthAPI.h"
+#import <UniformTypeIdentifiers/UniformTypeIdentifiers.h>
 
 @interface PCLModpackImportViewController () <UIDocumentPickerDelegate, UITableViewDataSource, UITableViewDelegate>
 

@@ -532,10 +532,6 @@ static NSString *PCLFormatSize(NSInteger bytes) {
 
 @property (nonatomic, strong) NSMutableArray<PCLDownloadTask *> *downloadTasks;
 
-- (NSArray<NSString *> *)tabTitles {
-    return @[@"模组", @"整合包", @"资源包", @"光影", @"数据包"];
-}
-
 @end
 
 @implementation PCLResourceBrowseViewController
