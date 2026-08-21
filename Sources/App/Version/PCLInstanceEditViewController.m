@@ -2,6 +2,7 @@
 #import "PCLInstanceManager.h"
 #import "PCLVersionManager.h"
 #import "PCLPathUtils.h"
+#import "PCLRendererManager.h"
 
 static UIColor *PCLColor(NSUInteger rgb) {
     return [UIColor colorWithRed:((rgb >> 16) & 255) / 255.0
@@ -27,8 +28,16 @@ static UIColor *PCLColor(NSUInteger rgb) {
 @property (nonatomic, strong) UITextView *jvmArgsView;
 @property (nonatomic, strong) UISwitch *autoLoginSwitch;
 
+// 渲染器选择 (参考PCL2-CE)
+@property (nonatomic, strong) UISegmentedControl *rendererSegment;
+@property (nonatomic, strong) UILabel *rendererDescLabel;
+
+// 版本隔离 (参考PCL2-CE)
+@property (nonatomic, strong) UISwitch *versionIsolationSwitch;
+@property (nonatomic, strong) UILabel *versionIsolationDescLabel;
+
 @property (nonatomic, strong) NSArray<NSString *> *installedVersions;
-@property (nonatomic, strong) NSArray<NSString *> *javaVersions;
+@property (nonatomic, strong> NSArray<NSString *> *javaVersions;
 @property (nonatomic, assign) NSInteger selectedJavaIndex;
 
 @end
@@ -116,9 +125,11 @@ static UIColor *PCLColor(NSUInteger rgb) {
 
     [self buildNameSection];
     [self buildVersionSection];
+    [self buildRendererSection];
     [self buildJavaSection];
     [self buildMemorySection];
     [self buildResolutionSection];
+    [self buildVersionIsolationSection];
     [self buildJvmArgsSection];
     [self buildAdvancedSection];
 }
@@ -150,12 +161,7 @@ static UIColor *PCLColor(NSUInteger rgb) {
     return card;
 }
 
-- (CGFloat)finalizeCard:(UIView *)card lastAnchor:(NSLayoutAnchor *)lastAnchor bottomPadding:(CGFloat)bottomPadding {
-    [NSLayoutConstraint activateConstraints:@[
-        [card.bottomAnchor constraintEqualToAnchor:lastAnchor constant:bottomPadding]
-    ]];
-    return 0;
-}
+#pragma mark - 名称
 
 - (void)buildNameSection {
     UIView *card = [self createSectionCardWithTitle:@"实例名称"];
@@ -189,6 +195,8 @@ static UIColor *PCLColor(NSUInteger rgb) {
 
     [self.stackView addArrangedSubview:card];
 }
+
+#pragma mark - 游戏版本
 
 - (void)buildVersionSection {
     UIView *card = [self createSectionCardWithTitle:@"游戏版本"];
@@ -227,6 +235,60 @@ static UIColor *PCLColor(NSUInteger rgb) {
 
     [self.stackView addArrangedSubview:card];
 }
+
+#pragma mark - 渲染器选择 (参考PCL2-CE)
+
+- (void)buildRendererSection {
+    UIView *card = [self createSectionCardWithTitle:@"渲染器"];
+    
+    // 渲染器选择 segmented control
+    NSArray *rendererNames = @[@"GL4ES", @"MetalANGLE", @"MobileGlues", @"Zink"];
+    self.rendererSegment = [[UISegmentedControl alloc] initWithItems:rendererNames];
+    self.rendererSegment.translatesAutoresizingMaskIntoConstraints = NO;
+    self.rendererSegment.selectedSegmentIndex = self.instance.renderer;
+    self.rendererSegment.tintColor = PCLColor(0x1370F3);
+    [self.rendererSegment addTarget:self action:@selector(rendererChanged:) forControlEvents:UIControlEventValueChanged];
+    [card addSubview:self.rendererSegment];
+    
+    // 渲染器描述
+    self.rendererDescLabel = [[UILabel alloc] init];
+    self.rendererDescLabel.translatesAutoresizingMaskIntoConstraints = NO;
+    self.rendererDescLabel.font = [UIFont systemFontOfSize:12];
+    self.rendererDescLabel.textColor = PCLColor(0x8C8C8C);
+    self.rendererDescLabel.numberOfLines = 0;
+    self.rendererDescLabel.text = [self rendererDescriptionForIndex:self.instance.renderer];
+    [card addSubview:self.rendererDescLabel];
+
+    [NSLayoutConstraint activateConstraints:@[
+        [self.rendererSegment.topAnchor constraintEqualToAnchor:card.topAnchor constant:48],
+        [self.rendererSegment.leadingAnchor constraintEqualToAnchor:card.leadingAnchor constant:16],
+        [self.rendererSegment.trailingAnchor constraintEqualToAnchor:card.trailingAnchor constant:-16],
+        [self.rendererSegment.heightAnchor constraintEqualToConstant:30],
+        [self.rendererDescLabel.topAnchor constraintEqualToAnchor:self.rendererSegment.bottomAnchor constant:8],
+        [self.rendererDescLabel.leadingAnchor constraintEqualToAnchor:card.leadingAnchor constant:16],
+        [self.rendererDescLabel.trailingAnchor constraintEqualToAnchor:card.trailingAnchor constant:-16],
+        [card.bottomAnchor constraintEqualToAnchor:self.rendererDescLabel.bottomAnchor constant:14]
+    ]];
+
+    [self.stackView addArrangedSubview:card];
+}
+
+- (void)rendererChanged:(UISegmentedControl *)sender {
+    self.instance.renderer = (PCLRenderRenderer)sender.selectedSegmentIndex;
+    self.rendererDescLabel.text = [self rendererDescriptionForIndex:self.instance.renderer];
+}
+
+- (NSString *)rendererDescriptionForIndex:(NSInteger)index {
+    switch (index) {
+        case 0: return @"GL4ES - OpenGL ES翻译层，兼容性好，适合大多数版本";
+        case 1: return @"MetalANGLE - 通过Metal实现OpenGL ES，性能较好";
+        case 2: return @"MobileGlues - 移动端OpenGL模拟";
+        case 3: return @"Zink + Vulkan - OpenGL over Vulkan (实验性)";
+        default: return @"";
+    }
+}
+
+#pragma mark - Java设置
 
 - (void)buildJavaSection {
     UIView *card = [self createSectionCardWithTitle:@"Java 设置"];
@@ -281,6 +343,8 @@ static UIColor *PCLColor(NSUInteger rgb) {
     }
 }
 
+#pragma mark - 内存设置
+
 - (void)buildMemorySection {
     UIView *card = [self createSectionCardWithTitle:@"内存设置"];
 
@@ -327,6 +391,8 @@ static UIColor *PCLColor(NSUInteger rgb) {
     NSInteger value = (NSInteger)(slider.value / 256) * 256;
     self.memoryLabel.text = [NSString stringWithFormat:@"%ld MB", (long)value];
 }
+
+#pragma mark - 分辨率
 
 - (void)buildResolutionSection {
     UIView *card = [self createSectionCardWithTitle:@"游戏分辨率"];
@@ -382,11 +448,63 @@ static UIColor *PCLColor(NSUInteger rgb) {
     [self.stackView addArrangedSubview:card];
 }
 
+#pragma mark - 版本隔离 (参考PCL2-CE)
+
+- (void)buildVersionIsolationSection {
+    UIView *card = [self createSectionCardWithTitle:@"版本隔离"];
+
+    UILabel *isolationLabel = [[UILabel alloc] init];
+    isolationLabel.text = @"启用版本隔离";
+    isolationLabel.font = [UIFont systemFontOfSize:14];
+    isolationLabel.textColor = PCLColor(0x343D4A);
+    isolationLabel.translatesAutoresizingMaskIntoConstraints = NO;
+    [card addSubview:isolationLabel];
+
+    self.versionIsolationSwitch = [[UISwitch alloc] init];
+    self.versionIsolationSwitch.translatesAutoresizingMaskIntoConstraints = NO;
+    self.versionIsolationSwitch.onTintColor = PCLColor(0x1370F3);
+    self.versionIsolationSwitch.on = self.instance.versionIsolation;
+    [self.versionIsolationSwitch addTarget:self action:@selector(versionIsolationChanged:) forControlEvents:UIControlEventValueChanged];
+    [card addSubview:self.versionIsolationSwitch];
+
+    self.versionIsolationDescLabel = [[UILabel alloc] init];
+    self.versionIsolationDescLabel.translatesAutoresizingMaskIntoConstraints = NO;
+    self.versionIsolationDescLabel.font = [UIFont systemFontOfSize:12];
+    self.versionIsolationDescLabel.textColor = PCLColor(0x8C8C8C);
+    self.versionIsolationDescLabel.numberOfLines = 0;
+    self.versionIsolationDescLabel.text = self.instance.versionIsolation ?
+        @"已启用: 该实例拥有独立的游戏目录、mods、config等，不影响其他实例" :
+        @"已关闭: 该实例与其他实例共享 .minecraft 目录";
+    [card addSubview:self.versionIsolationDescLabel];
+
+    [NSLayoutConstraint activateConstraints:@[
+        [isolationLabel.leadingAnchor constraintEqualToAnchor:card.leadingAnchor constant:16],
+        [isolationLabel.topAnchor constraintEqualToAnchor:card.topAnchor constant:48],
+        [self.versionIsolationSwitch.trailingAnchor constraintEqualToAnchor:card.trailingAnchor constant:-16],
+        [self.versionIsolationSwitch.centerYAnchor constraintEqualToAnchor:isolationLabel.centerYAnchor],
+        [self.versionIsolationDescLabel.topAnchor constraintEqualToAnchor:isolationLabel.bottomAnchor constant:8],
+        [self.versionIsolationDescLabel.leadingAnchor constraintEqualToAnchor:card.leadingAnchor constant:16],
+        [self.versionIsolationDescLabel.trailingAnchor constraintEqualToAnchor:card.trailingAnchor constant:-16],
+        [card.bottomAnchor constraintEqualToAnchor:self.versionIsolationDescLabel.bottomAnchor constant:14]
+    ]];
+
+    [self.stackView addArrangedSubview:card];
+}
+
+- (void)versionIsolationChanged:(UISwitch *)sender {
+    self.instance.versionIsolation = sender.on;
+    self.versionIsolationDescLabel.text = sender.on ?
+        @"已启用: 该实例拥有独立的游戏目录、mods、config等，不影响其他实例" :
+        @"已关闭: 该实例与其他实例共享 .minecraft 目录";
+}
+
+#pragma mark - JVM参数
+
 - (void)buildJvmArgsSection {
     UIView *card = [self createSectionCardWithTitle:@"JVM 参数"];
 
     UILabel *hintLabel = [[UILabel alloc] init];
-    hintLabel.text = @"自定义 JVM 启动参数（逗号分隔多个参数）";
+    hintLabel.text = @"自定义 JVM 启动参数";
     hintLabel.font = [UIFont systemFontOfSize:12];
     hintLabel.textColor = PCLColor(0x8C8C8C);
     hintLabel.translatesAutoresizingMaskIntoConstraints = NO;
@@ -417,6 +535,8 @@ static UIColor *PCLColor(NSUInteger rgb) {
 
     [self.stackView addArrangedSubview:card];
 }
+
+#pragma mark - 高级选项
 
 - (void)buildAdvancedSection {
     UIView *card = [self createSectionCardWithTitle:@"高级选项"];

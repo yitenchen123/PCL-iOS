@@ -17,6 +17,12 @@ NSString *const PCLCurrentInstanceNameKey = @"PCLCurrentInstanceName";
     dict[@"memoryMaxMB"] = @(self.memoryMaxMB);
     dict[@"autoSelectJava"] = @(self.autoSelectJava);
     if (self.gameArguments) dict[@"gameArguments"] = self.gameArguments;
+    dict[@"renderer"] = @(self.renderer);
+    dict[@"versionIsolation"] = @(self.versionIsolation);
+    if (self.javaPathOverride) dict[@"javaPathOverride"] = self.javaPathOverride;
+    if (self.serverAddress) dict[@"serverAddress"] = self.serverAddress;
+    dict[@"autoJoinServer"] = @(self.autoJoinServer);
+    dict[@"memoryMinMB"] = @(self.memoryMinMB);
     return dict;
 }
 
@@ -33,6 +39,12 @@ NSString *const PCLCurrentInstanceNameKey = @"PCLCurrentInstanceName";
     instance.memoryMaxMB = [dict[@"memoryMaxMB"] integerValue] ?: 2048;
     instance.autoSelectJava = dict[@"autoSelectJava"] ? [dict[@"autoSelectJava"] boolValue] : YES;
     instance.gameArguments = dict[@"gameArguments"] ?: @"";
+    instance.renderer = [dict[@"renderer"] integerValue];
+    instance.versionIsolation = dict[@"versionIsolation"] ? [dict[@"versionIsolation"] boolValue] : NO;
+    instance.javaPathOverride = dict[@"javaPathOverride"] ?: @"";
+    instance.serverAddress = dict[@"serverAddress"] ?: @"";
+    instance.autoJoinServer = dict[@"autoJoinServer"] ? [dict[@"autoJoinServer"] boolValue] : NO;
+    instance.memoryMinMB = [dict[@"memoryMinMB"] integerValue] ?: 512;
     return instance;
 }
 
@@ -122,12 +134,15 @@ NSString *const PCLCurrentInstanceNameKey = @"PCLCurrentInstanceName";
     instance.versionId = versionId;
     instance.gameDir = instanceDir;
     instance.memoryMaxMB = 2048;
+    instance.memoryMinMB = 512;
     instance.autoSelectJava = YES;
     instance.resolutionWidth = 1280;
     instance.resolutionHeight = 720;
     instance.javaArgs = [NSString stringWithFormat:@"-Xmx%ldM -Xms512M", (long)instance.memoryMaxMB];
     instance.javaVersion = @"auto";
     instance.created = [[NSDate date] description];
+    instance.renderer = PCLRenderRendererGL4ES;
+    instance.versionIsolation = NO;
 
     return [self saveInstance:instance];
 }
@@ -187,6 +202,55 @@ NSString *const PCLCurrentInstanceNameKey = @"PCLCurrentInstanceName";
     if (!data) return NO;
 
     return [data writeToFile:configPath atomically:YES];
+}
+
+#pragma mark - 版本隔离 (参考PCL2-CE)
+
+// 获取共享游戏目录 (版本隔离关闭时使用)
+- (NSString *)sharedGameDirectory {
+    NSString *docsDir = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES).firstObject;
+    NSString *sharedDir = [docsDir stringByAppendingPathComponent:@".minecraft"];
+    [self ensureDirectory:sharedDir];
+    return sharedDir;
+}
+
+// 根据实例配置返回游戏目录
+// 版本隔离开启: 使用 instances/<name>/ 独立目录
+// 版本隔离关闭: 使用共享 .minecraft 目录
+- (NSString *)gameDirectoryForInstance:(PCLInstance *)instance {
+    if (instance.versionIsolation) {
+        // 版本隔离: 每个实例独立目录
+        NSString *instanceDir = [self instanceDirectoryForName:instance.name];
+        [self ensureDirectory:instanceDir];
+        return instanceDir;
+    } else {
+        // 不隔离: 使用共享目录
+        return [self sharedGameDirectory];
+    }
+}
+
+// 获取实例mods目录
+- (NSString *)modsDirectoryForInstance:(PCLInstance *)instance {
+    NSString *modsDir;
+    if (instance.versionIsolation) {
+        modsDir = [[self instanceDirectoryForName:instance.name] stringByAppendingPathComponent:@"mods"];
+    } else {
+        modsDir = [[self sharedGameDirectory] stringByAppendingPathComponent:@"mods"];
+    }
+    [self ensureDirectory:modsDir];
+    return modsDir;
+}
+
+// 获取实例config目录
+- (NSString *)configDirectoryForInstance:(PCLInstance *)instance {
+    NSString *configDir;
+    if (instance.versionIsolation) {
+        configDir = [[self instanceDirectoryForName:instance.name] stringByAppendingPathComponent:@"config"];
+    } else {
+        configDir = [[self sharedGameDirectory] stringByAppendingPathComponent:@"config"];
+    }
+    [self ensureDirectory:configDir];
+    return configDir;
 }
 
 @end

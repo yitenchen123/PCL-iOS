@@ -1,4 +1,5 @@
 #import <Foundation/Foundation.h>
+#import "PCLRendererManager.h"
 
 @interface PCLInstance : NSObject
 
@@ -13,6 +14,18 @@
 @property (nonatomic, assign) NSInteger memoryMaxMB;
 @property (nonatomic, assign) BOOL autoSelectJava;
 @property (nonatomic, copy) NSString *gameArguments;
+
+// 渲染器选择 (参考PCL2-CE)
+@property (nonatomic, assign) PCLRenderRenderer renderer;
+
+// 版本隔离 (参考PCL2-CE)
+@property (nonatomic, assign) BOOL versionIsolation;
+
+// 高级设置
+@property (nonatomic, copy) NSString *javaPathOverride;
+@property (nonatomic, copy) NSString *serverAddress;
+@property (nonatomic, assign) BOOL autoJoinServer;
+@property (nonatomic, assign) NSInteger memoryMinMB;
 
 - (NSDictionary *)toDictionary;
 + (instancetype)instanceFromDictionary:(NSDictionary *)dict;
@@ -32,5 +45,11 @@ extern NSString *const PCLCurrentInstanceNameKey;
 - (void)selectInstance:(PCLInstance *)instance;
 - (PCLInstance *)currentInstance;
 - (BOOL)saveInstance:(PCLInstance *)instance;
+
+// 版本隔离: 根据实例配置返回游戏目录 (参考PCL2-CE)
+- (NSString *)gameDirectoryForInstance:(PCLInstance *)instance;
+- (NSString *)sharedGameDirectory;
+- (NSString *)modsDirectoryForInstance:(PCLInstance *)instance;
+- (NSString *)configDirectoryForInstance:(PCLInstance *)instance;
 
 @end
